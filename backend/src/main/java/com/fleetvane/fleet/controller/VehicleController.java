@@ -18,7 +18,7 @@ public class VehicleController {
 
     private final VehicleService vehicleService;
 
-    @GetMapping("/")
+    @GetMapping
     @PreAuthorize("hasAuthority('MANAGER')")
     public Page<VehicleDto> getAllVehicles(Pageable pageable, @RequestParam(required = false) String status) {
         return vehicleService.getAllVehicles(pageable, status);
@@ -30,7 +30,7 @@ public class VehicleController {
         return vehicleService.getVehicleById(id);
     }
 
-    @PostMapping("/")
+    @PostMapping
     @PreAuthorize("hasAuthority('MANAGER')")
     public VehicleDto createVehicle(@Valid @RequestBody CreateVehicleRequest request) {
         return vehicleService.createVehicle(request);

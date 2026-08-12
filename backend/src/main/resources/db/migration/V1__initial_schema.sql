@@ -61,6 +61,8 @@ CREATE TABLE vehicles (
     heading      DOUBLE PRECISION   NOT NULL DEFAULT 0,
     created_at   TIMESTAMP          NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP          NOT NULL DEFAULT NOW(),
+    created_by   VARCHAR(255),
+    updated_by   VARCHAR(255),
     version      BIGINT             NOT NULL DEFAULT 0
 );
 
@@ -73,10 +75,12 @@ CREATE TABLE driver_profiles (
     id             BIGSERIAL    PRIMARY KEY,
     user_id        BIGINT       NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
     license_number VARCHAR(50)  NOT NULL UNIQUE,
-    vehicle_id     BIGINT       REFERENCES vehicles(id) ON SET NULL,
+    vehicle_id     BIGINT       REFERENCES vehicles(id) ON DELETE SET NULL,
     is_available   BOOLEAN      NOT NULL DEFAULT TRUE,
     created_at     TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at     TIMESTAMP    NOT NULL DEFAULT NOW(),
+    created_by     VARCHAR(255),
+    updated_by     VARCHAR(255),
     version        BIGINT       NOT NULL DEFAULT 0
 );
 
@@ -104,6 +108,8 @@ CREATE TABLE shipments (
     driver_id           BIGINT             REFERENCES users(id),
     created_at          TIMESTAMP          NOT NULL DEFAULT NOW(),
     updated_at          TIMESTAMP          NOT NULL DEFAULT NOW(),
+    created_by          VARCHAR(255),
+    updated_by          VARCHAR(255),
     version             BIGINT             NOT NULL DEFAULT 0
 );
 

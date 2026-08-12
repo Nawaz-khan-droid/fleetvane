@@ -17,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
@@ -52,7 +53,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // Here we construct UserDetails without hitting DB to keep auth stateless & fast
                 // We use String.valueOf(userId) as the username so controllers can easily parse the ID
                 UserDetails userDetails = new User(String.valueOf(userId), "", 
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
+                    List.of(new SimpleGrantedAuthority(role), new SimpleGrantedAuthority("ROLE_" + role)));
                 
                 // We don't check against DB, we just trust the signed JWT (stateless)
                 // We assume expiration check is done in jwtService.extractUserId or we do it here

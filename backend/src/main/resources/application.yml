@@ -16,11 +16,11 @@ spring:
         format_sql: true
     show-sql: false
 
-  # ── Datasource (Supabase PostgreSQL via Pooler) ──
+  # ── Datasource (Supabase PostgreSQL via Pooler with H2 fallback) ──
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:fleetvanedb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
     hikari:
       maximum-pool-size: 5
       minimum-idle: 2
@@ -41,7 +41,7 @@ spring:
 # ── JWT Configuration ──
 fleetvane:
   jwt:
-    secret: ${JWT_SECRET}
+    secret: ${JWT_SECRET:fleetvane-capstone-jwt-secret-key-2026-minimum-256-bits-required}
     access-token-expiration-ms: 900000       # 15 minutes
     refresh-token-expiration-ms: 604800000   # 7 days
 
