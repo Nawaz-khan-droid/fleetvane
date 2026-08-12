@@ -27,6 +27,7 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
 
 ```
 .
+├── .env.example              # Template for root environment configuration
 ├── backend/                  # Spring Boot 3.4.1 Java 21 Backend
 │   ├── src/main/java/com/fleetvane/
 │   │   ├── auth/             # Authentication & Refresh Token Module
@@ -39,7 +40,7 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
 │   │   └── shared/           # Base Entities, Auditing & Exception Handlers
 │   ├── src/main/resources/
 │   │   ├── db/migration/     # Flyway SQL Migrations (V1 Initial Schema)
-│   │   └── application.yml   # Production-Ready Application Config
+│   │   └── application.yml   # Application Config (ddl-auto: validate)
 │   └── pom.xml               # Maven Build Configuration
 │
 └── frontend/                 # React 19 + Vite + Tailwind CSS v4 Frontend
@@ -47,7 +48,7 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
     │   ├── components/       # Radix UI Primitives, Maps & Layouts
     │   ├── context/          # Auth Context & Theme Provider
     │   ├── hooks/            # GPS Tracking & Map Provider Hooks
-    │   ├── pages/            # Manager, Client, Driver Dashboards & Auth
+    │   ├── pages/            # 18 Routes: Manager, Client, Driver & Auth
     │   ├── services/         # Axios Client with Auto-Refresh Interceptor
     │   └── types/            # TypeScript Domain Definitions
     ├── index.html
@@ -58,25 +59,43 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
 
 ## 🛠️ Prerequisites & Local Setup
 
-### Backend (Java 21 & Maven)
+### Environment Variables Setup
+Copy the `.env.example` template at the repository root to `.env` and fill in your database credentials:
+```bash
+cp .env.example .env
+```
+
+### Backend Configuration (`backend/src/main/resources/application.yml`)
+The backend is driven entirely by `application.yml`. Provide database connection details via environment variables or directly in `application.yml`:
+```yaml
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+```
+
+### Backend Build & Test (Java 21 & Maven)
 - **Java**: JDK 21+ installed and set in `JAVA_HOME`.
-- **Database**: PostgreSQL database (e.g. Supabase or local PostgreSQL).
-- **Build**: Run Maven to compile and run:
+- **Compile & Unit Test Verification**:
   ```bash
   cd backend
-  mvn clean compile spring-boot:run
+  mvn clean compile
+  mvn test
   ```
 
-### Frontend (Node 18+ & Vite)
+### Frontend Build (Node 18+ & Vite)
 - **Node.js**: v18.0.0 or higher.
-- **Install & Dev Server**:
+- **Install & Production Build**:
   ```bash
   cd frontend
   npm install
-  npm run dev
-  ```
-- **Production Build**:
-  ```bash
   npm run build
   ```
 
