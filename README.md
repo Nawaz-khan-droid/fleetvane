@@ -1,35 +1,86 @@
-# FleetVane Intelligent Fleet & Route Optimizer
+# FleetVane — Enterprise Intelligent Fleet & Route Optimizer
 
-A full-stack logistics and delivery optimization platform featuring AI-driven vehicle routing and live GPS tracking.
+FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic route optimization engine designed for modern logistics operations. Built using a modular monolithic architecture with Spring Boot 3.4.1 (Java 21), Hibernate ORM, PostgreSQL (Flyway migrations), and Timefold VRP engine for back-end optimization, alongside a high-performance React 19 + Vite + Tailwind CSS v4 frontend.
 
-## Tech Stack
-- **Backend**: Spring Boot 3, Spring Data JPA, Spring Security (JWT)
-- **Database**: PostgreSQL (Supabase Cloud)
-- **VRP Engine**: Timefold Solver
-- **Frontend**: React 19, Vite, Tailwind CSS v4
-- **Mapping**: Leaflet (OpenStreetMap/CartoDB) & Google Maps (Traffic) + OSRM (Routing)
+---
 
-## Project Structure
-- `/backend`: Spring Boot REST API and Timefold VRP engine.
-- `/frontend`: React SPA, Dashboard UI, and HTML5 Geolocation tracker.
+## 🌟 Key Architectural Features
 
-## Setup Instructions
+### 🏛️ Modular Monolith Architecture
+- **Zero Cross-Module Leaks**: Modules strictly encapsulate internal domains (Entities, Repositories, DTOs).
+- **Loose Coupling via ID References**: Modules reference entities from other modules via raw `Long`/`UUID` IDs rather than direct JPA relations to maintain independent boundary domains.
+- **Transaction Safety**: Spring-managed `@Transactional` isolation boundaries ensure database integrity without distributed transaction overhead.
 
-### Backend
-1. Ensure Java 21+ and Maven are installed.
-2. Provide your Supabase database credentials in `backend/src/main/resources/application.properties` (or via environment variables).
-3. Run the backend: `mvn spring-boot:run`
+### 🔐 Modern JWT Authentication Infrastructure
+- **Short-Lived Access Tokens**: In-memory storage only (React state machine context).
+- **Long-Lived Refresh Tokens**: Persisted in PostgreSQL database with token-family invalidation (`refresh_tokens` table) and transmitted over `HttpOnly`, `Secure`, `SameSite=Lax` cookies.
+- **Single-Retry Axios Interceptor**: Front-end queued retry logic prevents token-refresh stampedes under high concurrency.
 
-### Frontend
-1. Ensure Node.js 20+ is installed.
-2. CD into the `frontend` directory.
-3. Install dependencies: `npm install`
-4. Start the dev server: `npm run dev`
+### 🧭 High-Performance Dynamic Route Optimization
+- **Timefold VRP Integration**: Implements Vehicle Routing Problem (VRP) solving algorithms directly in Java to calculate minimum-distance and time-window-optimized stop sequences.
+- **Hybrid Mapping Engine**: Dynamically switches between OpenStreetMap/CartoDB (Leaflet) and Google Maps API v3 with real-time Traffic Layers.
+- **OSRM Polyline Routing**: Real-time road network routing via Open Source Routing Machine APIs.
 
-## Features
-- **Manager Dashboard**: Monitor the entire fleet in real-time.
-- **Hybrid Maps**: Switch seamlessly between OpenStreetMap (Leaflet) and Google Maps to view traffic data.
-- **Route Optimization**: Uses Timefold Solver to solve the Vehicle Routing Problem (VRP) by minimizing Haversine distance between waypoints.
-- **Live GPS**: Drivers broadcast their live coordinates via HTML5 Geolocation API, rendered on the Manager's map.
-- **Incident Reporting**: Drivers can submit road delays or breakdowns which automatically log their exact GPS location.
-- **Fuel Stations (POI)**: Integration with the Overpass API to query nearby fuel stations along the route.
+---
+
+## 📁 Repository Structure
+
+```
+.
+├── backend/                  # Spring Boot 3.4.1 Java 21 Backend
+│   ├── src/main/java/com/fleetvane/
+│   │   ├── auth/             # Authentication & Refresh Token Module
+│   │   ├── fleet/            # Vehicle Management Module
+│   │   ├── shipment/         # Delivery & State Machine Module
+│   │   ├── driver/           # Driver Profiles & Availability
+│   │   ├── incident/         # Live Incident & Exception Reporting
+│   │   ├── routing/          # Timefold VRP Engine & Job Tracking
+│   │   ├── tracking/         # Real-time Telemetry & Location Updates
+│   │   └── shared/           # Base Entities, Auditing & Exception Handlers
+│   ├── src/main/resources/
+│   │   ├── db/migration/     # Flyway SQL Migrations (V1 Initial Schema)
+│   │   └── application.yml   # Production-Ready Application Config
+│   └── pom.xml               # Maven Build Configuration
+│
+└── frontend/                 # React 19 + Vite + Tailwind CSS v4 Frontend
+    ├── src/
+    │   ├── components/       # Radix UI Primitives, Maps & Layouts
+    │   ├── context/          # Auth Context & Theme Provider
+    │   ├── hooks/            # GPS Tracking & Map Provider Hooks
+    │   ├── pages/            # Manager, Client, Driver Dashboards & Auth
+    │   ├── services/         # Axios Client with Auto-Refresh Interceptor
+    │   └── types/            # TypeScript Domain Definitions
+    ├── index.html
+    └── vite.config.ts
+```
+
+---
+
+## 🛠️ Prerequisites & Local Setup
+
+### Backend (Java 21 & Maven)
+- **Java**: JDK 21+ installed and set in `JAVA_HOME`.
+- **Database**: PostgreSQL database (e.g. Supabase or local PostgreSQL).
+- **Build**: Run Maven to compile and run:
+  ```bash
+  cd backend
+  mvn clean compile spring-boot:run
+  ```
+
+### Frontend (Node 18+ & Vite)
+- **Node.js**: v18.0.0 or higher.
+- **Install & Dev Server**:
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
+- **Production Build**:
+  ```bash
+  npm run build
+  ```
+
+---
+
+## 🛡️ License & Acknowledgments
+Developed for Capstone Project. Built using enterprise software practices, clean architecture, and modern full-stack web standards.
