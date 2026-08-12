@@ -1,4 +1,4 @@
-export type UserRole = 'FLEET_MANAGER' | 'DELIVERY_DRIVER' | 'CLIENT';
+export type UserRole = 'MANAGER' | 'DRIVER' | 'CLIENT';
 
 export type DeliveryStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 
