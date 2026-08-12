@@ -55,9 +55,9 @@ public class AuthService {
                 request.role()
         );
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        return authenticateAndGenerateTokens(user).response();
+        return authenticateAndGenerateTokens(savedUser).response();
     }
 
     @Transactional
@@ -80,7 +80,7 @@ public class AuthService {
                 .orElseThrow(() -> new BusinessException("Invalid refresh token", HttpStatus.UNAUTHORIZED));
 
         if (refreshToken.getRevokedAt() != null) {
-            refreshTokenRepository.revokeFamily(refreshToken.getFamilyId());
+            refreshTokenRepository.revokeFamily(refreshToken.getFamilyId(), Instant.now());
             throw new BusinessException("Token reuse detected. Family revoked.", HttpStatus.UNAUTHORIZED);
         }
 

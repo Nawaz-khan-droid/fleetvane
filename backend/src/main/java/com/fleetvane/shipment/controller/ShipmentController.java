@@ -48,7 +48,7 @@ public class ShipmentController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('CLIENT')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'CLIENT', 'ROLE_MANAGER', 'ROLE_CLIENT')")
     public ShipmentDto createShipment(@Valid @RequestBody CreateShipmentRequest request, Authentication authentication) {
         Long clientId = extractUserId(authentication);
         return shipmentService.createShipment(request, clientId);

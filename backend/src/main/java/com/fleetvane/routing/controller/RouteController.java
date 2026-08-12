@@ -23,14 +23,14 @@ public class RouteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ROLE_MANAGER')")
     public OptimizationJobDto submitJob(@Valid @RequestBody CreateOptimizationJobRequest request, Authentication authentication) {
         Long userId = extractUserId(authentication);
         return routeSolverService.submitJob(request, userId);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ROLE_MANAGER')")
     public OptimizationJobDto getJobStatus(@PathVariable UUID id) {
         return routeSolverService.getJobStatus(id);
     }
