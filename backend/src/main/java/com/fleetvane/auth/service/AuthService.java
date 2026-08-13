@@ -48,11 +48,14 @@ public class AuthService {
             throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
         }
 
+        String assignedRole = userRepository.count() == 0 ? 
+                (request.role() != null && !request.role().isBlank() ? request.role() : "MANAGER") : "CLIENT";
+
         User user = new User(
                 request.email(),
                 passwordEncoder.encode(request.password()),
                 request.name(),
-                request.role()
+                assignedRole
         );
 
         User savedUser = userRepository.save(user);

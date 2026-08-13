@@ -15,9 +15,11 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
 - **Short-Lived Access Tokens**: In-memory storage only (React state machine context).
 - **Long-Lived Refresh Tokens**: Persisted in PostgreSQL database with token-family invalidation (`refresh_tokens` table) and transmitted over `HttpOnly`, `Secure`, `SameSite=Lax` cookies.
 - **Single-Retry Axios Interceptor**: Front-end queued retry logic prevents token-refresh stampedes under high concurrency.
+- **Role-Based Access Control (RBAC)**: Enforces `MANAGER`, `DRIVER`, and `CLIENT` authorization across endpoints. Public signup is strictly locked down to `CLIENT` mode to prevent unauthorized role elevation.
 
 ### 🧭 High-Performance Dynamic Route Optimization
-- **Timefold VRP Integration**: Implements Vehicle Routing Problem (VRP) solving algorithms directly in Java to calculate minimum-distance and time-window-optimized stop sequences.
+- **Timefold VRP Integration**: Implements Vehicle Routing Problem (VRP) solving algorithms directly in Java to calculate minimum-distance and capacity-optimized stop sequences.
+- **Constraint Scoring**: Detects capacity violations through hard-score penalties (`-18000hard` excess weight penalty).
 - **Hybrid Mapping Engine**: Dynamically switches between OpenStreetMap/CartoDB (Leaflet) and Google Maps API v3 with real-time Traffic Layers.
 - **OSRM Polyline Routing**: Real-time road network routing via Open Source Routing Machine APIs.
 
@@ -27,7 +29,6 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
 
 ```
 .
-├── .env.example              # Template for root environment configuration
 ├── backend/                  # Spring Boot 3.4.1 Java 21 Backend
 │   ├── src/main/java/com/fleetvane/
 │   │   ├── auth/             # Authentication & Refresh Token Module
@@ -59,45 +60,46 @@ FleetVane is an enterprise-grade, high-performance fleet tracking and dynamic ro
 
 ## 🛠️ Prerequisites & Local Setup
 
-### Environment Variables Setup
-Copy the `.env.example` template at the repository root to `.env` and fill in your database credentials:
-```bash
-cp .env.example .env
-```
+### System Prerequisites
+1. **Java Development Kit (JDK 21+)**
+2. **Apache Maven (3.9+)**
+3. **Node.js (v18.0.0+)**
+4. **PostgreSQL / Supabase Database (or local H2 fallback for dev/testing)**
 
 ### Backend Configuration (`backend/src/main/resources/application.yml`)
-The backend is driven entirely by `application.yml`. Provide database connection details via environment variables or directly in `application.yml`:
-```yaml
-spring:
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/postgres}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
+The backend is configured via `application.yml`. You can specify live Supabase PostgreSQL credentials via environment variables:
+
+```bash
+export SPRING_DATASOURCE_URL="jdbc:postgresql://<your-supabase-host>:5432/postgres"
+export SPRING_DATASOURCE_USERNAME="postgres"
+export SPRING_DATASOURCE_PASSWORD="<your-supabase-password>"
+export JWT_SECRET="c2VjcmV0LWtleS1mb3ItZmxlZXR2YW5lLWp3dC1hdXRoZW50aWNhdGlvbi1zZWN1cmUtZXhhbXBsZQ=="
 ```
 
-### Backend Build & Test (Java 21 & Maven)
-- **Java**: JDK 21+ installed and set in `JAVA_HOME`.
-- **Compile & Unit Test Verification**:
-  ```bash
-  cd backend
-  mvn clean compile
-  mvn test
-  ```
+### Backend Build, Test & Run Commands
+```bash
+cd backend
 
-### Frontend Build (Node 18+ & Vite)
-- **Node.js**: v18.0.0 or higher.
-- **Install & Production Build**:
-  ```bash
-  cd frontend
-  npm install
-  npm run build
-  ```
+# Full Build & Test Verification (Executes all JUnit 5 unit tests & produces executable JAR)
+mvn clean verify
+
+# Run Spring Boot Application
+mvn spring-boot:run
+```
+
+### Frontend Build & Run Commands
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run Development Server
+npm run dev
+
+# Build Production Bundle
+npm run build
+```
 
 ---
 
