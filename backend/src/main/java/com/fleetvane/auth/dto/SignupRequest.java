@@ -16,6 +16,5 @@ public record SignupRequest(
     @Size(min = 6, message = "Password must be at least 6 characters")
     String password,
     
-    @NotBlank(message = "Role is required")
     String role
 ) {}
