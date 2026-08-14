@@ -7,24 +7,21 @@ export default function ClientTrack() {
   const [shipment, setShipment] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shipmentId) return;
 
     setIsLoading(true);
+    setError(null);
+    setShipment(null);
     try {
       const response = await apiClient.get(`/shipments/${shipmentId}`);
       setShipment(response.data);
-    } catch (error) {
-      // Demo fallback mock
-      setShipment({
-        id: shipmentId,
-        status: 'IN_PROGRESS',
-        originAddress: '742 Evergreen Terrace',
-        destinationAddress: '100 Industrial Parkway',
-        weight: 250,
-        eta: new Date(Date.now() + 3600000).toLocaleTimeString()
-      });
+    } catch (err) {
+      console.error('Failed to track shipment', err);
+      setError('Shipment not found or unable to track at this time.');
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +50,20 @@ export default function ClientTrack() {
         </button>
       </form>
 
-      {shipment && (
+      {error && (
+        <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl">
+          {error}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="p-8 text-center text-slate-500">
+          <div className="w-8 h-8 mx-auto mb-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          Tracking shipment...
+        </div>
+      )}
+
+      {shipment && !isLoading && !error && (
         <div className="p-8 bg-slate-900/60 border border-slate-800 rounded-3xl space-y-6">
           <div className="flex items-center justify-between border-b border-slate-800 pb-6">
             <div className="flex items-center gap-4">

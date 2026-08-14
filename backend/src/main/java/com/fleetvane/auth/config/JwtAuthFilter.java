@@ -23,9 +23,11 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final com.fleetvane.auth.repository.UserRepository userRepository;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthFilter(JwtService jwtService, com.fleetvane.auth.repository.UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -50,21 +52,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             String role = jwtService.extractRole(jwt);
             
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Here we construct UserDetails without hitting DB to keep auth stateless & fast
-                // We use String.valueOf(userId) as the username so controllers can easily parse the ID
-                UserDetails userDetails = new User(String.valueOf(userId), "", 
-                    List.of(new SimpleGrantedAuthority(role), new SimpleGrantedAuthority("ROLE_" + role)));
-                
-                // We don't check against DB, we just trust the signed JWT (stateless)
-                // We assume expiration check is done in jwtService.extractUserId or we do it here
-                // jwtService will throw ExpiredJwtException if expired, so we are safe
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                // Fetch user to ensure they exist and are active
+                var userOpt = userRepository.findById(userId);
+                if (userOpt.isPresent() && userOpt.get().getIsActive()) {
+                    UserDetails userDetails = new User(String.valueOf(userId), "", 
+                        List.of(new SimpleGrantedAuthority(role), new SimpleGrantedAuthority("ROLE_" + role)));
+                    
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
         } catch (Exception e) {
             // Token invalid or expired, continue and let Spring Security handle it

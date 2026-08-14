@@ -12,29 +12,38 @@ export default function GoogleMap({ showTraffic }: GoogleMapProps) {
   const [trafficLayer, setTrafficLayer] = useState<any>(null);
   const { theme } = useTheme();
 
+  const isInitializing = useRef(false);
+
   useEffect(() => {
+    if (isInitializing.current) return;
+    
     const initMap = async () => {
-      const loader = new Loader({
-        apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-        version: 'weekly',
-      });
-
-      const { Map } = await (loader as any).importLibrary('maps');
-
-      if (mapRef.current && !map) {
-        const newMap = new Map(mapRef.current, {
-          center: { lat: 37.7749, lng: -122.4194 },
-          zoom: 13,
-          mapId: 'DEMO_MAP_ID',
-          disableDefaultUI: false,
+      isInitializing.current = true;
+      try {
+        const loader = new Loader({
+          apiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+          version: 'weekly',
         });
 
-        setMap(newMap);
+        const { Map } = await (loader as any).importLibrary('maps');
+
+        if (mapRef.current && !map) {
+          const newMap = new Map(mapRef.current, {
+            center: { lat: 37.7749, lng: -122.4194 },
+            zoom: 13,
+            mapId: 'DEMO_MAP_ID',
+            disableDefaultUI: false,
+          });
+
+          setMap(newMap);
+        }
+      } catch (err) {
+        console.error("Failed to initialize Google Maps", err);
       }
     };
 
     initMap();
-  }, [map]);
+  }, []);
 
   useEffect(() => {
     if (!map) return;

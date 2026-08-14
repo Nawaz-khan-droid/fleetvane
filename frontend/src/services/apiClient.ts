@@ -54,7 +54,8 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     // If error is 401 and we haven't retried yet
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    // CRITICAL FIX: Do NOT intercept 401s if the failed request WAS the refresh endpoint itself!
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !originalRequest.url?.includes('/auth/refresh')) {
       
       // If we are refreshing, queue the request
       if (isRefreshing) {

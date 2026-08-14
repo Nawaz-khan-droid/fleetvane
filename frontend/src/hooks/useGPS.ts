@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import api from '../lib/api';
+import { apiClient } from '../services/apiClient';
 
 interface Location {
   lat: number;
@@ -35,7 +35,7 @@ export function useGPS(truckId?: string) {
         
         // Use the API to put the location.
         // Assuming baseURL in api.ts ends in /api or similar, we use /trucks/${truckId}/location
-        api.put(`/trucks/${truckId}/location`, { lat: latitude, lng: longitude })
+        apiClient.put(`/trucks/${truckId}/location`, { lat: latitude, lng: longitude })
           .catch(err => {
             console.error('Failed to sync location to backend:', err);
           });

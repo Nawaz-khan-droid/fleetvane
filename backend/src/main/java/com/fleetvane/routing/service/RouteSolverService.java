@@ -52,13 +52,12 @@ public class RouteSolverService {
             throw new BusinessException("Must provide valid vehicles and shipments", HttpStatus.BAD_REQUEST);
         }
 
-        // Build domain objects
         List<RouteVehicle> routeVehicles = vehicles.stream()
-                .map(v -> new RouteVehicle(v.getId(), v.getId(), v.getLat(), v.getLng(), v.getCapacity()))
+                .map(v -> new RouteVehicle(v.getId(), v.getId(), v.getLat(), v.getLng(), (long) (v.getCapacity() * 1000)))
                 .collect(Collectors.toList());
 
         List<DeliveryStop> deliveryStops = shipments.stream()
-                .map(s -> new DeliveryStop(s.getId(), s.getId(), s.getDestinationLat(), s.getDestinationLng(), s.getWeight()))
+                .map(s -> new DeliveryStop(s.getId(), s.getId(), s.getDestinationLat(), s.getDestinationLng(), (long) (s.getWeight() * 1000)))
                 .collect(Collectors.toList());
 
         OptimizationJob job = new OptimizationJob();

@@ -12,22 +12,22 @@ export default function Fleet() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newTruck, setNewTruck] = useState({ plateNumber: '', model: '', capacity: 0 });
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchTrucks();
   }, []);
 
   const fetchTrucks = async () => {
+    setIsLoading(true);
+    setError(null);
     try {
       const response = await apiClient.get('/trucks');
       setTrucks(response.data);
-    } catch (error) {
-      console.error('Failed to fetch trucks', error);
-      // Fallback mock data for demo
-      setTrucks([
-        { id: '1', plateNumber: 'XYZ-1234', model: 'Volvo VNL', capacity: 10000, status: 'IDLE', lat: 40.7128, lng: -74.0060, heading: 90 },
-        { id: '2', plateNumber: 'ABC-9876', model: 'Freightliner', capacity: 15000, status: 'IN_TRANSIT', lat: 34.0522, lng: -118.2437, heading: 180 },
-        { id: '3', plateNumber: 'LMN-4567', model: 'Kenworth T680', capacity: 12000, status: 'OFFLINE', lat: 41.8781, lng: -87.6298, heading: 0 },
-      ] as any);
+    } catch (err) {
+      console.error('Failed to fetch trucks', err);
+      setError('Failed to load fleet data');
+      toast.error('Failed to load fleet data');
     } finally {
       setIsLoading(false);
     }
@@ -169,6 +169,18 @@ export default function Fleet() {
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
                       Loading fleet data...
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-rose-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <AlertCircle className="w-8 h-8 text-rose-500/50" />
+                      <p>{error}</p>
+                      <button onClick={fetchTrucks} className="mt-2 px-4 py-1.5 bg-rose-500/10 text-rose-400 rounded-lg text-sm font-medium hover:bg-rose-500/20 transition-colors">
+                        Retry
+                      </button>
                     </div>
                   </td>
                 </tr>

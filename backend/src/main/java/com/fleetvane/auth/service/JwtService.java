@@ -61,7 +61,13 @@ public class JwtService {
     }
     
     public Long extractUserId(String token) {
-        return extractClaim(token, claims -> claims.get("id", Long.class));
+        return extractClaim(token, claims -> {
+            Object val = claims.get("id");
+            if (val instanceof Number) {
+                return ((Number) val).longValue();
+            }
+            return null;
+        });
     }
 
     private boolean isTokenExpired(String token) {

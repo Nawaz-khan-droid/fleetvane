@@ -5,6 +5,8 @@
 spring:
   application:
     name: fleetvane
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
 
   # ── JPA / Hibernate ──
   jpa:
@@ -14,7 +16,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    show-sql: false
+    show-sql: true
 
   # ── Datasource (Supabase PostgreSQL via Pooler with H2 fallback) ──
   datasource:
@@ -49,15 +51,17 @@ fleetvane:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
-# ── Actuator ──
+# ── Actuator & Observability ──
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: when-authorized
+      show-details: always
+    metrics:
+      enabled: true
 
 # ── Server ──
 server:
@@ -68,6 +72,8 @@ server:
 
 # ── Logging ──
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [CorrelationID: %X{correlationId:-NONE}] %logger{36} - %msg%n"
   level:
     com.fleetvane: DEBUG
     org.springframework.security: WARN
