@@ -58,6 +58,26 @@ class AuthServiceTest {
     }
 
     @Test
+    void testLogin_DeactivatedUser() {
+        LoginRequest request = new LoginRequest("test@fleetvane.com", "password");
+        
+        User deactivatedUser = new User();
+        deactivatedUser.setEmail("test@fleetvane.com");
+        deactivatedUser.setPasswordHash("encoded_password");
+        deactivatedUser.setIsActive(false);
+
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(deactivatedUser));
+        when(passwordEncoder.matches("password", "encoded_password")).thenReturn(true);
+        
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            authService.login(request);
+        });
+        
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals("Account is deactivated", exception.getMessage());
+    }
+
+    @Test
     void testLogin_Success() {
         LoginRequest request = new LoginRequest("test@fleetvane.com", "password");
         
@@ -65,12 +85,13 @@ class AuthServiceTest {
         when(passwordEncoder.matches("password", "encoded_password")).thenReturn(true);
         when(jwtService.generateToken(user)).thenReturn("mock_jwt_token");
         
-        AuthResponse response = authService.login(request);
+        AuthService.AuthResult result = authService.login(request);
         
-        assertNotNull(response);
-        assertEquals("mock_jwt_token", response.accessToken());
-        assertEquals(1L, response.user().id());
-        assertEquals("CLIENT", response.user().role());
+        assertNotNull(result);
+        assertNotNull(result.response());
+        assertEquals("mock_jwt_token", result.response().accessToken());
+        assertEquals(1L, result.response().user().id());
+        assertEquals("CLIENT", result.response().user().role());
         
         verify(refreshTokenRepository).save(any());
     }

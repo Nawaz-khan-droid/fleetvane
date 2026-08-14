@@ -5,7 +5,7 @@ import ai.timefold.solver.core.api.domain.solution.PlanningScore;
 import ai.timefold.solver.core.api.domain.solution.PlanningSolution;
 import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
+import ai.timefold.solver.core.api.score.buildin.hardsoftlong.HardSoftLongScore;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,7 +21,7 @@ public class VehicleRoutePlan {
     private List<RouteVehicle> vehicles;
 
     @PlanningScore
-    private HardSoftScore score;
+    private HardSoftLongScore score;
 
     public VehicleRoutePlan() {}
     
@@ -40,6 +40,6 @@ public class VehicleRoutePlan {
     public List<RouteVehicle> getVehicles() { return vehicles; }
     public void setVehicles(List<RouteVehicle> vehicles) { this.vehicles = vehicles; }
 
-    public HardSoftScore getScore() { return score; }
-    public void setScore(HardSoftScore score) { this.score = score; }
+    public HardSoftLongScore getScore() { return score; }
+    public void setScore(HardSoftLongScore score) { this.score = score; }
 }

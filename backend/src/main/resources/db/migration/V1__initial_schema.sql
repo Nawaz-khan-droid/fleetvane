@@ -13,7 +13,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     name        VARCHAR(255) NOT NULL,
     role        VARCHAR(20)  NOT NULL DEFAULT 'CLIENT'
-                CHECK (role IN ('CLIENT', 'DRIVER', 'MANAGER')),
+                CONSTRAINT users_role_check CHECK (role IN ('CLIENT', 'DRIVER', 'MANAGER', 'ADMIN')),
     created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
     created_by  VARCHAR(255),

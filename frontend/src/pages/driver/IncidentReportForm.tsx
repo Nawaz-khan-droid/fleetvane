@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import api from '../../lib/api';
+import { apiClient } from '../../services/apiClient';
 
 export default function IncidentReportForm() {
   const [description, setDescription] = useState('');
@@ -10,7 +10,7 @@ export default function IncidentReportForm() {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
-        await api.post('/incidents', { description, type, lat: latitude, lng: longitude });
+        await apiClient.post('/incidents', { description, type, lat: latitude, lng: longitude });
         alert('Incident reported!');
       });
     }

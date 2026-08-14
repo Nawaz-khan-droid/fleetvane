@@ -1,6 +1,7 @@
 package com.fleetvane.routing.domain;
 
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
+import ai.timefold.solver.core.api.score.buildin.hardsoftlong.HardSoftLongScore;
 import ai.timefold.solver.core.api.score.stream.Constraint;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
@@ -18,24 +19,24 @@ public class RouteConstraintProvider implements ConstraintProvider {
     protected Constraint vehicleCapacity(ConstraintFactory factory) {
         return factory.forEach(RouteVehicle.class)
                 .filter(vehicle -> {
-                    double totalDemand = vehicle.getStops().stream()
-                            .mapToDouble(DeliveryStop::getDemand)
+                    long totalDemand = vehicle.getStops().stream()
+                            .mapToLong(DeliveryStop::getDemandGrams)
                             .sum();
-                    return totalDemand > vehicle.getCapacity();
+                    return totalDemand > vehicle.getCapacityGrams();
                 })
-                .penalize(HardSoftScore.ONE_HARD,
+                .penalizeLong(HardSoftLongScore.ONE_HARD,
                         vehicle -> {
-                            double totalDemand = vehicle.getStops().stream()
-                                    .mapToDouble(DeliveryStop::getDemand)
+                            long totalDemand = vehicle.getStops().stream()
+                                    .mapToLong(DeliveryStop::getDemandGrams)
                                     .sum();
-                            return (int) (totalDemand - vehicle.getCapacity());
+                            return totalDemand - vehicle.getCapacityGrams();
                         })
                 .asConstraint("vehicleCapacity");
     }
 
     protected Constraint minimizeDistance(ConstraintFactory factory) {
         return factory.forEach(RouteVehicle.class)
-                .penalize(HardSoftScore.ONE_SOFT,
+                .penalizeLong(HardSoftLongScore.ONE_SOFT,
                         vehicle -> {
                             double distance = 0.0;
                             Double prevLat = vehicle.getLat();
@@ -46,7 +47,7 @@ public class RouteConstraintProvider implements ConstraintProvider {
                                 prevLat = stop.getLat();
                                 prevLng = stop.getLng();
                             }
-                            return (int) (distance * 1000); // meters
+                            return (long) (distance * 1000); // meters
                         })
                 .asConstraint("minimizeDistance");
     }

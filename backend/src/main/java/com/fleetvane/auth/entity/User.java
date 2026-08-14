@@ -21,6 +21,9 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 20)
     private String role;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
+
     public User() {}
 
     public User(String email, String passwordHash, String name, String role) {
@@ -41,4 +44,7 @@ public class User extends BaseEntity {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
 }

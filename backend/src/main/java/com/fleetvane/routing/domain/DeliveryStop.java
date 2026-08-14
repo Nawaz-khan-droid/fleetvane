@@ -9,19 +9,19 @@ public class DeliveryStop {
     private Long shipmentId;
     private Double lat;
     private Double lng;
-    private Double demand;
+    private Long demandGrams;
     
     @InverseRelationShadowVariable(sourceVariableName = "stops")
     private RouteVehicle vehicle;
     
     public DeliveryStop() {}
 
-    public DeliveryStop(Long id, Long shipmentId, Double lat, Double lng, Double demand) {
+    public DeliveryStop(Long id, Long shipmentId, Double lat, Double lng, Long demandGrams) {
         this.id = id;
         this.shipmentId = shipmentId;
         this.lat = lat;
         this.lng = lng;
-        this.demand = demand;
+        this.demandGrams = demandGrams;
     }
 
     public Long getId() { return id; }
@@ -36,8 +36,8 @@ public class DeliveryStop {
     public Double getLng() { return lng; }
     public void setLng(Double lng) { this.lng = lng; }
 
-    public Double getDemand() { return demand; }
-    public void setDemand(Double demand) { this.demand = demand; }
+    public Long getDemandGrams() { return demandGrams; }
+    public void setDemandGrams(Long demandGrams) { this.demandGrams = demandGrams; }
 
     public RouteVehicle getVehicle() { return vehicle; }
     public void setVehicle(RouteVehicle vehicle) { this.vehicle = vehicle; }

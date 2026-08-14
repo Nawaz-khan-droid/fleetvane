@@ -43,13 +43,21 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse signup(SignupRequest request) {
+    public AuthResult signup(SignupRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
         }
 
-        String assignedRole = userRepository.count() == 0 ? 
-                (request.role() != null && !request.role().isBlank() ? request.role() : "MANAGER") : "CLIENT";
+        String requestedRole = (request.role() != null && !request.role().isBlank()) ? request.role().toUpperCase() : "CLIENT";
+
+        if (!"CLIENT".equals(requestedRole) && userRepository.count() > 0) {
+            throw new BusinessException(
+                    "Self-registration for role '" + requestedRole + "' is forbidden. Public registration is restricted to CLIENT.",
+                    HttpStatus.FORBIDDEN
+            );
+        }
+
+        String assignedRole = userRepository.count() == 0 ? ("ADMIN".equals(requestedRole) ? "ADMIN" : "MANAGER") : "CLIENT";
 
         User user = new User(
                 request.email(),
@@ -59,12 +67,31 @@ public class AuthService {
         );
 
         User savedUser = userRepository.save(user);
-
-        return authenticateAndGenerateTokens(savedUser).response();
+        return authenticateAndGenerateTokens(savedUser);
     }
 
     @Transactional
-    public AuthResponse login(LoginRequest request) {
+    public AuthResponse provisionUser(SignupRequest request, String targetRole) {
+        if (userRepository.findByEmail(request.email()).isPresent()) {
+            throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
+        }
+
+        User user = new User(
+                request.email(),
+                passwordEncoder.encode(request.password()),
+                request.name(),
+                targetRole
+        );
+
+        User savedUser = userRepository.save(user);
+        return new AuthResponse(
+                null,
+                new AuthResponse.UserDto(savedUser.getId(), savedUser.getEmail(), savedUser.getName(), savedUser.getRole())
+        );
+    }
+
+    @Transactional
+    public AuthResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new BusinessException("Invalid credentials", HttpStatus.UNAUTHORIZED));
 
@@ -72,11 +99,15 @@ public class AuthService {
             throw new BusinessException("Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
 
-        return authenticateAndGenerateTokens(user).response();
+        if (Boolean.FALSE.equals(user.getIsActive())) {
+            throw new BusinessException("Account is deactivated", HttpStatus.FORBIDDEN);
+        }
+
+        return authenticateAndGenerateTokens(user);
     }
 
     @Transactional
-    public AuthResponse refresh(String rawRefreshToken) {
+    public AuthService.AuthResult refresh(String rawRefreshToken) {
         String tokenHash = hashToken(rawRefreshToken);
         
         RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(tokenHash)
@@ -89,6 +120,10 @@ public class AuthService {
 
         if (refreshToken.getExpiresAt().isBefore(Instant.now())) {
             throw new BusinessException("Refresh token expired", HttpStatus.UNAUTHORIZED);
+        }
+
+        if (Boolean.FALSE.equals(refreshToken.getUser().getIsActive())) {
+            throw new BusinessException("Account is deactivated", HttpStatus.FORBIDDEN);
         }
 
         refreshToken.setRevokedAt(Instant.now());
@@ -110,7 +145,7 @@ public class AuthService {
 
         String accessToken = jwtService.generateToken(refreshToken.getUser());
 
-        return new AuthResponse(
+        AuthResponse response = new AuthResponse(
                 accessToken,
                 new AuthResponse.UserDto(
                         refreshToken.getUser().getId(),
@@ -119,6 +154,8 @@ public class AuthService {
                         refreshToken.getUser().getRole()
                 )
         );
+        
+        return new AuthService.AuthResult(response, newRawRefreshToken);
     }
 
     @Transactional
