@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
+import { loadGoogleMaps } from '@/lib/maps';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
@@ -183,51 +184,55 @@ export default function DriverRoute() {
       })();
     } else {
       (async () => {
-        const { Loader } = await import('@googlemaps/js-api-loader');
-        if (isCancelled) return;
-        const loader = new Loader({
-          apiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-          version: 'weekly',
-        });
-        const { Map, Polyline } = await loader.importLibrary('maps');
-        const { AdvancedMarkerElement } = await loader.importLibrary('marker');
-        if (isCancelled) return;
+        try {
+          // Track B singleton — key read once, loud failure, no duplicate script injection.
+          await loadGoogleMaps();
+          const { AdvancedMarkerElement } =
+            (await window.google.maps.importLibrary('marker')) as google.maps.MarkerLibrary;
+          if (isCancelled) return;
 
-        const mapEl = document.getElementById('driver-route-map');
-        if (!mapEl) return;
+          const mapEl = document.getElementById('driver-route-map');
+          if (!mapEl) return;
 
-        const originLatLng = { lat: originCoords[0], lng: originCoords[1] };
-        const destLatLng = { lat: destCoords[0], lng: destCoords[1] };
+          const originLatLng = { lat: originCoords[0], lng: originCoords[1] };
+          const destLatLng = { lat: destCoords[0], lng: destCoords[1] };
 
-        mapInstance = new Map(mapEl, {
-          center: {
-            lat: (originCoords[0] + destCoords[0]) / 2,
-            lng: (originCoords[1] + destCoords[1]) / 2,
-          },
-          zoom: 6,
-          mapId: 'DEMO_MAP_ID',
-          disableDefaultUI: true,
-          zoomControl: true,
-        });
+          mapInstance = new window.google.maps.Map(mapEl, {
+            center: {
+              lat: (originCoords[0] + destCoords[0]) / 2,
+              lng: (originCoords[1] + destCoords[1]) / 2,
+            },
+            zoom: 6,
+            mapId: 'DEMO_MAP_ID',
+            disableDefaultUI: true,
+            zoomControl: true,
+          });
 
-        new AdvancedMarkerElement({ map: mapInstance, position: originLatLng, title: shipment.origin });
-        new AdvancedMarkerElement({ map: mapInstance, position: destLatLng, title: shipment.destination });
+          new AdvancedMarkerElement({ map: mapInstance, position: originLatLng, title: shipment.origin });
+          new AdvancedMarkerElement({ map: mapInstance, position: destLatLng, title: shipment.destination });
 
-        new Polyline({
-          path: [originLatLng, destLatLng],
-          geodesic: true,
-          strokeColor: '#047857',
-          strokeOpacity: 0.8,
-          strokeWeight: 4,
-          map: mapInstance,
-        });
+          new window.google.maps.Polyline({
+            path: [originLatLng, destLatLng],
+            geodesic: true,
+            strokeColor: '#047857',
+            strokeOpacity: 0.8,
+            strokeWeight: 4,
+            map: mapInstance,
+          });
 
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(originLatLng);
-        bounds.extend(destLatLng);
-        mapInstance.fitBounds(bounds, 50);
+          const bounds = new google.maps.LatLngBounds();
+          bounds.extend(originLatLng);
+          bounds.extend(destLatLng);
+          mapInstance.fitBounds(bounds, 50);
 
-        currentProviderRef.current = 'google';
+          currentProviderRef.current = 'google';
+        } catch (err: any) {
+          if (!isCancelled) {
+            // LOUD failure — never swallow Maps initialization errors.
+            console.error('Google Maps failed to load:', err?.message);
+            toast.error(`Map unavailable: ${err?.message || 'Google Maps failed to initialize'}`);
+          }
+        }
       })();
     }
 

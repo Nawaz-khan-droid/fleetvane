@@ -91,6 +91,11 @@ export const theme = {
     sectionSubtitle: 'text-lg text-slate-600 dark:text-slate-300 max-w-2xl',
     statValue: 'text-3xl font-bold text-slate-900 dark:text-white',
     statLabel: 'text-sm text-slate-500 dark:text-slate-400',
+    // Dark-mode convenience aliases (color-only)
+    headingText: 'text-slate-900 dark:text-slate-100',
+    bodyText: 'text-slate-600 dark:text-slate-400',
+    captionText: 'text-slate-500 dark:text-slate-500',
+    labelText: 'text-slate-700 dark:text-slate-300',
   },
 
   // Forms
