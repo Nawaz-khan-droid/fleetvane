@@ -1,0 +1,6 @@
+com\fleetvane\fleet\service\VehicleServiceTest.class
+com\fleetvane\incident\service\IncidentServiceTest.class
+com\fleetvane\shipment\service\ShipmentServiceTest.class
+com\fleetvane\tracking\service\TrackingServiceTest.class
+com\fleetvane\auth\service\AuthServiceTest.class
+com\fleetvane\auth\service\JwtServiceTest.class
