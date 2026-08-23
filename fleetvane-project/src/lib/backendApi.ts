@@ -44,7 +44,7 @@ export async function forwardToBackend(req: NextRequest, endpoint: string, optio
   }
 
   try {
-    let bodyText = null;
+    let bodyText: string | null = null;
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       try {
         bodyText = await req.text();
@@ -61,7 +61,7 @@ export async function forwardToBackend(req: NextRequest, endpoint: string, optio
     });
 
     const data = await response.text();
-    let parsedData = null;
+    let parsedData: unknown = null;
     if (data) {
         try {
             parsedData = JSON.parse(data);

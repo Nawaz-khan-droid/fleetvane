@@ -43,7 +43,9 @@ spring:
 # ── JWT Configuration ──
 fleetvane:
   jwt:
-    secret: ${JWT_SECRET:fleetvane-capstone-jwt-secret-key-2026-minimum-256-bits-required}
+    # NO fallback: Spring fails startup if JWT_SECRET is not set in the environment.
+    # SecuritySanityConfig additionally rejects blank/short/known-default values.
+    secret: ${JWT_SECRET}
     access-token-expiration-ms: 900000       # 15 minutes
     refresh-token-expiration-ms: 604800000   # 7 days
 
