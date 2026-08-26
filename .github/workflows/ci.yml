@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend — mvn test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fleetvane-project/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Run full test suite (unit + ArchUnit boundaries + H2 integration slices)
+        run: mvn -B test
+
+      - name: Package boot jar (production artifact sanity)
+        run: mvn -B package -DskipTests
+
+  frontend:
+    name: Frontend — typecheck + production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fleetvane-project
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: fleetvane-project/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Strict typecheck
+        run: npx tsc --noEmit
+
+      # NEXT_PUBLIC_* values are PUBLIC (compiled into the bundle) — placeholders here
+      # only satisfy build-time inlining. Real values come from the deploy environment.
+      - name: Production build
+        env:
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ci-placeholder-key
+          NEXT_PUBLIC_SPRING_BOOT_URL: http://localhost:8080
+        run: npm run build
