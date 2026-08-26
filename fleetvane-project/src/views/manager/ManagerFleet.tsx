@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Truck, AlertCircle, Eye, EyeOff, Navigation, CheckCircle2, User, Phone, Mail, MapPinned, X, Activity, PackageCheck, Route, Loader2, Plus, Building2, MousePointerClick } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,28 +11,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 // ── Track B: direct Spring Boot base URL (no Node proxy) ──
 const SPRING_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_URL || 'http://localhost:8080';
 
-// ── Approximate reverse-geocode for Indian coordinates ──
-const LOCATION_NAMES: Record<string, string> = {
-  '19.0760,72.8777': 'Mumbai, MH',
-  '28.6139,77.2090': 'New Delhi, DL',
-  '12.9716,77.5946': 'Bengaluru, KA',
-  '17.3850,78.4867': 'Hyderabad, TS',
-  '13.0827,80.2707': 'Chennai, TN',
-  '22.5726,88.3639': 'Kolkata, WB',
-  '23.0225,72.5714': 'Ahmedabad, GJ',
-  '26.9124,75.7873': 'Jaipur, RJ',
-  '21.1702,72.8311': 'Surat, GJ',
-  '18.5204,73.8567': 'Pune, MH',
-};
-
-function getLocationName(lat: number, lng: number): string {
-  const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
-  if (LOCATION_NAMES[key]) return LOCATION_NAMES[key];
-  const closeKey = Object.keys(LOCATION_NAMES).find((k) => {
-    const [kLat, kLng] = k.split(',').map(Number);
-    return Math.abs(lat - kLat) < 2 && Math.abs(lng - kLng) < 2;
-  });
-  return closeKey ? LOCATION_NAMES[closeKey] : `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
+// ── Coordinates render as raw data — no fabricated place names ──
+function formatCoords(lat?: number | null, lng?: number | null): string {
+  if (lat == null || lng == null) return '—';
+  return `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
 }
 
 import { useAuth } from '@/context/AuthContext';
@@ -214,7 +197,7 @@ function AddDepotModal({ token, onClose, onSuccess, pickedCoords, onStartMapPick
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Depot / HQ Name *</label>
               <input
                 type="text"
-                placeholder="e.g. Pune Regional Depot"
+                placeholder="e.g. North Regional Depot"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -224,7 +207,7 @@ function AddDepotModal({ token, onClose, onSuccess, pickedCoords, onStartMapPick
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">City *</label>
               <input
                 type="text"
-                placeholder="e.g. Pune"
+                placeholder="e.g. Springfield"
                 value={form.city}
                 onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -320,6 +303,10 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
     e.preventDefault();
     if (!form.plateNumber || !form.model || !form.capacity) {
       toast.error('Please fill all required fields.');
+      return;
+    }
+    if (!form.depotId) {
+      toast.error('Select a Home Depot — vehicles must start at a real, configured location.');
       return;
     }
     setSubmitting(true);
@@ -418,7 +405,7 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
                     {d.name} — {d.city} ({d.address})
                   </option>
                 ))}
-                {depots.length === 0 && <option value="">Default Hub (Mumbai HQ)</option>}
+                {depots.length === 0 && <option value="" disabled>No depots yet � create one first</option>}
               </select>
               <p className="text-[11px] text-slate-400 mt-1">Unassigned vehicle will start parked at this depot until a driver initiates tracking.</p>
             </div>
@@ -440,8 +427,8 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+              disabled={submitting || !form.depotId}
+              className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               {submitting ? 'Adding...' : 'Add Vehicle'}
@@ -457,16 +444,43 @@ export default function ManagerFleet() {
   const { state: authState, hasRole } = useAuth();
   const canManageFleet = hasRole(['MANAGER', 'ADMIN']);
 
-  // Real database entities — populated by direct Axios GETs to Spring Boot
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  // Real database entities — TanStack Query owns fetching/caching/5s polling
   const [depots, setDepots] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [trafficView, setTrafficView] = useState(false);
   const [mapProvider, setMapProvider] = useState<'leaflet' | 'google'>('leaflet');
   const [mapReady, setMapReady] = useState(false);
   const [mapsError, setMapsError] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [connected, setConnected] = useState(false);
+
+  const vehiclesQuery = useQuery({
+    queryKey: ['vehicles', authState.token],
+    queryFn: async (): Promise<Vehicle[]> => {
+      const res = await axios.get(`${SPRING_URL}/api/vehicles`, {
+        headers: authHeaders(authState.token ?? ''),
+        timeout: 15000,
+      });
+      return normalizePageResponse<Vehicle>(res.data).items;
+    },
+    enabled: !!authState.token,
+    refetchInterval: 5000, // Track B product decision: 5-second telemetry cadence
+  });
+
+  const vehicles = vehiclesQuery.data ?? [];
+  const refetchVehicles = vehiclesQuery.refetch;
+  const loading = vehiclesQuery.isPending; // first-load skeleton only
+  const connected = !vehiclesQuery.isPending && !vehiclesQuery.isError;
+
+  useEffect(() => {
+    if (!vehiclesQuery.isError) return;
+    const err = vehiclesQuery.error as any;
+    if (err instanceof ApiContractError) {
+      toast.error('Unable to load fleet. Unexpected response format.');
+    } else if (!err?.response) {
+      console.error('Spring Boot unreachable:', err?.message);
+    } else {
+      toast.error(t.common.error);
+    }
+  }, [vehiclesQuery.isError, vehiclesQuery.error]);
 
   // Modals & Map Picking State
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
@@ -492,31 +506,7 @@ export default function ManagerFleet() {
 
   const googleKeyConfigured = isGoogleMapsKeyConfigured();
 
-  // ── Data: direct Axios GETs against real Spring Boot DB endpoints ──
-  const fetchVehicles = useCallback(async () => {
-    try {
-      const res = await axios.get(`${SPRING_URL}/api/vehicles`, {
-        headers: authHeaders(authState.token ?? ''),
-        timeout: 15000,
-      });
-      const pageData = normalizePageResponse<Vehicle>(res.data);
-      setVehicles(pageData.items);
-      setConnected(true);
-    } catch (err: any) {
-      setConnected(false);
-      if (err instanceof ApiContractError) {
-        toast.error('Unable to load fleet. Unexpected response format.');
-      } else if (!err.response) {
-        // Network/CORS-level failure — backend likely down
-        console.error('Spring Boot unreachable:', err.message);
-      } else {
-        toast.error(t.common.error);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [authState.token]);
-
+  // ── Data: depots via direct Axios; vehicles handled by useQuery above ──
   const fetchDepots = useCallback(async () => {
     try {
       const res = await axios.get(`${SPRING_URL}/api/depots`, {
@@ -530,18 +520,10 @@ export default function ManagerFleet() {
   }, [authState.token]);
 
   useEffect(() => {
-    fetchVehicles();
     fetchDepots();
     setMapReady(true); // container mounts with the page
-  }, [fetchVehicles, fetchDepots]);
-
-  // Polling loop (Track B product decision: HTTP polling, no sockets)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchVehicles();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [fetchVehicles]);
+  }, [fetchDepots]);
+  // Vehicle polling is owned by useQuery (refetchInterval above)
 
   const fetchPendingShipments = async (): Promise<any[]> => {
     try {
@@ -666,7 +648,7 @@ export default function ManagerFleet() {
 
         const mapEl = document.getElementById('fleet-map');
         if (!mapEl) return;
-        mapInstance = L.map(mapEl).setView([22.5, 79.0], 5);
+        mapInstance = L.map(mapEl).setView([0, 0], 2);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           attribution: '&copy; OpenStreetMap',
         }).addTo(mapInstance);
@@ -702,8 +684,8 @@ export default function ManagerFleet() {
           if (!mapEl) return;
 
           mapInstance = new window.google.maps.Map(mapEl, {
-            center: { lat: 22.5, lng: 79.0 },
-            zoom: 5,
+            center: { lat: 0, lng: 0 },
+            zoom: 2,
             mapId: 'DEMO_MAP_ID',
             disableDefaultUI: true,
             zoomControl: true,
@@ -969,7 +951,7 @@ export default function ManagerFleet() {
           <AddVehicleModal
             token={authState.token!}
             onClose={() => setIsAddVehicleOpen(false)}
-            onSuccess={fetchVehicles}
+            onSuccess={refetchVehicles}
           />
         )}
       </AnimatePresence>
@@ -1106,7 +1088,7 @@ export default function ManagerFleet() {
                   <DetailRow
                     icon={MapPin}
                     label={t.manager.lastKnownCoords}
-                    value={getLocationName(selectedVehicle.lat, selectedVehicle.lng)}
+                    value={formatCoords(selectedVehicle.lat, selectedVehicle.lng)}
                   />
                 </div>
 
@@ -1320,7 +1302,7 @@ export default function ManagerFleet() {
                       <TableCell className={theme.typography.caption}>
                         <span className="flex items-center gap-1.5">
                           <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          {getLocationName(vehicle.lat, vehicle.lng)}
+                          {formatCoords(vehicle.lat, vehicle.lng)}
                         </span>
                       </TableCell>
                     </motion.tr>
