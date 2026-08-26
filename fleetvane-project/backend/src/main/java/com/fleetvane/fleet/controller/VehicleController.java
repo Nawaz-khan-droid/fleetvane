@@ -1,7 +1,6 @@
 package com.fleetvane.fleet.controller;
 
 import com.fleetvane.fleet.dto.CreateVehicleRequest;
-import com.fleetvane.fleet.dto.UpdateVehicleLocationRequest;
 import com.fleetvane.fleet.dto.VehicleDto;
 import com.fleetvane.fleet.service.VehicleService;
 import com.fleetvane.shared.exception.BusinessException;
@@ -44,15 +43,6 @@ public class VehicleController {
     @PreAuthorize("hasAuthority('MANAGER')")
     public VehicleDto updateStatus(@PathVariable Long id, @RequestParam String status) {
         return vehicleService.updateStatus(id, status);
-    }
-
-    @PutMapping("/{id}/location")
-    @PreAuthorize("hasAnyAuthority('DRIVER', 'MANAGER')")
-    public VehicleDto updateLocation(@PathVariable Long id, @Valid @RequestBody UpdateVehicleLocationRequest request,
-                                     Authentication authentication) {
-        Long userId = extractUserId(authentication);
-        String role = extractRole(authentication);
-        return vehicleService.updateLocation(id, request, role, userId);
     }
 
     private Long extractUserId(Authentication authentication) {

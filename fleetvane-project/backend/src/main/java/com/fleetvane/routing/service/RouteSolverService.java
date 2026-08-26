@@ -49,8 +49,21 @@ public class RouteSolverService {
      * persists the result, and returns solved COORDINATES directly in the response.
      * No WebSocket, no broker, no publish/subscribe race.
      */
+    /** Synchronous contract ceiling — keeps the blocking window inside HTTP timeout territory. */
+    static final int MAX_VEHICLES = 50;
+    static final int MAX_SHIPMENTS = 200;
+
     @Transactional
     public RouteSolutionResponse solveSync(CreateOptimizationJobRequest request, Long userId) {
+        // Fail-fast FIRST: reject oversized problems before any database I/O,
+        // so a hostile/buggy request cannot force huge IN-clause queries.
+        if (request.vehicleIds().size() > MAX_VEHICLES || request.shipmentIds().size() > MAX_SHIPMENTS) {
+            throw new BusinessException(
+                    "Problem size exceeds synchronous solve limit (max " + MAX_VEHICLES +
+                    " vehicles / " + MAX_SHIPMENTS + " shipments)",
+                    HttpStatus.BAD_REQUEST);
+        }
+
         List<FleetQueryPort.VehicleData> vehicleData =
                 fleetQueryPort.findAllById(request.vehicleIds());
         List<ShipmentQueryPort.ShipmentData> shipmentData =
@@ -58,12 +71,6 @@ public class RouteSolverService {
 
         if (vehicleData.isEmpty() || shipmentData.isEmpty()) {
             throw new BusinessException("Must provide valid vehicles and shipments", HttpStatus.BAD_REQUEST);
-        }
-        // Guardrail: keep the blocking window safely inside HTTP timeout territory
-        if (vehicleData.size() > 50 || shipmentData.size() > 200) {
-            throw new BusinessException(
-                    "Problem size exceeds synchronous solve limit (max 50 vehicles / 200 shipments)",
-                    HttpStatus.BAD_REQUEST);
         }
 
         List<RouteVehicle> routeVehicles = vehicleData.stream()
