@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -40,6 +40,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
+import { SPRING_URL } from '@/lib/springUrl';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -49,7 +50,7 @@ import SortableHeader, { type SortDir, useSort } from '@/components/shared/Sorta
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-// ── Status badge mapping ──────────────────────────────────
+// â”€â”€ Status badge mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const statusBadgeClass: Record<ShipmentStatus, string> = {
   REQUESTED: theme.status.requested,
   ASSIGNED: theme.status.assigned,
@@ -111,7 +112,7 @@ export default function ManagerShipments() {
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<DriverWithProfile[]>([]);
 
-  // ── Fetch shipments ───────────────────────────────────
+  // â”€â”€ Fetch shipments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchShipments = useCallback(async () => {
     try {
       const res = await fetch('/api/shipments', {
@@ -136,7 +137,7 @@ export default function ManagerShipments() {
     fetchShipments();
   }, [fetchShipments]);
 
-  // ── Fetch available resources when dialog opens ───────
+  // â”€â”€ Fetch available resources when dialog opens â”€â”€â”€â”€â”€â”€â”€
   const fetchAvailableResources = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${authState.token}` };
@@ -161,7 +162,7 @@ export default function ManagerShipments() {
     }
   }, [authState.token]);
 
-  // ── Filter & sort shipments ──────────────────────────
+  // â”€â”€ Filter & sort shipments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filteredShipments = shipments.filter((s) => {
     if (activeTab !== 'ALL' && s.status !== activeTab) return false;
     if (searchQuery) {
@@ -193,7 +194,7 @@ export default function ManagerShipments() {
     }
   };
 
-  // ── Open assign dialog ───────────────────────────────
+  // â”€â”€ Open assign dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleOpenAssign = (shipment: Shipment) => {
     setAssigningShipment(shipment);
     setSelectedVehicleId('');
@@ -202,24 +203,20 @@ export default function ManagerShipments() {
     fetchAvailableResources();
   };
 
-  // ── Submit assignment ────────────────────────────────
+  // â”€â”€ Submit assignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleAssign = async () => {
     if (!assigningShipment || !selectedVehicleId || !selectedDriverId) return;
 
     setAssigning(true);
     try {
-      const res = await fetch(`/api/shipments/${assigningShipment.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authState.token}`,
-        },
-        body: JSON.stringify({
-          status: 'ASSIGNED',
-          vehicleId: selectedVehicleId,
-          driverId: selectedDriverId,
-        }),
-      });
+      // Backend contract: PUT /api/shipments/{id}/assign?vehicleId=&driverId=
+      const res = await fetch(
+        `${SPRING_URL}/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${authState.token}` },
+        }
+      );
       if (!res.ok) throw new Error();
       toast.success(t.manager.vehicleAssigned);
       const assignedVehicle = availableVehicles.find((v) => v.id === selectedVehicleId);
@@ -237,14 +234,17 @@ export default function ManagerShipments() {
     }
   };
 
-  // ── Update shipment status ─────────────────────────
+  // â”€â”€ Update shipment status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleStatusUpdate = async (shipmentId: string, status: ShipmentStatus) => {
     try {
-      const res = await fetch(`/api/shipments/${shipmentId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authState.token}` },
-        body: JSON.stringify({ status }),
-      });
+      // Backend contract: PUT /api/shipments/{id}/status?status=
+      const res = await fetch(
+        `${SPRING_URL}/api/shipments/${shipmentId}/status?status=${status}`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${authState.token}` },
+        }
+      );
       if (!res.ok) throw new Error();
       toast.success(`Shipment ${status === 'DELIVERED' ? 'delivered' : 'cancelled'} successfully`);
       addNotification({
@@ -258,7 +258,7 @@ export default function ManagerShipments() {
     }
   };
 
-  // ── Loading state ────────────────────────────────────
+  // â”€â”€ Loading state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading) {
     return (
       <div className="space-y-6">
@@ -271,7 +271,7 @@ export default function ManagerShipments() {
 
   return (
     <>
-      {/* ── Filter Tabs ─────────────────────────────── */}
+      {/* â”€â”€ Filter Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -326,7 +326,7 @@ export default function ManagerShipments() {
         </div>
       </motion.div>
 
-      {/* ── Shipment Table ─────────────────────────── */}
+      {/* â”€â”€ Shipment Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -429,14 +429,14 @@ export default function ManagerShipments() {
                       <TableCell className="font-mono text-sm py-3">
                         <span title={shipment.id} className="cursor-help border-b border-dotted border-slate-300 dark:border-slate-600">
                           {shipment.id.length > 10
-                            ? `${shipment.id.slice(0, 10)}…`
+                            ? `${shipment.id.slice(0, 10)}â€¦`
                             : shipment.id}
                         </span>
                       </TableCell>
                       <TableCell className="py-3">{shipment.originAddress}</TableCell>
                       <TableCell className="py-3">{shipment.destinationAddress}</TableCell>
                       <TableCell className="py-3">
-                        {shipment.weight ? `${shipment.weight} kg` : '—'}
+                        {shipment.weight ? `${shipment.weight} kg` : 'â€”'}
                       </TableCell>
                       <TableCell className={`py-3 ${statusBorderAccent[shipment.status]}`}>
                         <Badge
@@ -448,10 +448,10 @@ export default function ManagerShipments() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-3">
-                        {shipment.vehicle?.plateNumber || '—'}
+                        {shipment.vehicle?.plateNumber || 'â€”'}
                       </TableCell>
                       <TableCell className="py-3">
-                        {shipment.driver?.name || '—'}
+                        {shipment.driver?.name || 'â€”'}
                       </TableCell>
                       <TableCell className={`${theme.typography.caption} py-3`}>
                         <div>{new Date(shipment.createdAt).toLocaleDateString()}</div>
@@ -553,7 +553,7 @@ export default function ManagerShipments() {
                         <TooltipTrigger asChild>
                           <span className="font-mono text-xs text-slate-700 dark:text-slate-300 border-b border-dotted border-slate-300 dark:border-slate-600 cursor-help">
                             {shipment.id.length > 12
-                              ? `${shipment.id.slice(0, 12)}…`
+                              ? `${shipment.id.slice(0, 12)}â€¦`
                               : shipment.id}
                           </span>
                         </TooltipTrigger>
@@ -570,7 +570,7 @@ export default function ManagerShipments() {
                       </div>
                     </div>
 
-                    {/* Route: origin → destination */}
+                    {/* Route: origin â†’ destination */}
                     <div className="flex items-center gap-2 mb-2.5">
                       <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.originAddress}</span>
                       <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
@@ -581,7 +581,7 @@ export default function ManagerShipments() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
                       <div>
                         <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Weight</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.weight ? `${shipment.weight} kg` : '—'}</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.weight ? `${shipment.weight} kg` : 'â€”'}</p>
                       </div>
                       <div>
                         <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Created</span>
@@ -592,11 +592,11 @@ export default function ManagerShipments() {
                       </div>
                       <div>
                         <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Vehicle</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.vehicle?.plateNumber || '—'}</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.vehicle?.plateNumber || 'â€”'}</p>
                       </div>
                       <div>
                         <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Driver</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.driver?.name || '—'}</p>
+                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.driver?.name || 'â€”'}</p>
                       </div>
                     </div>
 
@@ -647,7 +647,7 @@ export default function ManagerShipments() {
         </Card>
       </motion.div>
 
-      {/* ── Assign Vehicle/Driver Dialog (outside table) ── */}
+      {/* â”€â”€ Assign Vehicle/Driver Dialog (outside table) â”€â”€ */}
       <Dialog
         open={assignDialogOpen}
         onOpenChange={(open) => {
@@ -678,7 +678,7 @@ export default function ManagerShipments() {
               <SelectContent>
                 {availableVehicles.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
-                    {v.plateNumber} — {v.type} ({v.model})
+                    {v.plateNumber} â€” {v.type} ({v.model})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -700,7 +700,7 @@ export default function ManagerShipments() {
               <SelectContent>
                 {availableDrivers.map((d) => (
                   <SelectItem key={d.id} value={d.id}>
-                    {d.name} — {d.driverProfile?.licenseNumber}
+                    {d.name} â€” {d.driverProfile?.licenseNumber}
                   </SelectItem>
                 ))}
               </SelectContent>
