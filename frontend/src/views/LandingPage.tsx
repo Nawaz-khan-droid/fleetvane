@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect, type MouseEvent } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from '@/context/RouterContext';
+import { useAuth } from '@/context/AuthContext';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
@@ -153,8 +154,20 @@ function TiltCard({ img, name, desc, accent, onContactClick }: { img: string; na
 
 export default function LandingPage() {
   const { navigate } = useRouter();
+  const { login } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [launchingDemo, setLaunchingDemo] = useState(false);
+
+  const launchDemo = async () => {
+    setLaunchingDemo(true);
+    try {
+      await login('manager@fleetvane.com', 'Manager123!');
+      navigate('/manager/fleet');
+    } catch {
+      setLaunchingDemo(false);
+    }
+  };
 
   const scrollTo = useCallback((id: string) => {
     setMobileOpen(false);
@@ -286,9 +299,9 @@ export default function LandingPage() {
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <Button size="lg" onClick={() => navigate('/signup')} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2">
-                  {t.landing.heroCta}
-                  <ArrowRight className="w-5 h-5" />
+                <Button size="lg" onClick={launchDemo} disabled={launchingDemo} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2">
+                  {launchingDemo ? 'Launching Demo...' : t.landing.heroCta}
+                  {!launchingDemo && <ArrowRight className="w-5 h-5" />}
                 </Button>
                   <Button size="lg" variant="outline" onClick={() => scrollTo('about')} className="w-full sm:w-auto bg-transparent border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white px-8 py-3 rounded-xl">
                   {t.landing.heroSecondaryCta}
@@ -482,9 +495,14 @@ export default function LandingPage() {
               {t.landing.ctaSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button size="lg" onClick={() => navigate('/signup')} className="w-full sm:w-auto bg-white text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3 rounded-xl shadow-lg">
-                {t.landing.ctaCta}
-                <ArrowRight className="w-5 h-5 ml-2 inline" />
+              <Button
+                size="lg"
+                onClick={launchDemo}
+                disabled={launchingDemo}
+                className="w-full sm:w-auto bg-white text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3 rounded-xl shadow-lg"
+              >
+                {launchingDemo ? 'Launching Demo...' : t.landing.ctaCta}
+                {!launchingDemo && <ArrowRight className="w-5 h-5 ml-2 inline" />}
               </Button>
                 <Button size="lg" variant="outline" onClick={openContactSales} className="w-full sm:w-auto bg-transparent border-emerald-400 text-white hover:bg-emerald-700 px-8 py-3 rounded-xl">
                 {t.landing.ctaContact}
