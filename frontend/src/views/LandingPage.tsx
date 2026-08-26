@@ -299,12 +299,12 @@ export default function LandingPage() {
               </motion.p>
 
               <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <Button size="lg" onClick={launchDemo} disabled={launchingDemo} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2">
-                  {launchingDemo ? 'Launching Demo...' : t.landing.heroCta}
-                  {!launchingDemo && <ArrowRight className="w-5 h-5" />}
+                <Button size="lg" onClick={() => navigate('/signup')} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2">
+                  {t.landing.heroCta}
+                  <ArrowRight className="w-5 h-5" />
                 </Button>
-                  <Button size="lg" variant="outline" onClick={() => scrollTo('about')} className="w-full sm:w-auto bg-transparent border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white px-8 py-3 rounded-xl">
-                  {t.landing.heroSecondaryCta}
+                  <Button size="lg" variant="outline" onClick={launchDemo} disabled={launchingDemo} className="w-full sm:w-auto bg-transparent border-slate-700 text-slate-200 hover:bg-slate-800 hover:text-white px-8 py-3 rounded-xl">
+                  {launchingDemo ? 'Launching Demo...' : t.landing.heroSecondaryCta}
                 </Button>
               </motion.div>
             </motion.div>
@@ -495,14 +495,9 @@ export default function LandingPage() {
               {t.landing.ctaSubtitle}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Button
-                size="lg"
-                onClick={launchDemo}
-                disabled={launchingDemo}
-                className="w-full sm:w-auto bg-white text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3 rounded-xl shadow-lg"
-              >
-                {launchingDemo ? 'Launching Demo...' : t.landing.ctaCta}
-                {!launchingDemo && <ArrowRight className="w-5 h-5 ml-2 inline" />}
+              <Button size="lg" onClick={() => navigate('/signup')} className="w-full sm:w-auto bg-white text-emerald-800 hover:bg-emerald-50 font-bold px-8 py-3 rounded-xl shadow-lg">
+                {t.landing.ctaCta}
+                <ArrowRight className="w-5 h-5 ml-2 inline" />
               </Button>
                 <Button size="lg" variant="outline" onClick={openContactSales} className="w-full sm:w-auto bg-transparent border-emerald-400 text-white hover:bg-emerald-700 px-8 py-3 rounded-xl">
                 {t.landing.ctaContact}
