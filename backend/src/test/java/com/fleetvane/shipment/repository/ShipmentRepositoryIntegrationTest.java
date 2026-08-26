@@ -64,6 +64,9 @@ class ShipmentRepositoryIntegrationTest {
         v.setLat(19.0760);
         v.setLng(72.8777);
         v.setHeading(0.0);
+        v.setMaxVolumeM3(30.0);
+        v.setCurrentWeightKg(0.0);
+        v.setCurrentVolumeM3(0.0);
         return v;
     }
 

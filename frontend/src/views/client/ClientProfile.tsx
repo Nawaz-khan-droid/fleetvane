@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse } from '@/lib/utils';
 import { toast } from 'sonner';
 import { theme } from '@/constants/theme';
@@ -97,7 +98,7 @@ export default function ClientProfile() {
 
     const headers = { Authorization: `Bearer ${token}` };
 
-    fetch('/api/shipments', { headers })
+    fetchWithAuth('/api/shipments', { headers })
       .then(async (r) => {
         if (!r.ok) throw new Error();
         const raw = await r.json();

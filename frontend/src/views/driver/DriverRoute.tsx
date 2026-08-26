@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import { loadGoogleMaps } from '@/lib/maps';
 import { useRouter } from '@/context/RouterContext';
@@ -49,8 +50,8 @@ export default function DriverRoute() {
         const headers = { Authorization: `Bearer ${authState.token}` };
 
         const [vehiclesRes, shipmentsRes] = await Promise.all([
-          fetch('/api/vehicles', { headers }),
-          fetch('/api/shipments?clientId=all', { headers }), // Or driver endpoint
+          fetchWithAuth('/api/vehicles', { headers }),
+          fetchWithAuth('/api/shipments?clientId=all', { headers }), // Or driver endpoint
         ]);
 
         if (!vehiclesRes.ok || !shipmentsRes.ok) {
@@ -232,7 +233,7 @@ export default function DriverRoute() {
   // ── Trip toggle handler ────────────────────────────────
   const handleTripToggle = async (checked: boolean) => {
     try {
-      const res = await fetch('/api/simulation', {
+      const res = await fetchWithAuth('/api/simulation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -23,10 +23,6 @@ public class RouteController {
         this.routeSolverService = routeSolverService;
     }
 
-    /**
-     * Track B synchronous solve: blocks until Timefold terminates (spent-limit),
-     * then returns the solved route coordinates directly in the response body.
-     */
     @PostMapping
     @PreAuthorize("hasAnyAuthority('ADMIN', 'ROLE_ADMIN', 'MANAGER', 'ROLE_MANAGER')")
     public RouteSolutionResponse solveNow(@Valid @RequestBody CreateOptimizationJobRequest request,

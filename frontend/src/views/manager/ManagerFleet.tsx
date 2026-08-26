@@ -4,14 +4,12 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, Truck, AlertCircle, Eye, EyeOff, Navigation, CheckCircle2, User, Phone, Mail, MapPinned, X, Activity, PackageCheck, Route, Loader2, Plus, Building2, MousePointerClick } from 'lucide-react';
+import { MapPin, Truck, AlertCircle, Eye, EyeOff, Navigation, CheckCircle2, User, Phone, Mail, MapPinned, X, Activity, PackageCheck, Route, Loader2, Plus, Building2, MousePointerClick, Fuel, Weight, Boxes } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 
-// ── Track B: direct Spring Boot base URL (no Node proxy) ──
 const SPRING_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_URL || 'http://localhost:8080';
 
-// ── Coordinates render as raw data — no fabricated place names ──
 function formatCoords(lat?: number | null, lng?: number | null): string {
   if (lat == null || lng == null) return '—';
   return `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
@@ -19,31 +17,16 @@ function formatCoords(lat?: number | null, lng?: number | null): string {
 
 import { useAuth } from '@/context/AuthContext';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
+import { setOnSessionExpired, triggerSessionExpired } from '@/lib/fetchWithAuth';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { loadGoogleMaps, isGoogleMapsKeyConfigured, createTrafficLayer } from '@/lib/maps';
 import type { Vehicle, VehicleStatus } from '@/types';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
-// ── Synchronous solver response contract (matches RouteSolutionResponse.java) ──
 interface RouteStop {
   shipmentId: number;
   lat: number;
@@ -67,7 +50,6 @@ function authHeaders(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
 
-// ── Status badge mapping ──────────────────────────────────
 const vehicleStatusBadge: Record<VehicleStatus, string> = {
   AVAILABLE: theme.status.active,
   IN_USE: theme.status.assigned,
@@ -101,23 +83,21 @@ function DetailRow({ icon: Icon, label, value }: { icon: React.ElementType; labe
   );
 }
 
-// ── Explicit onscreen error panel (never swallow Maps failures) ──
 function MapsUnavailablePanel({ message }: { message: string }) {
   return (
-    <div className="w-full h-[500px] rounded-xl border-2 border-dashed border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center text-center p-8 gap-3">
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-center p-8 gap-3 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur-sm">
       <AlertCircle className="w-10 h-10 text-red-500" />
       <h3 className="font-semibold text-red-700 dark:text-red-300">Google Maps Unavailable</h3>
       <p className="text-sm text-red-600 dark:text-red-400 max-w-md">{message}</p>
       <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mt-1">
         Fix: set a valid <code className="font-mono">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> in
-        <code className="font-mono"> fleetvane-project/.env</code>, then restart the dev server.
+        <code className="font-mono"> .env</code>, then restart the dev server.
         The Leaflet provider remains fully functional.
       </p>
     </div>
   );
 }
 
-// ── Add Depot / HQ Modal ──
 interface AddDepotModalProps {
   token: string;
   onClose: () => void;
@@ -274,7 +254,6 @@ function AddDepotModal({ token, onClose, onSuccess, pickedCoords, onStartMapPick
   );
 }
 
-// ── Add Vehicle Form ────────────────────────────────
 interface AddVehicleModalProps {
   token: string;
   onClose: () => void;
@@ -287,7 +266,6 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Direct Spring fetch — real SQL depot entities
     axios.get(`${SPRING_URL}/api/depots`, { headers: authHeaders(token), timeout: 15000 })
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : [];
@@ -405,9 +383,9 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
                     {d.name} — {d.city} ({d.address})
                   </option>
                 ))}
-                {depots.length === 0 && <option value="" disabled>No depots yet � create one first</option>}
+                {depots.length === 0 && <option value="" disabled>No depots yet — create one first</option>}
               </select>
-              <p className="text-[11px] text-slate-400 mt-1">Unassigned vehicle will start parked at this depot until a driver initiates tracking.</p>
+              <p className="text-[11px] text-slate-400 mt-1">Vehicle starts parked at this depot until a driver initiates tracking.</p>
             </div>
             <div className="col-span-2">
               <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Capacity (kg) *</label>
@@ -444,7 +422,19 @@ export default function ManagerFleet() {
   const { state: authState, hasRole } = useAuth();
   const canManageFleet = hasRole(['MANAGER', 'ADMIN']);
 
-  // Real database entities — TanStack Query owns fetching/caching/5s polling
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      (res) => res,
+      (err) => {
+        if (err?.response?.status === 401 && !err?.config?.url?.includes('/api/auth/')) {
+          triggerSessionExpired();
+        }
+        return Promise.reject(err);
+      },
+    );
+    return () => { axios.interceptors.response.eject(interceptor); };
+  }, []);
+
   const [depots, setDepots] = useState<any[]>([]);
   const [trafficView, setTrafficView] = useState(false);
   const [mapProvider, setMapProvider] = useState<'leaflet' | 'google'>('leaflet');
@@ -462,12 +452,12 @@ export default function ManagerFleet() {
       return normalizePageResponse<Vehicle>(res.data).items;
     },
     enabled: !!authState.token,
-    refetchInterval: 5000, // Track B product decision: 5-second telemetry cadence
+    refetchInterval: 5000,
   });
 
   const vehicles = vehiclesQuery.data ?? [];
   const refetchVehicles = vehiclesQuery.refetch;
-  const loading = vehiclesQuery.isPending; // first-load skeleton only
+  const loading = vehiclesQuery.isPending;
   const connected = !vehiclesQuery.isPending && !vehiclesQuery.isError;
 
   useEffect(() => {
@@ -482,7 +472,6 @@ export default function ManagerFleet() {
     }
   }, [vehiclesQuery.isError, vehiclesQuery.error]);
 
-  // Modals & Map Picking State
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [isAddDepotOpen, setIsAddDepotOpen] = useState(false);
   const [isPickingLocationOnMap, setIsPickingLocationOnMap] = useState(false);
@@ -494,7 +483,6 @@ export default function ManagerFleet() {
   const currentProviderRef = useRef<'leaflet' | 'google' | null>(null);
   const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
 
-  // Optimization State — synchronous request/response lifecycle
   const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
   const [pendingShipments, setPendingShipments] = useState<any[]>([]);
@@ -506,7 +494,6 @@ export default function ManagerFleet() {
 
   const googleKeyConfigured = isGoogleMapsKeyConfigured();
 
-  // ── Data: depots via direct Axios; vehicles handled by useQuery above ──
   const fetchDepots = useCallback(async () => {
     try {
       const res = await axios.get(`${SPRING_URL}/api/depots`, {
@@ -521,9 +508,8 @@ export default function ManagerFleet() {
 
   useEffect(() => {
     fetchDepots();
-    setMapReady(true); // container mounts with the page
+    setMapReady(true);
   }, [fetchDepots]);
-  // Vehicle polling is owned by useQuery (refetchInterval above)
 
   const fetchPendingShipments = async (): Promise<any[]> => {
     try {
@@ -532,7 +518,7 @@ export default function ManagerFleet() {
         timeout: 15000,
       });
       const pageData = normalizePageResponse<any>(res.data);
-      const pending = pageData.items.filter((s: any) => s.status === 'PENDING' || s.status === 'ASSIGNED');
+      const pending = pageData.items.filter((s: any) => s.status === 'REQUESTED' || s.status === 'ASSIGNED');
       setPendingShipments(pending);
       setSelectedShipmentIds(new Set(pending.map((s: any) => s.id)));
       return pending;
@@ -549,7 +535,6 @@ export default function ManagerFleet() {
     setIsOptimizeModalOpen(true);
   };
 
-  // ── SYNCHRONOUS optimization: one blocking POST, coordinates come back directly ──
   const handleOptimize = async () => {
     if (selectedVehicleIds.size === 0 || selectedShipmentIds.size === 0) {
       toast.error('Select at least one vehicle and one shipment.');
@@ -558,14 +543,11 @@ export default function ManagerFleet() {
     setOptimizing(true);
     try {
       const res = await axios.post<RouteSolutionResponse>(
-        `${SPRING_URL}/api/routes/optimization-jobs`,
-        {
-          vehicleIds: Array.from(selectedVehicleIds),
-          shipmentIds: Array.from(selectedShipmentIds),
-        },
+        `${SPRING_URL}/api/dispatch`,
+        {},
         {
           headers: { ...authHeaders(authState.token ?? ''), 'Content-Type': 'application/json' },
-          timeout: 45000, // backend spent-limit is 30s; leave headroom
+          timeout: 45000,
         }
       );
       const solution = res.data;
@@ -573,18 +555,18 @@ export default function ManagerFleet() {
       setIsOptimizeModalOpen(false);
       const totalStops = solution.routes.reduce((acc, r) => acc + r.stops.length, 0);
       toast.success(
-        `Routes solved synchronously — ${solution.routes.length} vehicle(s), ` +
+        `Routes solved — ${solution.routes.length} vehicle(s), ` +
         `${totalStops} stop(s), score ${solution.score ?? 'n/a'}`
       );
+      refetchVehicles();
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message;
-      toast.error(`Optimization failed: ${msg}`);
+      toast.error(`Dispatch failed: ${msg}`);
     } finally {
       setOptimizing(false);
     }
   };
 
-  // ── Native TrafficLayer binding: attach when toggled on, detach/destroy when off ──
   useEffect(() => {
     if (mapProvider !== 'google' || !mapRef.current || mapsError) {
       trafficLayerRef.current?.setMap(null);
@@ -603,7 +585,6 @@ export default function ManagerFleet() {
     };
   }, [trafficView, mapProvider, mapReady, mapsError]);
 
-  // Load Leaflet CSS once
   useEffect(() => {
     const linkId = 'leaflet-css-fleet';
     if (document.getElementById(linkId)) return;
@@ -614,7 +595,6 @@ export default function ManagerFleet() {
     document.head.appendChild(link);
   }, []);
 
-  // ── Map initialization: exactly ONCE per provider switch ──
   useEffect(() => {
     if (loading || !mapReady) return;
     if (currentProviderRef.current === mapProvider) return;
@@ -631,52 +611,57 @@ export default function ManagerFleet() {
     }
 
     if (mapProvider === 'leaflet') {
-      // Detach Google-native layers on provider exit
       trafficLayerRef.current?.setMap(null);
       googlePolylinesRef.current.forEach(p => p.setMap(null));
       googlePolylinesRef.current = [];
 
       (async () => {
-        const L = (await import('leaflet')).default;
-        if (isCancelled) return;
-        delete (L.Icon.Default.prototype as any)._getIconUrl;
-        L.Icon.Default.mergeOptions({
-          iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-          iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-          shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-        });
+        try {
+          const L = (await import('leaflet')).default;
+          if (isCancelled) return;
+          delete (L.Icon.Default.prototype as any)._getIconUrl;
+          L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          });
 
-        const mapEl = document.getElementById('fleet-map');
-        if (!mapEl) return;
-        mapInstance = L.map(mapEl).setView([0, 0], 2);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap',
-        }).addTo(mapInstance);
+          const mapEl = document.getElementById('fleet-map');
+          if (!mapEl || isCancelled) return;
+          mapInstance = L.map(mapEl).setView([0, 0], 2);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+          }).addTo(mapInstance);
 
-        leafletMarkers = L.layerGroup().addTo(mapInstance);
-        markerGroupRef.current = leafletMarkers;
+          leafletMarkers = L.layerGroup().addTo(mapInstance);
+          markerGroupRef.current = leafletMarkers;
 
-        mapInstance.on('click', (e: any) => {
-          const lat = e.latlng.lat;
-          const lng = e.latlng.lng;
-          setPickedCoords({ lat, lng });
-          if (isPickingLocationOnMap) toast.success(`Picked Map Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-        });
+          mapInstance.on('click', (e: any) => {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            setPickedCoords({ lat, lng });
+            if (isPickingLocationOnMap) toast.success(`Picked Map Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          });
 
-        mapRef.current = mapInstance;
-        currentProviderRef.current = 'leaflet';
+          mapRef.current = mapInstance;
+          currentProviderRef.current = 'leaflet';
+        } catch (err: any) {
+          if (!isCancelled) {
+            console.error('Leaflet map init failed:', err?.message);
+            setMapsError(err?.message || 'Leaflet failed to initialize.');
+          }
+        }
       })();
     } else {
       if (!googleKeyConfigured) {
         setMapsError('The Google Maps API key is not configured in this environment.');
-        currentProviderRef.current = 'google'; // prevent re-init loops
+        currentProviderRef.current = 'google';
         mapRef.current = null;
         return;
       }
 
       (async () => {
         try {
-          // Single module-level Loader — initialized exactly once per page lifetime.
           await loadGoogleMaps();
           if (isCancelled) return;
 
@@ -705,7 +690,6 @@ export default function ManagerFleet() {
           setMapsError(null);
         } catch (err: any) {
           if (!isCancelled) {
-            // LOUD failure — explicit onscreen error boundary state
             setMapsError(err?.message || 'Google Maps failed to initialize.');
             mapRef.current = null;
           }
@@ -723,10 +707,8 @@ export default function ManagerFleet() {
       mapRef.current = null;
       currentProviderRef.current = null;
     };
-     
   }, [loading, mapReady, mapProvider]);
 
-  // ── Marker rendering (vehicles & depots — real DB entities) ──
   const initialFitDoneRef = useRef(false);
 
   useEffect(() => {
@@ -735,46 +717,53 @@ export default function ManagerFleet() {
 
     if (mapProvider === 'leaflet') {
       (async () => {
-        const L = (await import('leaflet')).default;
-        const group = markerGroupRef.current;
-        if (!group) return;
+        try {
+          if (!map.getContainer()?.isConnected) return;
+          const L = (await import('leaflet')).default;
+          const group = markerGroupRef.current;
+          if (!group || !map.getContainer()?.isConnected) return;
 
-        group.clearLayers();
-        markerRefsRef.current.clear();
+          group.clearLayers();
+          markerRefsRef.current.clear();
 
-        depots.forEach(d => {
-          const depotIcon = L.divIcon({
-            html: `<div style="width:20px;height:20px;border-radius:4px;background:#9333ea;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)" title="${d.name}">🏢</div>`,
-            className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+          depots.forEach(d => {
+            const depotIcon = L.divIcon({
+              html: `<div style="width:20px;height:20px;border-radius:4px;background:#9333ea;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)" title="${d.name}">🏢</div>`,
+              className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+            });
+            const marker = L.marker([d.lat, d.lng], { icon: depotIcon }).addTo(group);
+            marker.bindTooltip(`<b>${d.name}</b><br/>${d.city}`);
           });
-          const marker = L.marker([d.lat, d.lng], { icon: depotIcon }).addTo(group);
-          marker.bindTooltip(`<b>${d.name}</b><br/>${d.city}`);
-        });
 
-        vehicles.forEach((v) => {
-          const color = markerColor(v.status);
-          const icon = L.divIcon({
-            html: `<div class="vehicle-dot" style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:transform 0.3s ease"></div>`,
-            className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+          vehicles.forEach((v) => {
+            const color = markerColor(v.status);
+            const icon = L.divIcon({
+              html: `<div class="vehicle-dot" style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:transform 0.3s ease"></div>`,
+              className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+            });
+            const marker = L.marker([v.lat, v.lng], { icon }).addTo(group);
+            marker.on('click', () => setSelectedVehicle(v));
+            (marker as any)._vehicleId = v.id;
+            markerRefsRef.current.set(v.id, marker);
           });
-          const marker = L.marker([v.lat, v.lng], { icon }).addTo(group);
-          marker.on('click', () => setSelectedVehicle(v));
-          (marker as any)._vehicleId = v.id;
-          markerRefsRef.current.set(v.id, marker);
-        });
 
-        if (pickedCoords) {
-          const pickIcon = L.divIcon({
-            html: `<div style="width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 0 10px #ef4444;animation:ping 1s infinite"></div>`,
-            className: '', iconSize: [18, 18], iconAnchor: [9, 9],
-          });
-          L.marker([pickedCoords.lat, pickedCoords.lng], { icon: pickIcon }).addTo(group);
-        }
+          if (pickedCoords) {
+            const pickIcon = L.divIcon({
+              html: `<div style="width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 0 10px #ef4444;animation:ping 1s infinite"></div>`,
+              className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+            });
+            L.marker([pickedCoords.lat, pickedCoords.lng], { icon: pickIcon }).addTo(group);
+          }
 
-        if (!initialFitDoneRef.current && vehicles.length > 0) {
-          const bounds = L.latLngBounds(vehicles.map((v) => [v.lat, v.lng]));
-          map.fitBounds(bounds, { padding: [40, 40] });
-          initialFitDoneRef.current = true;
+          if (!initialFitDoneRef.current && vehicles.length > 0) {
+            const bounds = L.latLngBounds(vehicles.map((v) => [v.lat, v.lng]));
+            map.fitBounds(bounds, { padding: [40, 40] });
+            initialFitDoneRef.current = true;
+          }
+        } catch (err: any) {
+          if (err?.message !== 'Map container not found.') {
+            console.error('Leaflet marker render failed:', err?.message);
+          }
         }
       })();
     } else {
@@ -782,7 +771,7 @@ export default function ManagerFleet() {
 
       (async () => {
         try {
-          await loadGoogleMaps(); // idempotent — resolves instantly after first init
+          await loadGoogleMaps();
           const { AdvancedMarkerElement } =
             (await window.google.maps.importLibrary('marker')) as google.maps.MarkerLibrary;
 
@@ -834,28 +823,31 @@ export default function ManagerFleet() {
         }
       })();
     }
-     
   }, [vehicles, depots, pickedCoords, mapProvider, mapsError]);
 
-  // ── Imperative polyline drawing straight from the synchronous solver response ──
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !optimizedRoutes) return;
 
     if (mapProvider === 'leaflet') {
       (async () => {
-        const L = (await import('leaflet')).default;
-        polylineGroupRef.current?.clearLayers();
-        polylineGroupRef.current = L.layerGroup().addTo(map);
+        try {
+          if (!map.getContainer()?.isConnected) return;
+          const L = (await import('leaflet')).default;
+          polylineGroupRef.current?.clearLayers();
+          polylineGroupRef.current = L.layerGroup().addTo(map);
 
-        optimizedRoutes.routes.forEach((route) => {
-          const coords: [number, number][] = [[route.startLat, route.startLng]];
-          route.stops.forEach((stop) => coords.push([stop.lat, stop.lng]));
-          if (coords.length > 1) {
-            L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.8 })
-              .addTo(polylineGroupRef.current);
-          }
-        });
+          optimizedRoutes.routes.forEach((route) => {
+            const coords: [number, number][] = [[route.startLat, route.startLng]];
+            route.stops.forEach((stop) => coords.push([stop.lat, stop.lng]));
+            if (coords.length > 1) {
+              L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.8 })
+                .addTo(polylineGroupRef.current);
+            }
+          });
+        } catch (err: any) {
+          console.error('Polyline render failed:', err?.message);
+        }
       })();
     } else {
       if (!window.google?.maps) return;
@@ -898,19 +890,21 @@ export default function ManagerFleet() {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full rounded-xl" />
         <Skeleton className="h-[500px] w-full rounded-xl" />
-        <Skeleton className="h-[300px] w-full rounded-xl" />
+        <Skeleton className="h-20 w-full rounded-xl" />
       </div>
     );
   }
 
   const showMapsErrorPanel = mapProvider === 'google' && !!mapsError;
+  const availableCount = vehicles.filter(v => v.status === 'AVAILABLE').length;
+  const activeCount = vehicles.filter(v => v.status === 'IN_USE').length;
+  const totalCount = vehicles.length;
 
   return (
     <>
-      {/* ═══ SYNCHRONOUS SOLVE — full-screen blocking spinner overlay ═══ */}
       <AnimatePresence>
         {optimizing && (
           <motion.div
@@ -920,8 +914,8 @@ export default function ManagerFleet() {
             className="fixed inset-0 z-[3000] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center gap-4"
           >
             <Loader2 className="w-14 h-14 animate-spin text-emerald-400" />
-            <p className="text-white font-semibold text-lg">Solving optimal routes…</p>
-            <p className="text-slate-300 text-sm">Timefold VRP running synchronously on the server (max 30s)</p>
+            <p className="text-white font-semibold text-lg">Dispatching & solving routes…</p>
+            <p className="text-slate-300 text-sm">Timefold VRP running synchronously (max 30s)</p>
             <div className="w-56 h-1.5 bg-slate-700 rounded-full overflow-hidden mt-2">
               <div className="h-full w-1/3 bg-emerald-500 rounded-full animate-[slide_1.2s_ease-in-out_infinite]" style={{ animationName: 'solverSlide' }} />
             </div>
@@ -929,7 +923,6 @@ export default function ManagerFleet() {
         )}
       </AnimatePresence>
 
-      {/* Add Depot Modal */}
       <AnimatePresence>
         {isAddDepotOpen && canManageFleet && (
           <AddDepotModal
@@ -945,7 +938,6 @@ export default function ManagerFleet() {
         )}
       </AnimatePresence>
 
-      {/* Add Vehicle Modal */}
       <AnimatePresence>
         {isAddVehicleOpen && canManageFleet && (
           <AddVehicleModal
@@ -956,7 +948,6 @@ export default function ManagerFleet() {
         )}
       </AnimatePresence>
 
-      {/* Optimization Slide-in Modal */}
       <AnimatePresence>
         {isOptimizeModalOpen && canManageFleet && (
           <div className="fixed inset-0 z-[1500] pointer-events-none">
@@ -1029,7 +1020,7 @@ export default function ManagerFleet() {
                 <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-3">
                   <p className="text-xs text-emerald-700 dark:text-emerald-300 flex items-start gap-2">
                     <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                    Solves synchronously over HTTP — routes return with full coordinates in a single response. No WebSocket required.
+                    Batch dispatch auto-assigns all REQUESTED shipments to available vehicles via VRP solver.
                   </p>
                 </div>
               </div>
@@ -1039,7 +1030,7 @@ export default function ManagerFleet() {
                   disabled={selectedVehicleIds.size === 0 || selectedShipmentIds.size === 0 || optimizing}
                   className={`${theme.button.primary} w-full`}
                 >
-                  {optimizing ? <><Loader2 className="w-4 h-4 animate-spin mr-2 inline" />Solving...</> : 'Start Optimization'}
+                  {optimizing ? <><Loader2 className="w-4 h-4 animate-spin mr-2 inline" />Solving...</> : 'Dispatch & Optimize'}
                 </button>
               </div>
             </motion.div>
@@ -1047,7 +1038,6 @@ export default function ManagerFleet() {
         )}
       </AnimatePresence>
 
-      {/* Vehicle Detail Slide-in Panel */}
       <AnimatePresence>
         {selectedVehicle && (
           <div className="fixed inset-0 z-[1500] pointer-events-none">
@@ -1071,6 +1061,7 @@ export default function ManagerFleet() {
                   <DetailRow icon={Truck} label={t.manager.vehicleType} value={selectedVehicle.type} />
                   <DetailRow icon={Truck} label={t.manager.vehicleModel} value={selectedVehicle.model} />
                   <DetailRow icon={PackageCheck} label={t.manager.capacity} value={`${selectedVehicle.capacity} kg`} />
+                  <DetailRow icon={Fuel} label="Fuel Type" value={selectedVehicle.fuelType} />
                   <DetailRow icon={MapPinned} label={t.manager.vehicleStatus} value={
                     <Badge className={`${theme.status.badge} ${vehicleStatusBadge[selectedVehicle.status]}`}>
                       {formatVehicleStatus(selectedVehicle.status)}
@@ -1104,56 +1095,69 @@ export default function ManagerFleet() {
         )}
       </AnimatePresence>
 
-      {/* ═══ CSS GRID: controls column OUTSIDE the map viewport wrapper ═══ */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-6 grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 items-start"
+      {/* ═══ MAIN FLEET VIEW — full-width immersive map ═══ */}
+      <div
+        className="relative -mx-4 lg:-mx-8 rounded-none"
+        style={{ height: 'min(75vh, calc(100vh - 6rem))' }}
       >
-        {/* Control column — sibling of the map, zero stacking-context conflicts */}
-        <div className="order-2 lg:order-1 space-y-3">
-          {/* Legend card */}
-          <Card className={theme.card.base}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Map Legend</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-1.5 text-xs text-slate-600 dark:text-slate-300">
-              <span className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-purple-600 flex items-center justify-center text-[9px] text-white">🏢</span> Depot / HQ Hub</span>
-              <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-500" /> Available Vehicle</span>
-              <span className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500" /> Active Vehicle</span>
-              <span className="flex items-center gap-2"><span className="w-3 h-0.5 bg-blue-500 inline-block w-4" /> Optimized Route</span>
-            </CardContent>
-          </Card>
+        {/* Map Surface */}
+        <div
+          id="fleet-map"
+          className="absolute inset-0 cursor-crosshair"
+          style={{ zIndex: 0 }}
+        />
 
-          {/* Picker banner — lives here, NOT inside the map container */}
-          {isPickingLocationOnMap && (
-            <div className="bg-purple-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
-              <MousePointerClick className="w-4 h-4 shrink-0" />
-              Click anywhere on the map to place HQ Pin!
-              <button
-                onClick={() => setIsPickingLocationOnMap(false)}
-                className="ml-auto hover:bg-purple-700 rounded p-0.5"
-                aria-label="Cancel picking"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+        {showMapsErrorPanel && <MapsUnavailablePanel message={mapsError!} />}
+
+        {/* ── Top-Left: Fleet Actions Panel ── */}
+        {canManageFleet && (
+          <div className="absolute top-4 left-4 z-10 w-52">
+            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-slate-200/50 dark:border-slate-700/50">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 tracking-wide uppercase">Fleet Actions</p>
+              </div>
+              <div className="p-2 space-y-1">
+                <button
+                  onClick={() => setIsAddDepotOpen(true)}
+                  className="w-full px-3 py-2 text-xs font-medium rounded-lg text-left flex items-center gap-2.5 hover:bg-purple-50 dark:hover:bg-purple-950/40 text-slate-700 dark:text-slate-200 transition-colors"
+                >
+                  <Building2 className="w-4 h-4 text-purple-600" />
+                  Add Depot / HQ
+                </button>
+                <button
+                  onClick={() => setIsAddVehicleOpen(true)}
+                  className="w-full px-3 py-2 text-xs font-medium rounded-lg text-left flex items-center gap-2.5 hover:bg-blue-50 dark:hover:bg-blue-950/40 text-slate-700 dark:text-slate-200 transition-colors"
+                >
+                  <Plus className="w-4 h-4 text-blue-600" />
+                  Add Vehicle
+                </button>
+                <button
+                  onClick={handleOpenOptimizeModal}
+                  disabled={optimizing}
+                  className="w-full px-3 py-2 text-xs font-medium rounded-lg text-left flex items-center gap-2.5 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-slate-700 dark:text-slate-200 transition-colors disabled:opacity-50"
+                >
+                  {optimizing ? <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" /> : <Route className="w-4 h-4 text-emerald-600" />}
+                  Optimize Routes
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Controls card */}
-          <Card className={theme.card.base}>
-            <CardContent className="p-4 space-y-4">
-              {/* Traffic toggle — binds native TrafficLayer on Google */}
+        {/* ── Top-Right: Map Controls Panel ── */}
+        <div className="absolute top-4 right-4 z-10 w-48">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+            <div className="px-3 py-2.5 border-b border-slate-200/50 dark:border-slate-700/50">
+              <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 tracking-wide uppercase">Map Controls</p>
+            </div>
+            <div className="p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="traffic-toggle" className="cursor-pointer font-medium text-xs">
-                  <span className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-                    {trafficView ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    Traffic Layer
-                  </span>
+                <Label htmlFor="traffic-toggle-fleet" className="cursor-pointer text-xs font-medium text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                  {trafficView ? <Eye className="w-3.5 h-3.5 text-emerald-600" /> : <EyeOff className="w-3.5 h-3.5" />}
+                  Traffic
                 </Label>
                 <Switch
-                  id="traffic-toggle"
+                  id="traffic-toggle-fleet"
                   checked={trafficView}
                   onCheckedChange={(v) => {
                     if (v && mapProvider === 'google' && !googleKeyConfigured) {
@@ -1169,150 +1173,136 @@ export default function ManagerFleet() {
                 />
               </div>
 
-              <div className="h-px bg-slate-200 dark:bg-slate-700" />
+              <div className="h-px bg-slate-200/50 dark:bg-slate-700/50" />
 
-              {/* Provider toggle */}
               <div>
-                <p className="text-xs font-medium text-slate-500 mb-1.5">Map Provider</p>
-                <div className="flex items-center gap-1 bg-slate-200/50 dark:bg-slate-800/50 p-1 rounded-lg">
+                <p className="text-[10px] font-medium text-slate-500 mb-1.5 uppercase tracking-wider">Provider</p>
+                <div className="flex items-center gap-1 bg-slate-100/80 dark:bg-slate-800/80 p-0.5 rounded-lg">
                   <button
                     onClick={() => { setTrafficView(false); setMapProvider('leaflet'); }}
-                    className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-all ${mapProvider === 'leaflet' ? 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-600 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    className={`flex-1 px-2 py-1 text-[11px] font-medium rounded-md transition-all ${mapProvider === 'leaflet' ? 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                   >
                     Leaflet
                   </button>
                   <button
                     onClick={() => setMapProvider('google')}
-                    className={`flex-1 px-3 py-1 text-xs font-medium rounded-md transition-all ${mapProvider === 'google' ? 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-600 hover:text-slate-800 dark:hover:text-slate-200'}`}
+                    className={`flex-1 px-2 py-1 text-[11px] font-medium rounded-md transition-all ${mapProvider === 'google' ? 'bg-white dark:bg-slate-700 shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                   >
-                    Google Maps
+                    Google
                   </button>
                 </div>
               </div>
 
-              <div className="h-px bg-slate-200 dark:bg-slate-700" />
+              <div className="h-px bg-slate-200/50 dark:bg-slate-700/50" />
 
-              {/* Actions */}
-              <div className="space-y-2">
-                {canManageFleet && (
-                  <button
-                    onClick={() => setIsAddDepotOpen(true)}
-                    className="w-full px-3 py-1.5 text-xs font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                  >
-                    <Building2 className="w-3.5 h-3.5" /> Add Depot / HQ
-                  </button>
-                )}
-                {canManageFleet && (
-                  <button
-                    onClick={() => setIsAddVehicleOpen(true)}
-                    className="w-full px-3 py-1.5 text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Vehicle
-                  </button>
-                )}
-                {canManageFleet && (
-                  <button
-                    onClick={handleOpenOptimizeModal}
-                    disabled={optimizing}
-                    className={`w-full px-3 py-1.5 text-xs font-medium rounded-md text-white transition-all ${optimizing ? 'bg-slate-400 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'} flex items-center justify-center gap-1.5 shadow-sm`}
-                  >
-                    {optimizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Route className="w-3.5 h-3.5" />}
-                    Optimize Routes
-                  </button>
-                )}
+              {/* Fleet Stats */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500">Total</span>
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-200">{totalCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Available
+                  </span>
+                  <span className="text-[11px] font-semibold text-emerald-600">{availableCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Active
+                  </span>
+                  <span className="text-[11px] font-semibold text-blue-600">{activeCount}</span>
+                </div>
               </div>
-
-              <div className="h-px bg-slate-200 dark:bg-slate-700" />
-
-              {/* Live indicator — now reflects HTTP polling health */}
-              <span className={theme.liveIndicator.wrapper} title={connected ? 'Polling Spring Boot every 5s' : 'Backend unreachable'}>
-                <span className="relative flex items-center justify-center">
-                  {connected && <span className={theme.liveIndicator.pulseRing} />}
-                  <span className={connected ? theme.liveIndicator.dotLive : theme.liveIndicator.dotOffline} />
-                </span>
-                <span className={connected ? theme.liveIndicator.labelLive : theme.liveIndicator.labelOffline}>
-                  {connected ? t.manager.live : t.manager.offline}
-                </span>
-              </span>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
-        {/* Map column — pure map surface, nothing nested inside it */}
-        <motion.div className="order-1 lg:order-2 min-w-0">
-          {showMapsErrorPanel ? (
-            <MapsUnavailablePanel message={mapsError!} />
-          ) : (
-            <div
-              id="fleet-map"
-              className="w-full h-[500px] rounded-xl border dark:border-slate-700 cursor-crosshair"
-              style={{ zIndex: 0, isolation: 'isolate' }}
-            />
+        {/* ── Picker Banner ── */}
+        <AnimatePresence>
+          {isPickingLocationOnMap && (
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -20, opacity: 0 }}
+              className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-purple-600 text-white text-xs px-4 py-2 rounded-full shadow-lg flex items-center gap-2"
+            >
+              <MousePointerClick className="w-4 h-4 shrink-0" />
+              Click anywhere on the map to place Depot Pin
+              <button
+                onClick={() => setIsPickingLocationOnMap(false)}
+                className="ml-1 hover:bg-purple-700 rounded-full p-0.5"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </motion.div>
           )}
-        </motion.div>
-      </motion.div>
+        </AnimatePresence>
 
-      {/* Vehicle Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
-        <Card className={theme.card.base}>
-          <CardContent className={`${theme.table.scrollCard} overflow-x-auto`}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Plate Number</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Driver</TableHead>
-                  <TableHead>Location</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vehicles.map((vehicle, i) => {
-                  const driverName =
-                    vehicle.driverProfiles && vehicle.driverProfiles.length > 0
-                      ? vehicle.driverProfiles[0].user.name
-                      : '—';
-                  return (
-                    <motion.tr
-                      key={vehicle.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className={`border-b last:border-0 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:-translate-y-0.5 hover:shadow-sm transition-all duration-200 ${theme.table.zebraRow}`}
-                      onClick={() => handleVehicleClick(vehicle)}
-                    >
-                      <TableCell className="font-mono text-sm font-medium">
-                        {vehicle.plateNumber}
-                      </TableCell>
-                      <TableCell>{vehicle.type}</TableCell>
-                      <TableCell>{vehicle.model}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`${theme.status.badge} ${vehicleStatusBadge[vehicle.status]}`}
-                        >
-                          {formatVehicleStatus(vehicle.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{driverName}</TableCell>
-                      <TableCell className={theme.typography.caption}>
-                        <span className="flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          {formatCoords(vehicle.lat, vehicle.lng)}
-                        </span>
-                      </TableCell>
-                    </motion.tr>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </motion.div>
+        {/* ── Bottom: Live Status Feed — horizontal vehicle cards ── */}
+        <div className="absolute bottom-0 left-0 right-0 z-10">
+          <div className="bg-gradient-to-t from-black/60 via-black/30 to-transparent pt-8 pb-0">
+            <div className="px-4 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={theme.liveIndicator.wrapper} title={connected ? 'Polling Spring Boot every 5s' : 'Backend unreachable'}>
+                  <span className="relative flex items-center justify-center">
+                    {connected && <span className={theme.liveIndicator.pulseRing} />}
+                    <span className={connected ? theme.liveIndicator.dotLive : theme.liveIndicator.dotOffline} />
+                  </span>
+                  <span className={connected ? theme.liveIndicator.labelLive : theme.liveIndicator.labelOffline}>
+                    {connected ? 'Live' : 'Offline'}
+                  </span>
+                </span>
+                <span className="text-white/60 text-[11px]">•</span>
+                <span className="text-white/80 text-[11px] font-medium">
+                  {totalCount} vehicle{totalCount !== 1 ? 's' : ''} tracked
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3 overflow-x-auto px-4 pb-4 scrollbar-thin">
+              {vehicles.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => handleVehicleClick(v)}
+                  className="flex-shrink-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/20 dark:border-slate-700/50 text-left hover:scale-[1.02] transition-transform cursor-pointer"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{v.plateNumber}</span>
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: markerColor(v.status) }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Truck className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-600 dark:text-slate-300">{v.model}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Boxes className="w-3.5 h-3.5 text-slate-400" />
+                    <span className="text-xs text-slate-600 dark:text-slate-300">{v.capacity} kg</span>
+                  </div>
+                  {v.driverProfiles && v.driverProfiles.length > 0 ? (
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-300">{v.driverProfiles[0].user.name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-xs text-slate-400 italic">Unassigned</span>
+                    </div>
+                  )}
+                </button>
+              ))}
+              {vehicles.length === 0 && (
+                <div className="w-full text-center py-6">
+                  <p className="text-white/60 text-sm">No vehicles in fleet</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   );
 }

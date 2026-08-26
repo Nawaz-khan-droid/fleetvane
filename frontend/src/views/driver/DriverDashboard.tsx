@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
@@ -109,7 +110,7 @@ export default function DriverDashboard() {
         const headers = { Authorization: `Bearer ${authState.token}` };
 
         // Fetch driver profile
-        const driversRes = await fetch('/api/drivers', { headers });
+        const driversRes = await fetchWithAuth('/api/drivers', { headers });
         if (!driversRes.ok) throw new Error('Failed to fetch drivers');
         const rawDrivers = await driversRes.json();
         const driversData: DriverWithProfile[] = normalizePageResponse<DriverWithProfile>(rawDrivers).items;
@@ -119,8 +120,8 @@ export default function DriverDashboard() {
 
         // Fetch all vehicles and shipments
         const [vehiclesRes, shipmentsRes] = await Promise.all([
-          fetch('/api/vehicles', { headers }),
-          fetch('/api/shipments?clientId=all', { headers }),
+          fetchWithAuth('/api/vehicles', { headers }),
+          fetchWithAuth('/api/shipments?clientId=all', { headers }),
         ]);
 
         if (!vehiclesRes.ok || !shipmentsRes.ok) {

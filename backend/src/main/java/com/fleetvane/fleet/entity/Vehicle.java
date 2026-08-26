@@ -1,6 +1,7 @@
 package com.fleetvane.fleet.entity;
 
 import com.fleetvane.shared.entity.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
@@ -16,6 +17,14 @@ public class Vehicle extends BaseEntity {
     private Double lat;
     private Double lng;
     private Double heading;
+    @Column(name = "max_volume_m3")
+    private Double maxVolumeM3;
+    @Column(name = "current_weight_kg")
+    private Double currentWeightKg;
+    @Column(name = "current_volume_m3")
+    private Double currentVolumeM3;
+    @Column(name = "depot_id")
+    private Long depotId;
 
     public Vehicle() {}
 
@@ -57,4 +66,16 @@ public class Vehicle extends BaseEntity {
 
     public Double getHeading() { return heading; }
     public void setHeading(Double heading) { this.heading = heading; }
+
+    public Double getMaxVolumeM3() { return maxVolumeM3; }
+    public void setMaxVolumeM3(Double maxVolumeM3) { this.maxVolumeM3 = maxVolumeM3; }
+
+    public Double getCurrentWeightKg() { return currentWeightKg; }
+    public void setCurrentWeightKg(Double currentWeightKg) { this.currentWeightKg = currentWeightKg; }
+
+    public Double getCurrentVolumeM3() { return currentVolumeM3; }
+    public void setCurrentVolumeM3(Double currentVolumeM3) { this.currentVolumeM3 = currentVolumeM3; }
+
+    public Long getDepotId() { return depotId; }
+    public void setDepotId(Long depotId) { this.depotId = depotId; }
 }

@@ -93,11 +93,11 @@ public class RouteSolverService {
         }
 
         List<RouteVehicle> routeVehicles = vehicleData.stream()
-                .map(v -> new RouteVehicle(v.id(), v.originalId(), v.lat(), v.lng(), v.capacityGrams()))
+                .map(v -> new RouteVehicle(v.id(), v.originalId(), v.lat(), v.lng(), v.capacityGrams(), v.volumeM3x1000()))
                 .collect(Collectors.toList());
 
         List<DeliveryStop> deliveryStops = solvable.stream()
-                .map(s -> new DeliveryStop(s.id(), s.id(), s.destinationLat(), s.destinationLng(), s.weightGrams()))
+                .map(s -> new DeliveryStop(s.id(), s.id(), s.destinationLat(), s.destinationLng(), s.weightGrams(), s.volumeM3x1000()))
                 .collect(Collectors.toList());
 
         OptimizationJob job = new OptimizationJob();

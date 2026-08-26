@@ -81,7 +81,11 @@ public class ShipmentService {
         shipment.setDestinationLat(request.destinationLat());
         shipment.setDestinationLng(request.destinationLng());
         shipment.setWeight(request.weight());
-        
+        shipment.setLengthCm(request.lengthCm());
+        shipment.setWidthCm(request.widthCm());
+        shipment.setHeightCm(request.heightCm());
+        shipment.setVolumeM3(request.calculatedVolumeM3());
+
         return mapToDto(shipmentRepository.save(shipment));
     }
 
@@ -168,6 +172,10 @@ public class ShipmentService {
                 shipment.getDestinationLat(),
                 shipment.getDestinationLng(),
                 shipment.getWeight(),
+                shipment.getLengthCm(),
+                shipment.getWidthCm(),
+                shipment.getHeightCm(),
+                shipment.getVolumeM3(),
                 shipment.getEta(),
                 shipment.getAssignedAt(),
                 shipment.getPickedUpAt(),

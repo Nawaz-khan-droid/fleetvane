@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Lock, User, ShieldCheck, Calendar, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ export default function ManagerSettings() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/auth/change-password', {
+      const res = await fetchWithAuth('/api/auth/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

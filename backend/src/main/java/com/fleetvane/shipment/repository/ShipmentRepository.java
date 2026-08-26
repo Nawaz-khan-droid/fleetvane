@@ -13,7 +13,9 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
     Page<Shipment> findByClientId(Long clientId, Pageable pageable);
     Page<Shipment> findByDriverId(Long driverId, Pageable pageable);
     Page<Shipment> findByStatus(String status, Pageable pageable);
+    List<Shipment> findByStatus(String status);
     List<Shipment> findByVehicleIdAndStatusIn(Long vehicleId, List<String> statuses);
+    List<Shipment> findByStatusIn(List<String> statuses);
     
     java.util.Optional<Shipment> findByIdAndDriverId(Long id, Long driverId);
     java.util.Optional<Shipment> findByIdAndClientId(Long id, Long clientId);
