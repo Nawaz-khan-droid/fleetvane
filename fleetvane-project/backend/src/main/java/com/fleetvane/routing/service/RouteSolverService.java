@@ -4,6 +4,8 @@ import ai.timefold.solver.core.api.solver.SolverManager;
 import com.fleetvane.routing.application.FleetQueryPort;
 import com.fleetvane.routing.application.ShipmentQueryPort;
 import com.fleetvane.routing.domain.DeliveryStop;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import com.fleetvane.routing.domain.RouteVehicle;
 import com.fleetvane.routing.domain.VehicleRoutePlan;
@@ -27,6 +29,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class RouteSolverService {
+
+    private static final Logger log = LoggerFactory.getLogger(RouteSolverService.class);
 
     private final SolverManager<VehicleRoutePlan, UUID> solverManager;
     private final OptimizationJobRepository jobRepository;
@@ -73,11 +77,26 @@ public class RouteSolverService {
             throw new BusinessException("Must provide valid vehicles and shipments", HttpStatus.BAD_REQUEST);
         }
 
+        // Solver-input integrity: coordinate-less shipments would silently zero-out
+        // distance scoring. Exclude them explicitly and surface the count.
+        List<ShipmentQueryPort.ShipmentData> solvable = shipmentData.stream()
+                .filter(s -> s.destinationLat() != null && s.destinationLng() != null)
+                .toList();
+        int skippedMissingCoords = shipmentData.size() - solvable.size();
+        if (skippedMissingCoords > 0) {
+            log.warn("Optimization job: skipping {} shipment(s) without destination coordinates", skippedMissingCoords);
+        }
+        if (solvable.isEmpty()) {
+            throw new BusinessException(
+                "Selected shipments have no destination coordinates. Attach pickup/drop locations before optimizing.",
+                HttpStatus.BAD_REQUEST);
+        }
+
         List<RouteVehicle> routeVehicles = vehicleData.stream()
                 .map(v -> new RouteVehicle(v.id(), v.originalId(), v.lat(), v.lng(), v.capacityGrams()))
                 .collect(Collectors.toList());
 
-        List<DeliveryStop> deliveryStops = shipmentData.stream()
+        List<DeliveryStop> deliveryStops = solvable.stream()
                 .map(s -> new DeliveryStop(s.id(), s.id(), s.destinationLat(), s.destinationLng(), s.weightGrams()))
                 .collect(Collectors.toList());
 
@@ -110,7 +129,7 @@ public class RouteSolverService {
         job.setResultJson(serializeResult(solution));
         jobRepository.save(job);
 
-        return buildResponse(solution, vehicleData, shipmentData, job);
+        return buildResponse(solution, vehicleData, solvable, job);
     }
 
     private RouteSolutionResponse buildResponse(VehicleRoutePlan solution,

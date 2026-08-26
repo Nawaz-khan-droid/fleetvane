@@ -12,17 +12,25 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class SimulationService {
 
     private static final double STEP_FRACTION = 0.08;
     private static final double ARRIVAL_EPSILON_KM = 2.0;
+    private static final long TICK_DELAY_SECONDS = 2L;
+    private static final long TICK_PERIOD_SECONDS = 5L;
 
     private final VehicleRepository vehicleRepository;
     private final ShipmentRepository shipmentRepository;
     private final GpsEventRepository gpsEventRepository;
     private final Random random = new Random();
+
+    private ScheduledExecutorService scheduler;
+    private volatile boolean running = false;
 
     public SimulationService(VehicleRepository vehicleRepository,
                              ShipmentRepository shipmentRepository,
@@ -30,6 +38,50 @@ public class SimulationService {
         this.vehicleRepository = vehicleRepository;
         this.shipmentRepository = shipmentRepository;
         this.gpsEventRepository = gpsEventRepository;
+    }
+
+    /**
+     * Starts continuous simulated movement: seeds demo shipments once, then
+     * advances vehicles every {@value TICK_PERIOD_SECONDS}s until stopped.
+     * Idempotent — calling start while already running is a no-op.
+     */
+    public synchronized void start() {
+        if (running) return;
+        start(Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "simulation-ticker");
+            t.setDaemon(true);
+            return t;
+        }));
+    }
+
+    /** Testable seam: injects the scheduler instead of creating one. */
+    synchronized void start(ScheduledExecutorService executor) {
+        if (running) return;
+        int seeded = seedDemoData();
+        executor.scheduleAtFixedRate(this::tickSafely,
+                TICK_DELAY_SECONDS, TICK_PERIOD_SECONDS, TimeUnit.SECONDS);
+        this.scheduler = executor;
+        this.running = true;
+    }
+
+    /** Idempotent stop — shuts the ticker down and halts movement. */
+    public synchronized void stop() {
+        if (!running) return;
+        if (scheduler != null) scheduler.shutdownNow();
+        scheduler = null;
+        running = false;
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    private void tickSafely() {
+        try {
+            advanceVehicles();
+        } catch (Exception e) {
+            // A tick failure must never kill the ticker; next tick retries.
+        }
     }
 
     @Transactional
