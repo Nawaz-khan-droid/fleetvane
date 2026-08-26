@@ -125,7 +125,7 @@ cd backend && mvn test
 cd frontend && npx tsc --noEmit && npm run build
 ```
 
-GitHub Actions runs both suites on every push/PR to `main` (`.github/workflows/ci.yml`). Dependabot keeps npm/Maven/Actions dependencies patched weekly.
+GitHub Actions runs both suites on every push/PR to `main` (`.github/workflows/ci.yml`).
 
 ---
 
