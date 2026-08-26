@@ -1,4 +1,4 @@
-package com.fleetvane.shared.config;
+package com.fleetvane.bootstrap;
 
 import com.fleetvane.auth.entity.User;
 import com.fleetvane.auth.repository.UserRepository;

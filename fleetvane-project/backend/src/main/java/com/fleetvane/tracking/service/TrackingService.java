@@ -2,10 +2,9 @@ package com.fleetvane.tracking.service;
 
 import com.fleetvane.driver.entity.DriverProfile;
 import com.fleetvane.driver.repository.DriverProfileRepository;
-import com.fleetvane.fleet.entity.Vehicle;
-import com.fleetvane.fleet.repository.VehicleRepository;
 import com.fleetvane.shared.exception.BusinessException;
 import com.fleetvane.shared.exception.ResourceNotFoundException;
+import com.fleetvane.tracking.application.VehiclePersistencePort;
 import com.fleetvane.tracking.dto.LocationUpdateRequest;
 import com.fleetvane.tracking.entity.GpsEvent;
 import com.fleetvane.tracking.repository.GpsEventRepository;
@@ -15,17 +14,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * GPS telemetry ingestion + history reads.
+ *
+ * Depends on {@link VehiclePersistencePort} (implemented by the fleet module)
+ * instead of fleet's repository — enforced by ModularBoundariesArchTest.
+ */
 @Service
 public class TrackingService {
 
-    private final VehicleRepository vehicleRepository;
+    private final VehiclePersistencePort vehiclePersistencePort;
     private final GpsEventRepository gpsEventRepository;
     private final DriverProfileRepository driverProfileRepository;
 
-    public TrackingService(VehicleRepository vehicleRepository,
+    public TrackingService(VehiclePersistencePort vehiclePersistencePort,
                            GpsEventRepository gpsEventRepository,
                            DriverProfileRepository driverProfileRepository) {
-        this.vehicleRepository = vehicleRepository;
+        this.vehiclePersistencePort = vehiclePersistencePort;
         this.gpsEventRepository = gpsEventRepository;
         this.driverProfileRepository = driverProfileRepository;
     }
@@ -45,20 +50,16 @@ public class TrackingService {
     public void updateVehicleLocation(Long vehicleId, LocationUpdateRequest request, String role, Long userId) {
         enforceVehicleAccess(vehicleId, role, userId);
 
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", vehicleId));
+        double heading = request.heading() != null ? request.heading() : 0.0;
 
-        vehicle.setLat(request.lat());
-        vehicle.setLng(request.lng());
-        vehicle.setHeading(request.heading() != null ? request.heading() : 0.0);
-
-        vehicleRepository.save(vehicle);
+        // Delegates aggregate mutation to the owning module via the port.
+        vehiclePersistencePort.applyGpsLocation(vehicleId, request.lat(), request.lng(), heading);
 
         GpsEvent event = new GpsEvent(
                 vehicleId,
                 request.lat(),
                 request.lng(),
-                request.heading() != null ? request.heading() : 0.0,
+                heading,
                 request.speed()
         );
         gpsEventRepository.save(event);
@@ -68,7 +69,7 @@ public class TrackingService {
     public Page<GpsEvent> getVehicleHistory(Long vehicleId, Pageable pageable, String role, Long userId) {
         enforceVehicleAccess(vehicleId, role, userId);
 
-        if (!vehicleRepository.existsById(vehicleId)) {
+        if (!vehiclePersistencePort.vehicleExists(vehicleId)) {
             throw new ResourceNotFoundException("Vehicle", "id", vehicleId);
         }
         return gpsEventRepository.findByVehicleIdOrderByRecordedAtDesc(vehicleId, pageable);
