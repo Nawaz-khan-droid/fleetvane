@@ -4,30 +4,55 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Environment files (never commit secrets)
 .env
 .env.*
 !.env.example
 
-# Build Tooling & Local Runtimes
+# Vendored toolchains & local runtimes
+.jdk/
 .tools/
+backend/.tools/
 jdk/
 maven/
 apache-maven-*/
 jdk-*/
+maven_extracted/
 *.zip
 *.tar.gz
-*.log
 
-# Backend
+# Backend build artifacts
 backend/target/
-backend/compile.log
 backend/mvn_*.log
-backend/.tools/
+backend/mvn_debug.txt
+backend/compile.log
 
-# Frontend
+# Frontend (Next.js)
 frontend/node_modules/
-frontend/dist/
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.vercel
+frontend/server.log
+next-env.d.ts
+*.tsbuildinfo
+
+# Logs & debug
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local working notes / agent metadata (kept on disk, never published)
+.agents/
+.claude/
+.z-ai-config
+/skills/
+prompt
+local-*
+CLAUDE.md
+PROJECT.md
+worklog.md
+AGENTS.md

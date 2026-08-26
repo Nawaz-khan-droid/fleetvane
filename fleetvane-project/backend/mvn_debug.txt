@@ -1,8 +1,0 @@
-SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
-SLF4J: Defaulting to no-operation (NOP) logger implementation
-SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
-Apache Maven 3.9.6 (bc0240f3c744dd6b6ec2920b3cd08dcc295161ae)
-Maven home: C:\maven
-Java version: 21.0.3, vendor: Eclipse Adoptium, runtime: C:\jdk21
-Default locale: en_IN, platform encoding: UTF-8
-OS name: "windows 11", version: "10.0", arch: "amd64", family: "windows"
