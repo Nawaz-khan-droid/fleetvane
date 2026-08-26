@@ -133,8 +133,11 @@ export default function ClientTrackPage() {
     let map: any;
     let isCancelled = false;
 
-    const vehicleLat = shipment?.vehicle?.lat ?? 19.076;
-    const vehicleLng = shipment?.vehicle?.lng ?? 72.8777;
+    const vehiclePos =
+      shipment?.vehicle?.lat != null && shipment?.vehicle?.lng != null
+        ? { lat: shipment.vehicle.lat as number, lng: shipment.vehicle.lng as number }
+        : null;
+    if (!vehiclePos) return;
 
     (async () => {
       const L = (await import('leaflet')).default;
@@ -157,11 +160,11 @@ export default function ClientTrackPage() {
         delete (container as any)._leaflet_id;
         container.innerHTML = '';
       }
-      map = L.map(container).setView([vehicleLat, vehicleLng], 10);
+      map = L.map(container).setView([vehiclePos.lat, vehiclePos.lng], 10);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap',
       }).addTo(map);
-      L.marker([vehicleLat, vehicleLng])
+      L.marker([vehiclePos.lat, vehiclePos.lng])
         .addTo(map)
         .bindPopup('Vehicle Location');
     })();
@@ -380,12 +383,12 @@ export default function ClientTrackPage() {
                 <DetailRow
                   icon={MapPin}
                   label={t.client.origin}
-                  value={shipment.origin}
+                  value={shipment.originAddress}
                 />
                 <DetailRow
                   icon={Navigation}
                   label={t.client.destination}
-                  value={shipment.destination}
+                  value={shipment.destinationAddress}
                 />
                 <DetailRow
                   icon={Weight}
@@ -447,10 +450,18 @@ export default function ClientTrackPage() {
                   <DialogHeader>
                     <DialogTitle>{t.client.trackLiveModal}</DialogTitle>
                   </DialogHeader>
-                  <div
-                    id="track-map"
-                    className={theme.map.containerModal}
-                  />
+                  {shipment?.vehicle?.lat != null && shipment?.vehicle?.lng != null ? (
+                    <div
+                      id="track-map"
+                      className={theme.map.containerModal}
+                    />
+                  ) : (
+                    <div className="h-[300px] flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-6 text-center">
+                      <p className={theme.typography.body}>
+                        Live GPS position not yet available for the assigned vehicle. The map appears once the driver starts transmitting location.
+                      </p>
+                    </div>
+                  )}
                 </DialogContent>
               </Dialog>
             </Card>

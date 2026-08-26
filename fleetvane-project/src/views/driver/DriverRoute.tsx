@@ -28,27 +28,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// ── Approximate Indian city coordinates for routing ──────
-const CITY_COORDS: Record<string, [number, number]> = {
-  mumbai: [19.076, 72.8777],
-  delhi: [28.6139, 77.209],
-  bangalore: [12.9716, 77.5946],
-  chennai: [13.0827, 80.2707],
-  kolkata: [22.5726, 88.3639],
-  hyderabad: [17.385, 78.4867],
-  pune: [18.5204, 73.8567],
-  ahmedabad: [23.0225, 72.5714],
-  jaipur: [26.9124, 75.7873],
-  lucknow: [26.8467, 80.9462],
-};
-
-function resolveCoords(name: string): [number, number] {
-  const key = name.toLowerCase().trim();
-  for (const [city, coords] of Object.entries(CITY_COORDS)) {
-    if (key.includes(city)) return coords;
-  }
-  return [19.076, 72.8777]; // default Mumbai
-}
 
 export default function DriverRoute() {
   const { state: authState } = useAuth();
@@ -128,8 +107,13 @@ export default function DriverRoute() {
     if (loading || !shipment || !mapReady) return;
     if (currentProviderRef.current === mapProvider) return;
 
-    const originCoords = resolveCoords(shipment.origin);
-    const destCoords = resolveCoords(shipment.destination);
+    const hasRouteCoords =
+      shipment.originLat != null && shipment.originLng != null &&
+      shipment.destinationLat != null && shipment.destinationLng != null;
+    if (!hasRouteCoords) return;
+
+    const originCoords: [number, number] = [shipment.originLat as number, shipment.originLng as number];
+    const destCoords: [number, number] = [shipment.destinationLat as number, shipment.destinationLng as number];
 
     let mapInstance: any;
     let isCancelled = false;
@@ -166,11 +150,11 @@ export default function DriverRoute() {
 
         L.marker(originCoords)
           .addTo(mapInstance)
-          .bindPopup(`<b>${t.driver.origin}</b><br/>${shipment.origin}`);
+          .bindPopup(`<b>${t.driver.origin}</b><br/>${shipment.originAddress}`);
 
         L.marker(destCoords)
           .addTo(mapInstance)
-          .bindPopup(`<b>${t.driver.destination}</b><br/>${shipment.destination}`);
+          .bindPopup(`<b>${t.driver.destination}</b><br/>${shipment.destinationAddress}`);
 
         const polyline = L.polyline([originCoords, destCoords], {
           color: '#047857',
@@ -208,8 +192,8 @@ export default function DriverRoute() {
             zoomControl: true,
           });
 
-          new AdvancedMarkerElement({ map: mapInstance, position: originLatLng, title: shipment.origin });
-          new AdvancedMarkerElement({ map: mapInstance, position: destLatLng, title: shipment.destination });
+          new AdvancedMarkerElement({ map: mapInstance, position: originLatLng, title: shipment.originAddress });
+          new AdvancedMarkerElement({ map: mapInstance, position: destLatLng, title: shipment.destinationAddress });
 
           new window.google.maps.Polyline({
             path: [originLatLng, destLatLng],
@@ -340,7 +324,7 @@ export default function DriverRoute() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
       >
-        {shipment ? (
+        {shipment && shipment.originLat != null && shipment.destinationLat != null ? (
           <div
             ref={() => setMapReady(true)}
             id="driver-route-map"
@@ -348,9 +332,13 @@ export default function DriverRoute() {
           />
         ) : (
           <div
-            className="w-full h-[300px] sm:h-[400px] md:h-[500px] rounded-xl overflow-hidden border flex items-center justify-center bg-slate-100"
+            className="w-full h-[300px] sm:h-[400px] md:h-[500px] rounded-xl overflow-hidden border flex items-center justify-center bg-slate-100 dark:bg-slate-900 px-6 text-center"
           >
-            <p className={theme.typography.body}>{t.driver.noAssignment}</p>
+            <p className={theme.typography.body}>
+              {shipment
+                ? 'Route coordinates have not been set for this shipment yet. Ask your manager to attach pickup and drop locations.'
+                : t.driver.noAssignment}
+            </p>
           </div>
         )}
       </motion.div>
@@ -373,7 +361,7 @@ export default function DriverRoute() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className={theme.typography.label}>{shipment.origin}</p>
+                <p className={theme.typography.label}>{shipment.originAddress}</p>
               </CardContent>
             </Card>
           </motion.div>
@@ -393,7 +381,7 @@ export default function DriverRoute() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className={theme.typography.label}>{shipment.destination}</p>
+                <p className={theme.typography.label}>{shipment.destinationAddress}</p>
               </CardContent>
             </Card>
           </motion.div>

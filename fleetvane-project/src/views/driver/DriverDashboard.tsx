@@ -44,32 +44,8 @@ function formatStatus(status: ShipmentStatus): string {
   return t.client.milestones[status] || status;
 }
 
-// ── Real distance and duration calculation from coordinates ──
-const CITY_COORDS: Record<string, [number, number]> = {
-  mumbai: [19.076, 72.8777],
-  delhi: [28.6139, 77.209],
-  bangalore: [12.9716, 77.5946],
-  chennai: [13.0827, 80.2707],
-  kolkata: [22.5726, 88.3639],
-  hyderabad: [17.385, 78.4867],
-  pune: [18.5204, 73.8567],
-  ahmedabad: [23.0225, 72.5714],
-  jaipur: [26.9124, 75.7873],
-  lucknow: [26.8467, 80.9462],
-};
-
-function resolveCoords(name: string): [number, number] {
-  if (!name) return [19.076, 72.8777];
-  const key = name.toLowerCase().trim();
-  for (const [city, coords] of Object.entries(CITY_COORDS)) {
-    if (key.includes(city)) return coords;
-  }
-  return [19.076, 72.8777];
-}
-
-function calculateHaversineDistance(origin: string, destination: string): number {
-  const [lat1, lon1] = resolveCoords(origin);
-  const [lat2, lon2] = resolveCoords(destination);
+// ── Distance/duration from REAL database coordinates (no geo guessing) ──
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
@@ -84,12 +60,20 @@ function calculateHaversineDistance(origin: string, destination: string): number
   return Math.round(R * c * roadFactor);
 }
 
-function calculateDistance(origin: string, destination: string): string {
-  const km = calculateHaversineDistance(origin, destination);
-  return `${km > 0 ? km : 150} km`;
+function calculateDistance(
+  oLat?: number | null, oLng?: number | null,
+  dLat?: number | null, dLng?: number | null
+): string {
+  if (oLat == null || oLng == null || dLat == null || dLng == null) return '—';
+  const km = haversineKm(oLat, oLng, dLat, dLng);
+  return km > 0 ? `${km} km` : '—';
 }
 
-function calculateDuration(origin: string, destination: string, eta?: string | null): string {
+function calculateDuration(
+  oLat?: number | null, oLng?: number | null,
+  dLat?: number | null, dLng?: number | null,
+  eta?: string | null
+): string {
   if (eta) {
     const diffMs = new Date(eta).getTime() - Date.now();
     if (diffMs > 0) {
@@ -99,7 +83,8 @@ function calculateDuration(origin: string, destination: string, eta?: string | n
       return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
     }
   }
-  const km = calculateHaversineDistance(origin, destination);
+  if (oLat == null || oLng == null || dLat == null || dLng == null) return '—';
+  const km = haversineKm(oLat, oLng, dLat, dLng);
   const avgSpeedKmH = 50; // Average commercial truck transit speed
   const totalMinutes = Math.round((km / avgSpeedKmH) * 60);
   const hours = Math.floor(totalMinutes / 60);
@@ -242,7 +227,7 @@ export default function DriverDashboard() {
                       <Route className="w-5 h-5 text-blue-600" />
                     </div>
                     <p className={theme.typography.caption}>{t.driver.distance}</p>
-                    <p className={theme.typography.statValue}>{calculateDistance(shipment!.origin, shipment!.destination)}</p>
+                    <p className={theme.typography.statValue}>{calculateDistance(shipment!.originLat, shipment!.originLng, shipment!.destinationLat, shipment!.destinationLng)}</p>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -254,7 +239,7 @@ export default function DriverDashboard() {
                       <Clock className="w-5 h-5 text-amber-600" />
                     </div>
                     <p className={theme.typography.caption}>{t.driver.estimatedDuration}</p>
-                    <p className={theme.typography.statValue}>{calculateDuration(shipment!.origin, shipment!.destination, shipment!.eta)}</p>
+                    <p className={theme.typography.statValue}>{calculateDuration(shipment!.originLat, shipment!.originLng, shipment!.destinationLat, shipment!.destinationLng, shipment!.eta)}</p>
                   </motion.div>
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -344,12 +329,12 @@ export default function DriverDashboard() {
                   <DetailRow
                     icon={MapPin}
                     label={t.driver.origin}
-                    value={shipment!.origin}
+                    value={shipment!.originAddress}
                   />
                   <DetailRow
                     icon={Navigation}
                     label={t.driver.destination}
-                    value={shipment!.destination}
+                    value={shipment!.destinationAddress}
                   />
                   <DetailRow
                     icon={Weight}
