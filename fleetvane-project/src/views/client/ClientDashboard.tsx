@@ -125,8 +125,8 @@ export default function ClientDashboard() {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
-      s.origin.toLowerCase().includes(q) ||
-      s.destination.toLowerCase().includes(q) ||
+      s.originAddress.toLowerCase().includes(q) ||
+      s.destinationAddress.toLowerCase().includes(q) ||
       formatStatus(s.status).toLowerCase().includes(q) ||
       s.id.toLowerCase().includes(q)
     );
@@ -221,7 +221,7 @@ export default function ClientDashboard() {
             onClick={() => {
               const headers = ['ID', 'Origin', 'Destination', 'Status', 'Weight', 'Created'];
               const rows = filteredShipments.map(s => [
-                s.id, s.origin, s.destination,
+                s.id, s.originAddress, s.destinationAddress,
                 formatStatus(s.status),
                 s.weight || '',
                 new Date(s.createdAt).toLocaleDateString(),
@@ -340,8 +340,8 @@ export default function ClientDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead><SortableHeader label={t.client.shipmentId} sortDir={sortKey==='id'?sortDir:null} onSort={()=>handleSort('id')} /></TableHead>
-                    <TableHead><SortableHeader label={t.client.origin} sortDir={sortKey==='origin'?sortDir:null} onSort={()=>handleSort('origin')} /></TableHead>
-                    <TableHead><SortableHeader label={t.client.destination} sortDir={sortKey==='destination'?sortDir:null} onSort={()=>handleSort('destination')} /></TableHead>
+                    <TableHead><SortableHeader label={t.client.origin} sortDir={sortKey==='originAddress'?sortDir:null} onSort={()=>handleSort('originAddress')} /></TableHead>
+                    <TableHead><SortableHeader label={t.client.destination} sortDir={sortKey==='destinationAddress'?sortDir:null} onSort={()=>handleSort('destinationAddress')} /></TableHead>
                     <TableHead><SortableHeader label={t.client.status} sortDir={sortKey==='status'?sortDir:null} onSort={()=>handleSort('status')} /></TableHead>
                     <TableHead><SortableHeader label={t.client.createdAt} sortDir={sortKey==='createdAt'?sortDir:null} onSort={()=>handleSort('createdAt')} /></TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -360,8 +360,8 @@ export default function ClientDashboard() {
                       <TableCell className="font-mono text-sm py-3">
                         {truncateId(shipment.id)}
                       </TableCell>
-                      <TableCell className="py-3">{shipment.origin}</TableCell>
-                      <TableCell className="py-3">{shipment.destination}</TableCell>
+                      <TableCell className="py-3">{shipment.originAddress}</TableCell>
+                      <TableCell className="py-3">{shipment.destinationAddress}</TableCell>
                       <TableCell className={`py-3 ${statusBorderAccent[shipment.status]}`}>
                         <Badge
                           className={`${theme.status.badge} px-3 py-1 text-xs font-semibold ${statusBadgeClass[shipment.status]}`}
@@ -422,11 +422,11 @@ export default function ClientDashboard() {
                     {/* Origin → Destination with arrow */}
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                        {shipment.origin}
+                        {shipment.originAddress}
                       </span>
                       <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="text-sm text-slate-600 dark:text-slate-400 truncate">
-                        {shipment.destination}
+                        {shipment.destinationAddress}
                       </span>
                     </div>
 

@@ -163,8 +163,8 @@ export default function ManagerDashboard() {
         message: s.status === 'DELIVERED'
           ? `Delivery completed for shipment #${s.id.substring(0, 8)}`
           : s.status === 'IN_TRANSIT'
-          ? `In transit: #${s.id.substring(0, 8)} (${s.origin} → ${s.destination})`
-          : `Shipment #${s.id.substring(0, 8)} created (${s.origin} → ${s.destination})`,
+          ? `In transit: #${s.id.substring(0, 8)} (${s.originAddress} → ${s.destinationAddress})`
+          : `Shipment #${s.id.substring(0, 8)} created (${s.originAddress} → ${s.destinationAddress})`,
         time: s.createdAt,
         entity: s.id.substring(0, 8),
         icon: s.status === 'DELIVERED' ? CheckCircle2 : Package,
@@ -508,8 +508,8 @@ export default function ManagerDashboard() {
                           ? `${shipment.id.slice(0, 8)}...`
                           : shipment.id}
                       </TableCell>
-                      <TableCell>{shipment.origin}</TableCell>
-                      <TableCell>{shipment.destination}</TableCell>
+                      <TableCell>{shipment.originAddress}</TableCell>
+                      <TableCell>{shipment.destinationAddress}</TableCell>
                       <TableCell>
                         <Badge
                           className={`${theme.status.badge} ${
@@ -550,9 +550,9 @@ export default function ManagerDashboard() {
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
-                      <span className="truncate">{shipment.origin}</span>
+                      <span className="truncate">{shipment.originAddress}</span>
                       <Navigation className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                      <span className="truncate">{shipment.destination}</span>
+                      <span className="truncate">{shipment.destinationAddress}</span>
                     </div>
                     <p className={theme.typography.caption}>
                       {new Date(shipment.createdAt).toLocaleDateString()}

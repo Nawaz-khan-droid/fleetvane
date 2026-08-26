@@ -168,8 +168,8 @@ export default function ManagerShipments() {
       const q = searchQuery.toLowerCase();
       return (
         s.id.toLowerCase().includes(q) ||
-        s.origin.toLowerCase().includes(q) ||
-        s.destination.toLowerCase().includes(q) ||
+        s.originAddress.toLowerCase().includes(q) ||
+        s.destinationAddress.toLowerCase().includes(q) ||
         (s.vehicle?.plateNumber || '').toLowerCase().includes(q) ||
         (s.driver?.name || '').toLowerCase().includes(q)
       );
@@ -307,7 +307,7 @@ export default function ManagerShipments() {
               onClick={() => {
                 const headers = ['ID','Client','Origin','Destination','Weight','Status','Vehicle','Driver'];
                 const rows = filteredShipments.map(s => [
-                  s.id, s.clientId, s.origin, s.destination,
+                  s.id, s.clientId, s.originAddress, s.destinationAddress,
                   s.weight || '', formatStatus(s.status),
                   s.vehicle?.plateNumber || '', s.driver?.name || ''
                 ]);
@@ -389,8 +389,8 @@ export default function ManagerShipments() {
                       />
                     </TableHead>
                     <TableHead><SortableHeader label="ID" sortDir={sortKey==='id'?sortDir:null} onSort={()=>handleSort('id')} /></TableHead>
-                    <TableHead><SortableHeader label="Origin" sortDir={sortKey==='origin'?sortDir:null} onSort={()=>handleSort('origin')} /></TableHead>
-                    <TableHead><SortableHeader label="Destination" sortDir={sortKey==='destination'?sortDir:null} onSort={()=>handleSort('destination')} /></TableHead>
+                    <TableHead><SortableHeader label="Origin" sortDir={sortKey==='originAddress'?sortDir:null} onSort={()=>handleSort('originAddress')} /></TableHead>
+                    <TableHead><SortableHeader label="Destination" sortDir={sortKey==='destinationAddress'?sortDir:null} onSort={()=>handleSort('destinationAddress')} /></TableHead>
                     <TableHead><SortableHeader label="Weight" sortDir={sortKey==='weight'?sortDir:null} onSort={()=>handleSort('weight')} /></TableHead>
                     <TableHead><SortableHeader label="Status" sortDir={sortKey==='status'?sortDir:null} onSort={()=>handleSort('status')} /></TableHead>
                     <TableHead><SortableHeader label="Vehicle" sortDir={sortKey==='vehicleId'?sortDir:null} onSort={()=>handleSort('vehicleId')} /></TableHead>
@@ -433,8 +433,8 @@ export default function ManagerShipments() {
                             : shipment.id}
                         </span>
                       </TableCell>
-                      <TableCell className="py-3">{shipment.origin}</TableCell>
-                      <TableCell className="py-3">{shipment.destination}</TableCell>
+                      <TableCell className="py-3">{shipment.originAddress}</TableCell>
+                      <TableCell className="py-3">{shipment.destinationAddress}</TableCell>
                       <TableCell className="py-3">
                         {shipment.weight ? `${shipment.weight} kg` : '—'}
                       </TableCell>
@@ -572,9 +572,9 @@ export default function ManagerShipments() {
 
                     {/* Route: origin → destination */}
                     <div className="flex items-center gap-2 mb-2.5">
-                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.origin}</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.originAddress}</span>
                       <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.destination}</span>
+                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.destinationAddress}</span>
                     </div>
 
                     {/* Details grid */}

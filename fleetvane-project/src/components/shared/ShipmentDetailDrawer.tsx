@@ -325,12 +325,12 @@ export default function ShipmentDetailDrawer({
             <InfoItem
               icon={MapPin}
               label={t.client.origin}
-              value={shipment.origin}
+              value={shipment.originAddress}
             />
             <InfoItem
               icon={Navigation}
               label={t.client.destination}
-              value={shipment.destination}
+              value={shipment.destinationAddress}
             />
             <InfoItem
               icon={Weight}

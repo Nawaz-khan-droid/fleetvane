@@ -1,15 +1,14 @@
 package com.fleetvane.fleet.service;
 
 import com.fleetvane.fleet.dto.CreateVehicleRequest;
-import com.fleetvane.fleet.dto.UpdateVehicleLocationRequest;
 import com.fleetvane.fleet.dto.VehicleDto;
 import com.fleetvane.fleet.entity.Vehicle;
 import com.fleetvane.fleet.entity.Depot;
 import com.fleetvane.fleet.repository.DepotRepository;
 import com.fleetvane.fleet.repository.VehicleRepository;
+import com.fleetvane.shared.exception.BusinessException;
 import com.fleetvane.shared.exception.ResourceNotFoundException;
-import com.fleetvane.tracking.dto.LocationUpdateRequest;
-import com.fleetvane.tracking.service.TrackingService;
+import org.springframework.http.HttpStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -20,12 +19,10 @@ public class VehicleService {
     
     private final VehicleRepository vehicleRepository;
     private final DepotRepository depotRepository;
-    private final TrackingService trackingService;
-    
-    public VehicleService(VehicleRepository vehicleRepository, DepotRepository depotRepository, TrackingService trackingService) {
+
+    public VehicleService(VehicleRepository vehicleRepository, DepotRepository depotRepository) {
         this.vehicleRepository = vehicleRepository;
         this.depotRepository = depotRepository;
-        this.trackingService = trackingService;
     }
     
     @Transactional(readOnly = true)
@@ -45,13 +42,24 @@ public class VehicleService {
     
     @Transactional
     public VehicleDto createVehicle(CreateVehicleRequest request) {
-        Double initialLat = 19.0760;
-        Double initialLng = 72.8777;
+        // NO hardcoded geographic defaults in production: the initial position must come
+        // from real data — an explicit coordinate pair or a configured Depot.
+        if (request.lat() == null || request.lng() == null) {
+            if (request.depotId() == null) {
+                throw new BusinessException(
+                    "Vehicle creation requires either explicit lat/lng coordinates or a depotId. " +
+                    "Refusing to place vehicles at a hardcoded default location.",
+                    HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        Double initialLat;
+        Double initialLng;
 
         if (request.lat() != null && request.lng() != null) {
             initialLat = request.lat();
             initialLng = request.lng();
-        } else if (request.depotId() != null) {
+        } else {
             Depot depot = depotRepository.findById(request.depotId())
                 .orElseThrow(() -> new ResourceNotFoundException("Depot", "id", request.depotId()));
             initialLat = depot.getLat();
@@ -79,17 +87,7 @@ public class VehicleService {
         vehicle.setStatus(status);
         return mapToDto(vehicleRepository.save(vehicle));
     }
-    
-    @Transactional
-    public VehicleDto updateLocation(Long id, UpdateVehicleLocationRequest request, String role, Long userId) {
-        trackingService.updateVehicleLocation(id, new LocationUpdateRequest(
-            request.lat(), request.lng(), request.heading(), null
-        ), role, userId);
-        return vehicleRepository.findById(id)
-            .map(this::mapToDto)
-            .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", id));
-    }
-    
+
     private VehicleDto mapToDto(Vehicle vehicle) {
         return new VehicleDto(
             vehicle.getId(),
