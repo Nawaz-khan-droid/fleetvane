@@ -1,6 +1,7 @@
 package com.fleetvane.shipment.entity;
 
 import com.fleetvane.shared.entity.BaseEntity;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -17,6 +18,14 @@ public class Shipment extends BaseEntity {
     private Double destinationLat;
     private Double destinationLng;
     private Double weight;
+    @Column(name = "length_cm")
+    private Double lengthCm;
+    @Column(name = "width_cm")
+    private Double widthCm;
+    @Column(name = "height_cm")
+    private Double heightCm;
+    @Column(name = "volume_m3")
+    private Double volumeM3;
     private Instant eta;
     private Instant assignedAt;
     private Instant pickedUpAt;
@@ -53,6 +62,18 @@ public class Shipment extends BaseEntity {
 
     public Double getWeight() { return weight; }
     public void setWeight(Double weight) { this.weight = weight; }
+
+    public Double getLengthCm() { return lengthCm; }
+    public void setLengthCm(Double lengthCm) { this.lengthCm = lengthCm; }
+
+    public Double getWidthCm() { return widthCm; }
+    public void setWidthCm(Double widthCm) { this.widthCm = widthCm; }
+
+    public Double getHeightCm() { return heightCm; }
+    public void setHeightCm(Double heightCm) { this.heightCm = heightCm; }
+
+    public Double getVolumeM3() { return volumeM3; }
+    public void setVolumeM3(Double volumeM3) { this.volumeM3 = volumeM3; }
 
     public Instant getEta() { return eta; }
     public void setEta(Instant eta) { this.eta = eta; }

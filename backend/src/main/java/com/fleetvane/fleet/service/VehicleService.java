@@ -100,6 +100,10 @@ public class VehicleService {
             vehicle.getLat(),
             vehicle.getLng(),
             vehicle.getHeading(),
+            vehicle.getMaxVolumeM3(),
+            vehicle.getCurrentWeightKg(),
+            vehicle.getCurrentVolumeM3(),
+            vehicle.getDepotId(),
             vehicle.getCreatedAt(),
             vehicle.getUpdatedAt()
         );

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Users, Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
@@ -81,7 +82,7 @@ export default function ManagerDrivers() {
   // ── Fetch drivers ────────────────────────────────────
   const fetchDrivers = useCallback(async () => {
     try {
-      const res = await fetch('/api/drivers', {
+      const res = await fetchWithAuth('/api/drivers', {
         headers: { Authorization: `Bearer ${authState.token}` },
       });
       if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
@@ -106,7 +107,7 @@ export default function ManagerDrivers() {
   // ── Fetch available vehicles when dialog opens ───────
   const fetchAvailableVehicles = useCallback(async () => {
     try {
-      const res = await fetch('/api/vehicles', {
+      const res = await fetchWithAuth('/api/vehicles', {
         headers: { Authorization: `Bearer ${authState.token}` },
       });
       if (!res.ok) throw new Error();
@@ -129,7 +130,7 @@ export default function ManagerDrivers() {
         vehicleId: selectedVehicleId || null,
       };
 
-      const res = await fetch('/api/drivers', {
+      const res = await fetchWithAuth('/api/drivers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Package, Link2, Download, PackageCheck, Search, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
@@ -115,7 +116,7 @@ export default function ManagerShipments() {
   // â”€â”€ Fetch shipments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchShipments = useCallback(async () => {
     try {
-      const res = await fetch('/api/shipments', {
+      const res = await fetchWithAuth('/api/shipments', {
         headers: { Authorization: `Bearer ${authState.token}` },
       });
       if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
@@ -143,8 +144,8 @@ export default function ManagerShipments() {
       const headers = { Authorization: `Bearer ${authState.token}` };
 
       const [vehRes, drvRes] = await Promise.all([
-        fetch('/api/vehicles', { headers }),
-        fetch('/api/drivers', { headers }),
+        fetchWithAuth('/api/vehicles', { headers }),
+        fetchWithAuth('/api/drivers', { headers }),
       ]);
 
       if (!vehRes.ok || !drvRes.ok) throw new Error();

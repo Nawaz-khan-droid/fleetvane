@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
 import type { UserPayload, UserRole } from '@/types';
+import { setOnSessionExpired } from '@/lib/fetchWithAuth';
 
 // ─── State Shape ─────────────────────────────────────────────
 interface AuthState {
@@ -91,6 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
     initAuth();
+  }, []);
+
+  // Register session-expired handler so fetchWithAuth can trigger logout on 401
+  useEffect(() => {
+    setOnSessionExpired(() => {
+      dispatch({ type: 'LOGOUT' });
+    });
+    return () => setOnSessionExpired(null);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse } from '@/lib/utils';
 import { theme } from '@/constants/theme';
 import t from '@/locales/en.json';
@@ -102,7 +103,7 @@ export default function DriverProfile() {
 
     const headers = { Authorization: `Bearer ${token}` };
 
-    fetch('/api/drivers', { headers })
+    fetchWithAuth('/api/drivers', { headers })
       .then((r) => (r.ok ? r.json() : []))
       .then((raw) => {
         const list = normalizePageResponse<any>(raw).items;
@@ -128,7 +129,7 @@ export default function DriverProfile() {
 
     const headers = { Authorization: `Bearer ${token}` };
 
-    fetch('/api/reports', { headers })
+    fetchWithAuth('/api/reports', { headers })
       .then((r) => (r.ok ? r.json() : []))
       .then((raw) => {
         const list = normalizePageResponse<any>(raw).items;

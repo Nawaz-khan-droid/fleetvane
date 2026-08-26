@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
@@ -93,7 +94,7 @@ export default function DriverReport() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/reports', {
+      const res = await fetchWithAuth('/api/reports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

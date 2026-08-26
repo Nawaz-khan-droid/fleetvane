@@ -41,7 +41,7 @@ class ShipmentServiceTest {
     @Test
     void testCreateShipment() {
         CreateShipmentRequest request = new CreateShipmentRequest(
-                "Origin", 10.0, 20.0, "Dest", 30.0, 40.0, 50.0
+                "Origin", 10.0, 20.0, "Dest", 30.0, 40.0, 50.0, 100.0, 80.0, 60.0
         );
 
         when(shipmentRepository.save(any(Shipment.class))).thenAnswer(i -> {

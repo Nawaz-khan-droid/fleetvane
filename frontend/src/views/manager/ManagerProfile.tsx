@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse } from '@/lib/utils';
 import { toast } from 'sonner';
 import { theme } from '@/constants/theme';
@@ -103,17 +104,17 @@ export default function ManagerProfile() {
     const headers = { Authorization: `Bearer ${token}` };
 
     Promise.all([
-      fetch('/api/shipments', { headers }).then(async (r) => {
+      fetchWithAuth('/api/shipments', { headers }).then(async (r) => {
         if (!r.ok) throw new Error();
         const raw = await r.json();
         return normalizePageResponse<any>(raw).items;
       }),
-      fetch('/api/vehicles', { headers }).then(async (r) => {
+      fetchWithAuth('/api/vehicles', { headers }).then(async (r) => {
         if (!r.ok) throw new Error();
         const raw = await r.json();
         return normalizePageResponse<any>(raw).items;
       }),
-      fetch('/api/drivers', { headers }).then(async (r) => {
+      fetchWithAuth('/api/drivers', { headers }).then(async (r) => {
         if (!r.ok) throw new Error();
         const raw = await r.json();
         return normalizePageResponse<any>(raw).items;

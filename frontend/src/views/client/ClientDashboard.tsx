@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Package, Plus, MapPin, Search, Download, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
@@ -155,7 +156,7 @@ export default function ClientDashboard() {
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/shipments', {
+      const res = await fetchWithAuth('/api/shipments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

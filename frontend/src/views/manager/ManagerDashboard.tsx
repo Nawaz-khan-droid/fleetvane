@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
@@ -133,9 +134,9 @@ export default function ManagerDashboard() {
     try {
       const headers = { Authorization: `Bearer ${authState.token}` };
       const [vehiclesRes, shipmentsRes, driversRes] = await Promise.all([
-        fetch('/api/vehicles', { headers }),
-        fetch('/api/shipments', { headers }),
-        fetch('/api/drivers', { headers }),
+        fetchWithAuth('/api/vehicles', { headers }),
+        fetchWithAuth('/api/shipments', { headers }),
+        fetchWithAuth('/api/drivers', { headers }),
       ]);
 
       if (!vehiclesRes.ok || !shipmentsRes.ok || !driversRes.ok) throw new Error();
@@ -224,7 +225,7 @@ export default function ManagerDashboard() {
   // ── Simulation toggle ──────────────────────────────────
   const handleSimToggle = async (checked: boolean) => {
     try {
-      const res = await fetch('/api/simulation', {
+      const res = await fetchWithAuth('/api/simulation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

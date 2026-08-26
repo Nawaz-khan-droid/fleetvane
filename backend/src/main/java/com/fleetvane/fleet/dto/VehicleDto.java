@@ -13,6 +13,10 @@ public record VehicleDto(
     Double lat,
     Double lng,
     Double heading,
+    Double maxVolumeM3,
+    Double currentWeightKg,
+    Double currentVolumeM3,
+    Long depotId,
     Instant createdAt,
     Instant updatedAt
 ) {}
