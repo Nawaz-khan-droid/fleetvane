@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import {
   Card,
@@ -164,7 +165,8 @@ export default function LandingPage() {
     try {
       await login('manager@fleetvane.com', 'Manager123!');
       navigate('/manager/fleet');
-    } catch {
+    } catch (err: any) {
+      toast.error(`Demo launch failed: ${err?.message || 'Backend unreachable'}`);
       setLaunchingDemo(false);
     }
   };
