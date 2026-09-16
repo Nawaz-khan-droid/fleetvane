@@ -4,8 +4,8 @@ FleetVane is a full-stack fleet management platform: managers register vehicles 
 
 | Layer    | Technology |
 |----------|------------|
-| Backend  | Java 21 · Spring Boot 3.4.1 · Timefold VRP · Spring Security (JWT) · Flyway · H2 (dev/test) / PostgreSQL (prod) |
-| Frontend | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui · TanStack Query · Google Maps JS API |
+| Backend  | Java 21 • Spring Boot 3.4.1 • Timefold VRP • Spring Security (JWT) • Flyway • H2 (dev/test) / PostgreSQL (prod) • STOMP WebSockets |
+| Frontend | Next.js 16 (App Router) • React 19 • TypeScript • Tailwind CSS v4 • Zustand (Global State) • STOMP.js (Real-time tracking) • shadcn/ui • TanStack Query • Google Maps JS API |
 
 ---
 
