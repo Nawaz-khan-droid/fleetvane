@@ -26,14 +26,14 @@ public class FleetQueryAdapter implements FleetQueryPort {
 
     private VehicleData toData(Vehicle vehicle) {
         long capacityGrams = vehicle.getCapacity() != null ? (long) (vehicle.getCapacity() * 1000) : 0L;
-        long volumeM3x1000 = vehicle.getMaxVolumeM3() != null ? (long) (vehicle.getMaxVolumeM3() * 1000) : 0L;
+        Double volumeM3 = vehicle.getMaxVolumeM3() != null ? vehicle.getMaxVolumeM3() : 0.0;
         return new VehicleData(
                 vehicle.getId(),
                 vehicle.getId(),
                 vehicle.getLat(),
                 vehicle.getLng(),
                 capacityGrams,
-                volumeM3x1000
+                volumeM3
         );
     }
 }

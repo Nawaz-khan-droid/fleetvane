@@ -32,9 +32,11 @@ Set-Location -Path "$PSScriptRoot\backend"
 # Pass env vars from .env file
 $envFilePath = "$PSScriptRoot\.env"
 if (Test-Path $envFilePath) {
-    Get-Content $envFilePath | Where-Object { $_ -match '^\s*[^#]' } | ForEach-Object {
+    Get-Content $envFilePath | Where-Object { $_ -match '^\s*[^#]' -and $_ -match '=' } | ForEach-Object {
         $name, $value = $_ -split '=', 2
-        Set-Item -Path "env:$($name.Trim())" -Value $value.Trim()
+        if ($name -and $name.Trim().Length -gt 0) {
+            Set-Item -Path "env:$($name.Trim())" -Value $value.Trim()
+        }
     }
     Write-Host "Loaded environment variables from .env" -ForegroundColor Cyan
 }

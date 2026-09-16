@@ -1,20 +1,15 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import { Package, Link2, Download, PackageCheck, Search, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Package, Link2, Download, PackageCheck, Search, ArrowRight, Eye, MapPin, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import t from '@/locales/en.json';
-import { theme } from '@/constants/theme';
 import type { Shipment, ShipmentStatus, Vehicle, DriverWithProfile } from '@/types';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -32,14 +27,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import { SPRING_URL } from '@/lib/springUrl';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,27 +36,33 @@ import Pagination from '@/components/shared/Pagination';
 import ShipmentDetailDrawer from '@/components/shared/ShipmentDetailDrawer';
 import SortableHeader, { type SortDir, useSort } from '@/components/shared/SortableHeader';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
-// â”€â”€ Status badge mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const statusBadgeClass: Record<ShipmentStatus, string> = {
-  REQUESTED: theme.status.requested,
-  ASSIGNED: theme.status.assigned,
-  IN_TRANSIT: theme.status.inTransit,
-  DELIVERED: theme.status.delivered,
-  CANCELLED: theme.status.cancelled,
+const statusBadgeClasses: Record<ShipmentStatus, string> = {
+  REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
+  ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+  CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800',
 };
 
-const statusBorderAccent: Record<ShipmentStatus, string> = {
-  REQUESTED: 'border-l-2 border-l-amber-400',
-  ASSIGNED: 'border-l-2 border-l-blue-400',
-  IN_TRANSIT: 'border-l-2 border-l-emerald-400',
-  DELIVERED: 'border-l-2 border-l-slate-300 dark:border-l-slate-600',
-  CANCELLED: 'border-l-2 border-l-red-400',
+const statusBorderClasses: Record<ShipmentStatus, string> = {
+  REQUESTED: 'border-l-4 border-l-amber-500',
+  ASSIGNED: 'border-l-4 border-l-blue-500',
+  IN_TRANSIT: 'border-l-4 border-l-blue-500',
+  DELIVERED: 'border-l-4 border-l-emerald-500',
+  CANCELLED: 'border-l-4 border-l-red-500',
+};
+
+const statusDotClasses: Record<ShipmentStatus, string> = {
+  REQUESTED: 'bg-amber-500',
+  ASSIGNED: 'bg-blue-500',
+  IN_TRANSIT: 'bg-blue-500',
+  DELIVERED: 'bg-emerald-500',
+  CANCELLED: 'bg-red-500',
 };
 
 function formatStatus(status: ShipmentStatus): string {
-  return t.client.milestones[status] || status;
+  return (t.client.milestones as any)[status] || status;
 }
 
 type FilterTab = 'ALL' | 'REQUESTED' | 'IN_TRANSIT' | 'DELIVERED';
@@ -95,7 +88,6 @@ export default function ManagerShipments() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
 
-  // Dialog state
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [assigningShipment, setAssigningShipment] = useState<Shipment | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
@@ -107,13 +99,11 @@ export default function ManagerShipments() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<keyof Shipment>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 10;
 
-  // Available vehicles & drivers for assign dialog
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
   const [availableDrivers, setAvailableDrivers] = useState<DriverWithProfile[]>([]);
 
-  // â”€â”€ Fetch shipments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const fetchShipments = useCallback(async () => {
     try {
       const res = await fetchWithAuth('/api/shipments', {
@@ -138,24 +128,16 @@ export default function ManagerShipments() {
     fetchShipments();
   }, [fetchShipments]);
 
-  // â”€â”€ Fetch available resources when dialog opens â”€â”€â”€â”€â”€â”€â”€
   const fetchAvailableResources = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${authState.token}` };
-
       const [vehRes, drvRes] = await Promise.all([
         fetchWithAuth('/api/vehicles', { headers }),
         fetchWithAuth('/api/drivers', { headers }),
       ]);
-
       if (!vehRes.ok || !drvRes.ok) throw new Error();
-
-      const rawVehicles = await vehRes.json();
-      const rawDrivers = await drvRes.json();
-
-      const allVehicles: Vehicle[] = normalizePageResponse<Vehicle>(rawVehicles).items;
-      const allDrivers: DriverWithProfile[] = normalizePageResponse<DriverWithProfile>(rawDrivers).items;
-
+      const allVehicles: Vehicle[] = normalizePageResponse<Vehicle>(await vehRes.json()).items;
+      const allDrivers: DriverWithProfile[] = normalizePageResponse<DriverWithProfile>(await drvRes.json()).items;
       setAvailableVehicles(allVehicles.filter((v) => v.status === 'AVAILABLE'));
       setAvailableDrivers(allDrivers.filter((d) => d.driverProfile?.isAvailable));
     } catch {
@@ -163,13 +145,12 @@ export default function ManagerShipments() {
     }
   }, [authState.token]);
 
-  // â”€â”€ Filter & sort shipments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const filteredShipments = shipments.filter((s) => {
     if (activeTab !== 'ALL' && s.status !== activeTab) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
-        s.id.toLowerCase().includes(q) ||
+        String(s.id).toLowerCase().includes(q) ||
         s.originAddress.toLowerCase().includes(q) ||
         s.destinationAddress.toLowerCase().includes(q) ||
         (s.vehicle?.plateNumber || '').toLowerCase().includes(q) ||
@@ -181,21 +162,13 @@ export default function ManagerShipments() {
 
   const sortedShipments = useSort(filteredShipments, sortKey, sortDir);
   const totalPages = Math.max(1, Math.ceil(sortedShipments.length / PAGE_SIZE));
-  const paginatedShipments = sortedShipments.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  const paginatedShipments = sortedShipments.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const handleSort = (key: keyof Shipment) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : d === 'desc' ? null : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
-    }
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : d === 'desc' ? null : 'asc'));
+    else { setSortKey(key); setSortDir('asc'); }
   };
 
-  // â”€â”€ Open assign dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleOpenAssign = (shipment: Shipment) => {
     setAssigningShipment(shipment);
     setSelectedVehicleId('');
@@ -204,26 +177,19 @@ export default function ManagerShipments() {
     fetchAvailableResources();
   };
 
-  // â”€â”€ Submit assignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleAssign = async () => {
     if (!assigningShipment || !selectedVehicleId || !selectedDriverId) return;
-
     setAssigning(true);
     try {
-      // Backend contract: PUT /api/shipments/{id}/assign?vehicleId=&driverId=
-      const res = await fetch(
-        `${SPRING_URL}/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`,
-        {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${authState.token}` },
-        }
-      );
+      const res = await fetch(`/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${authState.token}` },
+      });
       if (!res.ok) throw new Error();
       toast.success(t.manager.vehicleAssigned);
-      const assignedVehicle = availableVehicles.find((v) => v.id === selectedVehicleId);
       addNotification({
         title: 'Shipment Assigned',
-        message: `Vehicle ${assignedVehicle?.plateNumber || 'assigned'} assigned to shipment.`,
+        message: 'Vehicle and driver assigned successfully.',
         type: 'success',
       });
       setAssignDialogOpen(false);
@@ -235,309 +201,120 @@ export default function ManagerShipments() {
     }
   };
 
-  // â”€â”€ Update shipment status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleStatusUpdate = async (shipmentId: string, status: ShipmentStatus) => {
     try {
-      // Backend contract: PUT /api/shipments/{id}/status?status=
-      const res = await fetch(
-        `${SPRING_URL}/api/shipments/${shipmentId}/status?status=${status}`,
-        {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${authState.token}` },
-        }
-      );
+      const res = await fetch(`/api/shipments/${shipmentId}/status?status=${status}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${authState.token}` },
+      });
       if (!res.ok) throw new Error();
       toast.success(`Shipment ${status === 'DELIVERED' ? 'delivered' : 'cancelled'} successfully`);
-      addNotification({
-        title: `Shipment ${status === 'DELIVERED' ? 'Delivered' : 'Cancelled'}`,
-        message: `Shipment status updated to ${formatStatus(status)}.`,
-        type: status === 'DELIVERED' ? 'success' : 'warning',
-      });
       fetchShipments();
     } catch {
       toast.error(t.common.error);
     }
   };
 
-  // â”€â”€ Loading state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (loading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-10 w-full max-w-md" />
-        <Skeleton className="h-[400px] w-full rounded-xl" />
+        <Skeleton className="h-10 w-full max-w-sm" />
+        <Skeleton className="h-[400px] w-full rounded-2xl" />
       </div>
     );
   }
 
   return (
-    <>
-      {/* â”€â”€ Filter Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="mb-6"
-      >
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Search bar - full width on mobile */}
-          <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
+    <div className="space-y-6 relative pb-24">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Shipment Management</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Track and assign fleet shipments.</p>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Search shipments..."
+              placeholder="Search ID, location, driver..."
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              className="pl-9 h-9"
+              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
             />
           </div>
-          {/* Filter tabs + export - horizontal scroll on mobile */}
-          <div className="flex items-center gap-3 overflow-x-auto sm:overflow-visible no-scrollbar -mx-1 px-1">
-            <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v as FilterTab); setCurrentPage(1); }}>
-              <TabsList className="shrink-0">
-                <TabsTrigger value="ALL">All</TabsTrigger>
-                <TabsTrigger value="REQUESTED">Requested</TabsTrigger>
-                <TabsTrigger value="IN_TRANSIT">In Transit</TabsTrigger>
-                <TabsTrigger value="DELIVERED">Delivered</TabsTrigger>
-              </TabsList>
-            </Tabs>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 shrink-0 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-              onClick={() => {
-                const headers = ['ID','Client','Origin','Destination','Weight','Status','Vehicle','Driver'];
-                const rows = filteredShipments.map(s => [
-                  s.id, s.clientId, s.originAddress, s.destinationAddress,
-                  s.weight || '', formatStatus(s.status),
-                  s.vehicle?.plateNumber || '', s.driver?.name || ''
-                ]);
-                const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url; a.download = 'shipments.csv'; a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              <Download className="w-3.5 h-3.5 mr-1.5" />
-              Export
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
+            onClick={() => {
+              const headers = ['ID','Origin','Destination','Status','Driver'];
+              const rows = filteredShipments.map(s => [s.id, s.originAddress, s.destinationAddress, formatStatus(s.status), s.driver?.name || '']);
+              const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+              const blob = new Blob([csv], { type: 'text/csv' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url; a.download = 'shipments.csv'; a.click();
+              URL.revokeObjectURL(url);
+            }}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
         </div>
-      </motion.div>
+      </div>
 
-      {/* â”€â”€ Shipment Table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-      >
-        <Card className={theme.card.base}>
-          <CardContent className={`${theme.table.scrollCard} overflow-x-auto`}>
-            {filteredShipments.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-12 text-center mx-auto max-w-2xl my-6">
-                <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center mb-4 mx-auto border border-slate-100 dark:border-slate-700">
-                  <Package className="w-7 h-7 text-slate-400" />
-                </div>
-                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">No Shipments Found</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t.manager.noShipments}</p>
-              </div>
-            ) : (
-              <>
-              {/* Batch action bar (shared) */}
-              {selectedIds.size > 0 && (
-                <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}} className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
-                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-                    {selectedIds.size} selected
-                  </span>
-                  <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
-                    const toDeliver = paginatedShipments.filter(s => selectedIds.has(s.id) && s.status === 'IN_TRANSIT');
-                    toDeliver.forEach(s => handleStatusUpdate(s.id, 'DELIVERED'));
-                    setSelectedIds(new Set());
-                  }}>
-                    Deliver Selected
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50" onClick={() => {
-                    const toCancel = paginatedShipments.filter(s => selectedIds.has(s.id) && (s.status === 'REQUESTED' || s.status === 'ASSIGNED'));
-                    toCancel.forEach(s => handleStatusUpdate(s.id, 'CANCELLED'));
-                    setSelectedIds(new Set());
-                  }}>
-                    Cancel Selected
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-8 text-xs ml-auto" onClick={() => setSelectedIds(new Set())}>
-                    Clear
-                  </Button>
-                </motion.div>
-              )}
+      {/* Filter Tabs */}
+      <div className="inline-flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1">
+        {(['ALL', 'REQUESTED', 'IN_TRANSIT', 'DELIVERED'] as FilterTab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => { setActiveTab(tab); setCurrentPage(1); }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeTab === tab
+                ? 'bg-white dark:bg-slate-900 shadow-sm text-blue-600 dark:text-blue-400'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            {tab === 'ALL' ? 'All Shipments' : formatStatus(tab)}
+          </button>
+        ))}
+      </div>
 
-              {/* Desktop table */}
-              <div className="hidden md:block">
-              <div className="min-w-[900px]">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={paginatedShipments.length > 0 && paginatedShipments.every(s => selectedIds.has(s.id))}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedIds(new Set(paginatedShipments.map(s => s.id)));
-                          } else {
-                            setSelectedIds(new Set());
-                          }
-                        }}
-                      />
-                    </TableHead>
-                    <TableHead><SortableHeader label="ID" sortDir={sortKey==='id'?sortDir:null} onSort={()=>handleSort('id')} /></TableHead>
-                    <TableHead><SortableHeader label="Origin" sortDir={sortKey==='originAddress'?sortDir:null} onSort={()=>handleSort('originAddress')} /></TableHead>
-                    <TableHead><SortableHeader label="Destination" sortDir={sortKey==='destinationAddress'?sortDir:null} onSort={()=>handleSort('destinationAddress')} /></TableHead>
-                    <TableHead><SortableHeader label="Weight" sortDir={sortKey==='weight'?sortDir:null} onSort={()=>handleSort('weight')} /></TableHead>
-                    <TableHead><SortableHeader label="Status" sortDir={sortKey==='status'?sortDir:null} onSort={()=>handleSort('status')} /></TableHead>
-                    <TableHead><SortableHeader label="Vehicle" sortDir={sortKey==='vehicleId'?sortDir:null} onSort={()=>handleSort('vehicleId')} /></TableHead>
-                    <TableHead><SortableHeader label="Driver" sortDir={sortKey==='driverId'?sortDir:null} onSort={()=>handleSort('driverId')} /></TableHead>
-                    <TableHead><SortableHeader label="Created" sortDir={sortKey==='createdAt'?sortDir:null} onSort={()=>handleSort('createdAt')} /></TableHead>
-                    <TableHead className="text-right min-w-[140px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedShipments.map((shipment, i) => (
-                    <motion.tr
-                      key={shipment.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className={`border-b last:border-0 ${theme.table.zebraRow} transition-colors duration-150 cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20`}
-                      onClick={(e) => {
-                        if ((e.target as HTMLElement).closest('button, input, [role="checkbox"]')) return;
-                        setSelectedShipment(shipment);
-                      }}
-                    >
-                      <TableCell className="py-3">
-                        <Checkbox
-                          checked={selectedIds.has(shipment.id)}
-                          onCheckedChange={(checked) => {
-                            setSelectedIds(prev => {
-                              const next = new Set(prev);
-                              if (checked) next.add(shipment.id);
-                              else next.delete(shipment.id);
-                              return next;
-                            });
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm py-3">
-                        <span title={shipment.id} className="cursor-help border-b border-dotted border-slate-300 dark:border-slate-600">
-                          {shipment.id.length > 10
-                            ? `${shipment.id.slice(0, 10)}â€¦`
-                            : shipment.id}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-3">{shipment.originAddress}</TableCell>
-                      <TableCell className="py-3">{shipment.destinationAddress}</TableCell>
-                      <TableCell className="py-3">
-                        {shipment.weight ? `${shipment.weight} kg` : 'â€”'}
-                      </TableCell>
-                      <TableCell className={`py-3 ${statusBorderAccent[shipment.status]}`}>
-                        <Badge
-                          className={`${theme.status.badge} ${
-                            statusBadgeClass[shipment.status]
-                          }`}
-                        >
-                          {formatStatus(shipment.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        {shipment.vehicle?.plateNumber || 'â€”'}
-                      </TableCell>
-                      <TableCell className="py-3">
-                        {shipment.driver?.name || 'â€”'}
-                      </TableCell>
-                      <TableCell className={`${theme.typography.caption} py-3`}>
-                        <div>{new Date(shipment.createdAt).toLocaleDateString()}</div>
-                        <div className="text-[11px] text-slate-400 dark:text-slate-500">{timeAgo(shipment.createdAt)}</div>
-                      </TableCell>
-                      <TableCell className="text-right py-3">
-                        <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                          {shipment.status === 'IN_TRANSIT' && (
-                            <Button
-                              size="sm"
-                              className="h-7 px-2.5 text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 transition-all duration-200 hover:shadow-sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusUpdate(shipment.id, 'DELIVERED');
-                              }}
-                            >
-                              <PackageCheck className="w-3 h-3 mr-1" />
-                              Deliver
-                            </Button>
-                          )}
-                          {shipment.status !== 'DELIVERED' && shipment.status !== 'CANCELLED' && (
-                            <Button
-                              size="sm"
-                              className="h-7 px-2.5 text-xs bg-red-100 text-red-700 hover:bg-red-200 border-0 transition-all duration-200 hover:shadow-sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStatusUpdate(shipment.id, 'CANCELLED');
-                              }}
-                            >
-                              Cancel
-                            </Button>
-                          )}
-                          {shipment.status === 'REQUESTED' && (
-                            <Button
-                              size="sm"
-                              className="h-7 px-2.5 text-xs bg-emerald-700 text-white hover:bg-emerald-800 border-0 transition-all duration-200 hover:shadow-sm"
-                              onClick={(e) => { e.stopPropagation(); handleOpenAssign(shipment); }}
-                            >
-                              <Link2 className="w-3 h-3 mr-1" />
-                              Assign
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
-              </div>
-
-              {/* Mobile card list */}
-              <div className="md:hidden p-4 space-y-3">
-                {/* Mobile select-all checkbox */}
-                <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+      {/* Table Card */}
+      <div className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide w-12">
                   <Checkbox
                     checked={paginatedShipments.length > 0 && paginatedShipments.every(s => selectedIds.has(s.id))}
                     onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedIds(new Set(paginatedShipments.map(s => s.id)));
-                      } else {
-                        setSelectedIds(new Set());
-                      }
+                      if (checked) setSelectedIds(new Set(paginatedShipments.map(s => s.id)));
+                      else setSelectedIds(new Set());
                     }}
                   />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Select all on page</span>
-                </div>
-                {paginatedShipments.map((shipment, i) => (
-                  <motion.div
+                </th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="ID" sortDir={sortKey==='id'?sortDir:null} onSort={()=>handleSort('id')} /></th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Route</th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="Status" sortDir={sortKey==='status'?sortDir:null} onSort={()=>handleSort('status')} /></th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="Driver" sortDir={sortKey==='driverId'?sortDir:null} onSort={()=>handleSort('driverId')} /></th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="ETA / Created" sortDir={sortKey==='createdAt'?sortDir:null} onSort={()=>handleSort('createdAt')} /></th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedShipments.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">No shipments found.</td>
+                </tr>
+              ) : (
+                paginatedShipments.map((shipment) => (
+                  <tr
                     key={shipment.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.03 }}
-                    className={`rounded-lg border bg-white dark:bg-slate-900 p-4 hover:shadow-md transition-shadow duration-200 cursor-pointer ${
-                      selectedIds.has(shipment.id)
-                        ? 'border-emerald-400 dark:border-emerald-600 ring-1 ring-emerald-400/30'
-                        : 'border-slate-200 dark:border-slate-700'
-                    }`}
-                    onClick={(e) => {
-                      if ((e.target as HTMLElement).closest('button, [role="checkbox"]')) return;
-                      setSelectedShipment(shipment);
-                    }}
+                    onClick={() => setSelectedShipment(shipment)}
+                    className={`border-b border-slate-200 dark:border-slate-800 last:border-0 hover:bg-slate-50 dark:hover:bg-slate-800/30 cursor-pointer transition-colors ${statusBorderClasses[shipment.status]}`}
                   >
-                    {/* Top row: checkbox + ID + status */}
-                    <div className="flex items-center gap-2.5 mb-2.5">
+                    <td className="px-4 py-3 align-top" onClick={(e) => e.stopPropagation()}>
                       <Checkbox
                         checked={selectedIds.has(shipment.id)}
                         onCheckedChange={(checked) => {
@@ -548,192 +325,155 @@ export default function ManagerShipments() {
                             return next;
                           });
                         }}
-                        onClick={(e) => e.stopPropagation()}
                       />
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="font-mono text-xs text-slate-700 dark:text-slate-300 border-b border-dotted border-slate-300 dark:border-slate-600 cursor-help">
-                            {shipment.id.length > 12
-                              ? `${shipment.id.slice(0, 12)}â€¦`
-                              : shipment.id}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-[260px] break-all">
-                          {shipment.id}
-                        </TooltipContent>
-                      </Tooltip>
-                      <div className="ml-auto">
-                        <Badge
-                          className={`${theme.status.badge} ${statusBorderAccent[shipment.status]} ${statusBadgeClass[shipment.status]}`}
-                        >
-                          {formatStatus(shipment.status)}
-                        </Badge>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <span className="font-mono text-sm font-medium text-slate-900 dark:text-slate-100">{String(shipment.id).slice(0, 8)}</span>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-400">
+                        <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" /><span className="truncate max-w-[200px]" title={shipment.originAddress}>{shipment.originAddress}</span></div>
+                        <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" /><span className="truncate max-w-[200px]" title={shipment.destinationAddress}>{shipment.destinationAddress}</span></div>
                       </div>
-                    </div>
-
-                    {/* Route: origin â†’ destination */}
-                    <div className="flex items-center gap-2 mb-2.5">
-                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.originAddress}</span>
-                      <ArrowRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                      <span className="text-sm text-slate-700 dark:text-slate-300 truncate max-w-[40%]">{shipment.destinationAddress}</span>
-                    </div>
-
-                    {/* Details grid */}
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3">
-                      <div>
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Weight</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.weight ? `${shipment.weight} kg` : 'â€”'}</p>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium gap-1.5 border ${statusBadgeClasses[shipment.status] || statusBadgeClasses.REQUESTED}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${statusDotClasses[shipment.status] || 'bg-slate-500'}`} />
+                        {formatStatus(shipment.status)}
                       </div>
-                      <div>
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Created</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">
-                          {new Date(shipment.createdAt).toLocaleDateString()}
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 ml-1.5">{timeAgo(shipment.createdAt)}</span>
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Vehicle</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.vehicle?.plateNumber || 'â€”'}</p>
-                      </div>
-                      <div>
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide">Driver</span>
-                        <p className="text-xs text-slate-700 dark:text-slate-300">{shipment.driver?.name || 'â€”'}</p>
-                      </div>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800">
-                      {shipment.status === 'IN_TRANSIT' && (
-                        <Button
-                          size="sm"
-                          className="h-7 px-2.5 text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-0 transition-all duration-200 hover:shadow-sm"
-                          onClick={(e) => { e.stopPropagation(); handleStatusUpdate(shipment.id, 'DELIVERED'); }}
-                        >
-                          <PackageCheck className="w-3 h-3 mr-1" />
-                          Deliver
-                        </Button>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      {shipment.driver ? (
+                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{shipment.driver.name}</div>
+                      ) : (
+                        <span className="text-sm text-slate-400 italic">Unassigned</span>
                       )}
-                      {shipment.status !== 'DELIVERED' && shipment.status !== 'CANCELLED' && (
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="text-sm text-slate-900 dark:text-slate-100">{new Date(shipment.createdAt).toLocaleDateString()}</div>
+                      <div className="text-xs text-slate-500">{timeAgo(shipment.createdAt)}</div>
+                    </td>
+                    <td className="px-4 py-3 align-top text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center justify-end gap-2">
+                        {shipment.status === 'REQUESTED' && (
+                          <Button
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-8 px-3 text-xs"
+                            onClick={() => handleOpenAssign(shipment)}
+                          >
+                            Assign
+                          </Button>
+                        )}
                         <Button
-                          size="sm"
-                          className="h-7 px-2.5 text-xs bg-red-100 text-red-700 hover:bg-red-200 border-0 transition-all duration-200 hover:shadow-sm"
-                          onClick={(e) => { e.stopPropagation(); handleStatusUpdate(shipment.id, 'CANCELLED'); }}
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 rounded-xl"
+                          onClick={() => setSelectedShipment(shipment)}
                         >
-                          Cancel
+                          <Eye className="w-4 h-4" />
                         </Button>
-                      )}
-                      {shipment.status === 'REQUESTED' && (
-                        <Button
-                          size="sm"
-                          className="h-7 px-2.5 text-xs bg-emerald-700 text-white hover:bg-emerald-800 border-0 transition-all duration-200 hover:shadow-sm"
-                          onClick={(e) => { e.stopPropagation(); handleOpenAssign(shipment); }}
-                        >
-                          <Link2 className="w-3 h-3 mr-1" />
-                          Assign
-                        </Button>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+          </div>
+        )}
+      </div>
 
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+      {/* Bulk Action Bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white rounded-2xl px-6 py-3 flex items-center gap-4 shadow-xl z-50 border border-slate-800"
+          >
+            <span className="text-sm font-medium whitespace-nowrap">{selectedIds.size} selected</span>
+            <div className="w-px h-4 bg-slate-700" />
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="h-8 text-xs bg-transparent border-slate-700 hover:bg-slate-800 hover:text-white" onClick={() => {
+                const toDeliver = paginatedShipments.filter(s => selectedIds.has(s.id) && s.status === 'IN_TRANSIT');
+                toDeliver.forEach(s => handleStatusUpdate(s.id, 'DELIVERED'));
+                setSelectedIds(new Set());
+              }}>
+                Mark Delivered
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 text-xs bg-transparent border-red-900/50 text-red-400 hover:bg-red-950/50 hover:text-red-300" onClick={() => {
+                const toCancel = paginatedShipments.filter(s => selectedIds.has(s.id) && (s.status === 'REQUESTED' || s.status === 'ASSIGNED'));
+                toCancel.forEach(s => handleStatusUpdate(s.id, 'CANCELLED'));
+                setSelectedIds(new Set());
+              }}>
+                Cancel Shipments
+              </Button>
+            </div>
+            <button onClick={() => setSelectedIds(new Set())} className="p-1 hover:bg-slate-800 rounded-lg ml-2">
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* â”€â”€ Assign Vehicle/Driver Dialog (outside table) â”€â”€ */}
-      <Dialog
-        open={assignDialogOpen}
-        onOpenChange={(open) => {
-          setAssignDialogOpen(open);
-          if (!open) setAssigningShipment(null);
-        }}
-      >
-        <DialogContent>
+      {/* Assign Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={(open) => { setAssignDialogOpen(open); if (!open) setAssigningShipment(null); }}>
+        <DialogContent className="sm:max-w-[425px] p-6 rounded-2xl">
           <DialogHeader>
-            <DialogTitle>{t.manager.assignVehicle}</DialogTitle>
+            <DialogTitle className="text-xl">Assign Resources</DialogTitle>
             <DialogDescription>
-              Assign a vehicle and driver to shipment {assigningShipment?.id?.slice(0, 8)}...
+              Assign a vehicle and driver for shipment {String(assigningShipment?.id || "").slice(0, 8)}
             </DialogDescription>
           </DialogHeader>
-
-          {/* Vehicle select */}
-          <div className="space-y-2 pt-2">
-            <label className={theme.form.label}>
-              {t.manager.selectVehicle}
-            </label>
-            <Select
-              value={selectedVehicleId}
-              onValueChange={setSelectedVehicleId}
-            >
-              <SelectTrigger className={theme.form.select}>
-                <SelectValue placeholder={t.manager.selectVehicle} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableVehicles.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
-                    {v.plateNumber} â€” {v.type} ({v.model})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">Vehicle</label>
+              <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                <SelectTrigger className="w-full rounded-xl border-slate-200 dark:border-slate-700">
+                  <SelectValue placeholder="Select vehicle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableVehicles.map(v => (
+                    <SelectItem key={v.id} value={v.id}>{v.plateNumber} ({v.type})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">Driver</label>
+              <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                <SelectTrigger className="w-full rounded-xl border-slate-200 dark:border-slate-700">
+                  <SelectValue placeholder="Select driver" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableDrivers.map(d => (
+                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-
-          {/* Driver select */}
-          <div className="space-y-2">
-            <label className={theme.form.label}>
-              {t.manager.selectDriver}
-            </label>
-            <Select
-              value={selectedDriverId}
-              onValueChange={setSelectedDriverId}
-            >
-              <SelectTrigger className={theme.form.select}>
-                <SelectValue placeholder={t.manager.selectDriver} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableDrivers.map((d) => (
-                  <SelectItem key={d.id} value={d.id}>
-                    {d.name} â€” {d.driverProfile?.licenseNumber}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <DialogFooter className="pt-4">
-            <DialogClose asChild>
-              <Button variant="outline">{t.common.cancel}</Button>
-            </DialogClose>
-            <Button
-              className={theme.button.primarySm}
-              disabled={assigning || !selectedVehicleId || !selectedDriverId}
-              onClick={handleAssign}
-            >
-              {assigning ? t.common.loading : t.common.confirm}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)} className="rounded-xl">Cancel</Button>
+            <Button disabled={assigning || !selectedVehicleId || !selectedDriverId} onClick={handleAssign} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
+              {assigning ? 'Assigning...' : 'Assign Resources'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Shipment Detail Dialog */}
       <ShipmentDetailDrawer
         shipment={selectedShipment}
         open={!!selectedShipment}
         onClose={() => setSelectedShipment(null)}
         onUpdate={fetchShipments}
-        onAssign={(s) => {
-          setSelectedShipment(null);
-          handleOpenAssign(s);
-        }}
+        onAssign={(s) => { setSelectedShipment(null); handleOpenAssign(s); }}
       />
-    </>
+    </div>
   );
 }

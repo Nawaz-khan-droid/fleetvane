@@ -24,7 +24,7 @@ public class IncidentController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('MANAGER', 'DRIVER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'DRIVER', 'ADMIN')")
     public Page<IncidentReportDto> getAllIncidents(Pageable pageable, Authentication authentication) {
         Long userId = extractUserId(authentication);
         String role = extractRole(authentication);

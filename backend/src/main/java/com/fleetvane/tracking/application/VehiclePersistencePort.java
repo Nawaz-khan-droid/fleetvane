@@ -16,4 +16,10 @@ public interface VehiclePersistencePort {
      * Null heading is normalised by implementations.
      */
     void applyGpsLocation(long vehicleId, double lat, double lng, Double heading);
+
+    /** @return the vehicle's plate number for broadcast payloads, or null if not found. */
+    String getPlateNumber(long vehicleId);
+
+    /** @return the vehicle's current status string (e.g. "AVAILABLE", "IN_USE") for broadcast payloads. */
+    String getStatus(long vehicleId);
 }

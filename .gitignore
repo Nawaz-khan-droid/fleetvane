@@ -56,3 +56,11 @@ CLAUDE.md
 PROJECT.md
 worklog.md
 AGENTS.md
+
+# Local DB scripts
+DbCheck.class
+DbCheck.java
+DbDrop.class
+DbDrop.java
+postgresql.jar
+

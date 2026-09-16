@@ -8,14 +8,14 @@ public record CreateShipmentRequest(
     @NotBlank(message = "Origin address is required")
     String originAddress,
 
-    Double originLat,
-    Double originLng,
+    Double pickupLatitude,
+    Double pickupLongitude,
 
     @NotBlank(message = "Destination address is required")
     String destinationAddress,
 
-    Double destinationLat,
-    Double destinationLng,
+    Double deliveryLatitude,
+    Double deliveryLongitude,
 
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be positive")

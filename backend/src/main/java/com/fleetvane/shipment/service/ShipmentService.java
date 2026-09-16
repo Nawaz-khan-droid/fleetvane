@@ -2,6 +2,7 @@ package com.fleetvane.shipment.service;
 
 import com.fleetvane.shipment.dto.CreateShipmentRequest;
 import com.fleetvane.shipment.dto.ShipmentDto;
+import com.fleetvane.shipment.dto.ShipmentStatusEvent;
 import com.fleetvane.shipment.entity.Shipment;
 import com.fleetvane.shipment.repository.ShipmentRepository;
 import com.fleetvane.shared.exception.BusinessException;
@@ -9,34 +10,32 @@ import com.fleetvane.shared.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 
 @Service
 public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
+    private final SimpMessagingTemplate ws;
 
-    public ShipmentService(ShipmentRepository shipmentRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository, SimpMessagingTemplate ws) {
         this.shipmentRepository = shipmentRepository;
+        this.ws = ws;
     }
 
     @Transactional(readOnly = true)
     public Page<ShipmentDto> getAllShipments(Pageable pageable, String status, Long clientId, Long driverId, String role, Long userId) {
         Page<Shipment> shipments;
         
-        // Ownership Authorization Enforcement
         if ("CLIENT".equals(role)) {
-            // Client can only see their own
             shipments = shipmentRepository.findByClientId(userId, pageable);
         } else if ("DRIVER".equals(role)) {
-            // Driver can only see assigned
             shipments = shipmentRepository.findByDriverId(userId, pageable);
         } else {
-            // Manager can see all, apply filters if provided
             if (status != null && !status.isBlank()) {
                 shipments = shipmentRepository.findByStatus(status.toUpperCase(), pageable);
             } else if (clientId != null) {
@@ -75,11 +74,11 @@ public class ShipmentService {
         shipment.setClientId(clientId);
         shipment.setStatus("REQUESTED");
         shipment.setOriginAddress(request.originAddress());
-        shipment.setOriginLat(request.originLat());
-        shipment.setOriginLng(request.originLng());
+        shipment.setPickupLatitude(request.pickupLatitude());
+        shipment.setPickupLongitude(request.pickupLongitude());
         shipment.setDestinationAddress(request.destinationAddress());
-        shipment.setDestinationLat(request.destinationLat());
-        shipment.setDestinationLng(request.destinationLng());
+        shipment.setDeliveryLatitude(request.deliveryLatitude());
+        shipment.setDeliveryLongitude(request.deliveryLongitude());
         shipment.setWeight(request.weight());
         shipment.setLengthCm(request.lengthCm());
         shipment.setWidthCm(request.widthCm());
@@ -103,11 +102,13 @@ public class ShipmentService {
         shipment.setStatus("ASSIGNED");
         shipment.setAssignedAt(Instant.now());
         
-        return mapToDto(shipmentRepository.save(shipment));
+        Shipment saved = shipmentRepository.save(shipment);
+        broadcastStatusChange(saved, "order.assigned");
+        return mapToDto(saved);
     }
 
     @Transactional
-    public ShipmentDto updateStatus(Long id, String newStatus, String role, Long userId) {
+    public ShipmentDto updateStatus(Long id, String newStatus, com.fleetvane.shipment.dto.ProofOfDeliveryRequest pod, String role, Long userId) {
         Shipment shipment;
         
         if ("CLIENT".equals(role) || "ROLE_CLIENT".equals(role)) {
@@ -123,16 +124,17 @@ public class ShipmentService {
         
         newStatus = newStatus.toUpperCase();
         String currentStatus = shipment.getStatus();
+        String eventName = null;
         
-        // State Machine validation
         if ("CANCELLED".equals(newStatus)) {
-            if ("DELIVERED".equals(currentStatus)) {
-                throw new BusinessException("Cannot cancel a delivered shipment", HttpStatus.BAD_REQUEST);
+            if ("DELIVERED".equals(currentStatus) || "COMPLETED".equals(currentStatus)) {
+                throw new BusinessException("Cannot cancel a completed shipment", HttpStatus.BAD_REQUEST);
             }
             if ("CLIENT".equals(role) && !"REQUESTED".equals(currentStatus)) {
                 throw new BusinessException("Clients can only cancel requested shipments", HttpStatus.BAD_REQUEST);
             }
             shipment.setCancelledAt(Instant.now());
+            eventName = "order.cancelled";
             
         } else if ("IN_TRANSIT".equals(newStatus)) {
             if (!"ASSIGNED".equals(currentStatus)) {
@@ -142,8 +144,9 @@ public class ShipmentService {
                 throw new BusinessException("Only Driver/Manager can transit a shipment", HttpStatus.FORBIDDEN);
             }
             shipment.setPickedUpAt(Instant.now());
+            eventName = "order.started";
             
-        } else if ("DELIVERED".equals(newStatus)) {
+        } else if ("DELIVERED".equals(newStatus) || "COMPLETED".equals(newStatus)) {
             if (!"IN_TRANSIT".equals(currentStatus)) {
                 throw new BusinessException("Shipment must be IN_TRANSIT before it can be DELIVERED", HttpStatus.BAD_REQUEST);
             }
@@ -151,13 +154,40 @@ public class ShipmentService {
                 throw new BusinessException("Only Driver/Manager can deliver a shipment", HttpStatus.FORBIDDEN);
             }
             shipment.setDeliveredAt(Instant.now());
+            if (pod != null) {
+                shipment.setPodPhotoBase64(pod.photoBase64());
+                shipment.setPodSignatureBase64(pod.signatureBase64());
+            }
+            newStatus = "DELIVERED"; // Standardize
+            eventName = "order.completed";
             
         } else {
             throw new BusinessException("Invalid status transition from " + currentStatus + " to " + newStatus, HttpStatus.BAD_REQUEST);
         }
         
         shipment.setStatus(newStatus);
-        return mapToDto(shipmentRepository.save(shipment));
+        Shipment saved = shipmentRepository.save(shipment);
+        
+        if (eventName != null) {
+            broadcastStatusChange(saved, eventName);
+        }
+        
+        return mapToDto(saved);
+    }
+    
+    private void broadcastStatusChange(Shipment shipment, String eventName) {
+        ShipmentStatusEvent event = new ShipmentStatusEvent(
+                shipment.getId(),
+                eventName,
+                shipment.getStatus(),
+                shipment.getDriverId(),
+                shipment.getVehicleId(),
+                shipment.getOriginAddress(),
+                shipment.getDestinationAddress()
+        );
+        ws.convertAndSend("/topic/shipment." + shipment.getId() + ".tracking", event);
+        
+        // Also broadcast to company.1.drivers if needed (omitted for now to keep it scoped)
     }
 
     private ShipmentDto mapToDto(Shipment shipment) {
@@ -166,11 +196,11 @@ public class ShipmentService {
                 shipment.getClientId(),
                 shipment.getStatus(),
                 shipment.getOriginAddress(),
-                shipment.getOriginLat(),
-                shipment.getOriginLng(),
+                shipment.getPickupLatitude(),
+                shipment.getPickupLongitude(),
                 shipment.getDestinationAddress(),
-                shipment.getDestinationLat(),
-                shipment.getDestinationLng(),
+                shipment.getDeliveryLatitude(),
+                shipment.getDeliveryLongitude(),
                 shipment.getWeight(),
                 shipment.getLengthCm(),
                 shipment.getWidthCm(),

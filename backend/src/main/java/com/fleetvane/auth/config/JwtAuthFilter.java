@@ -1,6 +1,8 @@
 package com.fleetvane.auth.config;
 
+import com.fleetvane.auth.repository.UserRepository;
 import com.fleetvane.auth.service.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,23 +11,22 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final com.fleetvane.auth.repository.UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    public JwtAuthFilter(JwtService jwtService, com.fleetvane.auth.repository.UserRepository userRepository) {
+    public JwtAuthFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
     }
@@ -37,27 +38,38 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
-        
+        String jwt = authHeader.substring(7).trim();
+        if (jwt.isEmpty()) {
+            SecurityContextHolder.clearContext();
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         try {
             Long userId = jwtService.extractUserId(jwt);
             String role = jwtService.extractRole(jwt);
-            
+
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Fetch user to ensure they exist and are active
                 var userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent() && userOpt.get().getIsActive()) {
-                    UserDetails userDetails = new User(String.valueOf(userId), "", 
-                        List.of(new SimpleGrantedAuthority(role), new SimpleGrantedAuthority("ROLE_" + role)));
-                    
+                if (userOpt.isPresent() && Boolean.TRUE.equals(userOpt.get().getIsActive())) {
+                    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                    if (role != null && !role.isBlank()) {
+                        authorities.add(new SimpleGrantedAuthority(role));
+                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                    }
+
+                    UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+                            .username(String.valueOf(userId))
+                            .password("")
+                            .authorities(authorities)
+                            .build();
+
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -65,10 +77,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     );
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    SecurityContextHolder.clearContext();
                 }
             }
-        } catch (Exception e) {
-            // Token invalid or expired, continue and let Spring Security handle it
+        } catch (JwtException | IllegalArgumentException e) {
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

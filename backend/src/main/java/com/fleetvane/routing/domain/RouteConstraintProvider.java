@@ -37,18 +37,18 @@ public class RouteConstraintProvider implements ConstraintProvider {
     protected Constraint vehicleVolume(ConstraintFactory factory) {
         return factory.forEach(RouteVehicle.class)
                 .filter(vehicle -> {
-                    if (vehicle.getVolumeCapacity() == null || vehicle.getVolumeCapacity() == 0) return false;
-                    long totalVolume = vehicle.getStops().stream()
-                            .mapToLong(DeliveryStop::getVolumeDemand)
+                    if (vehicle.getVolumeCapacity() == null || vehicle.getVolumeCapacity() == 0.0) return false;
+                    double totalVolume = vehicle.getStops().stream()
+                            .mapToDouble(stop -> stop.getVolumeDemand() != null ? stop.getVolumeDemand() : 0.0)
                             .sum();
                     return totalVolume > vehicle.getVolumeCapacity();
                 })
                 .penalizeLong(HardSoftLongScore.ONE_HARD,
                         vehicle -> {
-                            long totalVolume = vehicle.getStops().stream()
-                                    .mapToLong(DeliveryStop::getVolumeDemand)
+                            double totalVolume = vehicle.getStops().stream()
+                                    .mapToDouble(stop -> stop.getVolumeDemand() != null ? stop.getVolumeDemand() : 0.0)
                                     .sum();
-                            return totalVolume - vehicle.getVolumeCapacity();
+                            return (long) ((totalVolume - vehicle.getVolumeCapacity()) * 1000); // Scale for penalty
                         })
                 .asConstraint("vehicleVolume");
     }

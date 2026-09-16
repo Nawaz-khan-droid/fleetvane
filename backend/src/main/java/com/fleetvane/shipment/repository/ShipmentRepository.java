@@ -19,4 +19,11 @@ public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
     
     java.util.Optional<Shipment> findByIdAndDriverId(Long id, Long driverId);
     java.util.Optional<Shipment> findByIdAndClientId(Long id, Long clientId);
+
+    /** Find the most recent active shipment for a vehicle (for WebSocket channel scoping). */
+    java.util.Optional<Shipment> findTopByVehicleIdAndStatusInOrderByAssignedAtDesc(Long vehicleId, List<String> statuses);
+
+    default java.util.Optional<Shipment> findTopByVehicleIdAndStatusIn(Long vehicleId, List<String> statuses) {
+        return findTopByVehicleIdAndStatusInOrderByAssignedAtDesc(vehicleId, statuses);
+    }
 }

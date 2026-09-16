@@ -16,21 +16,22 @@ import org.springframework.web.bind.annotation.*;
 public class DriverController {
 
     private final DriverService driverService;
+    private final com.fleetvane.driver.shift.DriverShiftService shiftService;
 
     @GetMapping("")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public Page<DriverProfileDto> getAllDrivers(Pageable pageable) {
         return driverService.getAllDrivers(pageable);
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasAnyAuthority('MANAGER', 'DRIVER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'DRIVER', 'ROLE_MANAGER', 'ROLE_ADMIN', 'ROLE_DRIVER')")
     public DriverProfileDto getProfileByUserId(@PathVariable Long userId) {
         return driverService.getProfileByUserId(userId);
     }
 
     @PostMapping("/{userId}")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public DriverProfileDto createProfile(@PathVariable Long userId, @Valid @RequestBody CreateDriverProfileRequest request) {
         return driverService.createProfile(userId, request);
     }
@@ -39,5 +40,17 @@ public class DriverController {
     @PreAuthorize("hasAuthority('DRIVER')")
     public DriverProfileDto toggleAvailability(@PathVariable Long userId) {
         return driverService.toggleAvailability(userId);
+    }
+
+    @PostMapping("/{userId}/shift/start")
+    @PreAuthorize("hasAuthority('DRIVER')")
+    public com.fleetvane.driver.shift.DriverShift startShift(@PathVariable Long userId, @RequestParam Long vehicleId) {
+        return shiftService.startShift(userId, vehicleId);
+    }
+
+    @PostMapping("/{userId}/shift/end")
+    @PreAuthorize("hasAuthority('DRIVER')")
+    public com.fleetvane.driver.shift.DriverShift endShift(@PathVariable Long userId) {
+        return shiftService.endShift(userId);
     }
 }

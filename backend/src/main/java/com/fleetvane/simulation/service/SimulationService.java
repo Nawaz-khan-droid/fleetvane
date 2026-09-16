@@ -101,10 +101,10 @@ public class SimulationService {
             shipment.setVehicleId(vehicle.getId());
             shipment.setOriginAddress("Depot");
             shipment.setDestinationAddress("Destination " + vehicle.getPlateNumber());
-            shipment.setOriginLat(vehicle.getLat());
-            shipment.setOriginLng(vehicle.getLng());
-            shipment.setDestinationLat(vehicle.getLat() + 0.5 + random.nextDouble());
-            shipment.setDestinationLng(vehicle.getLng() + 0.5 + random.nextDouble());
+            shipment.setPickupLatitude(vehicle.getLat());
+            shipment.setPickupLongitude(vehicle.getLng());
+            shipment.setDeliveryLatitude(vehicle.getLat() + 0.5 + random.nextDouble());
+            shipment.setDeliveryLongitude(vehicle.getLng() + 0.5 + random.nextDouble());
             shipment.setWeight(500.0 + random.nextInt(9000));
             shipment.setPickedUpAt(Instant.now());
             shipmentRepository.save(shipment);
@@ -124,18 +124,18 @@ public class SimulationService {
                 continue;
             }
             Shipment target = active.get(0);
-            if (target.getDestinationLat() == null || target.getDestinationLng() == null) {
+            if (target.getDeliveryLatitude() == null || target.getDeliveryLongitude() == null) {
                 continue;
             }
             double[] next = stepToward(
                     vehicle.getLat(), vehicle.getLng(),
-                    target.getDestinationLat(), target.getDestinationLng(),
+                    target.getDeliveryLatitude(), target.getDeliveryLongitude(),
                     STEP_FRACTION
             );
             double heading = bearing(vehicle.getLat(), vehicle.getLng(),
-                    target.getDestinationLat(), target.getDestinationLng());
+                    target.getDeliveryLatitude(), target.getDeliveryLongitude());
             double distanceKm = haversineKm(vehicle.getLat(), vehicle.getLng(),
-                    target.getDestinationLat(), target.getDestinationLng());
+                    target.getDeliveryLatitude(), target.getDeliveryLongitude());
             double speedMps = Math.max(0, distanceKm > ARRIVAL_EPSILON_KM ? 15.0 + random.nextDouble() * 5 : 0.0);
 
             vehicle.setLat(next[0]);

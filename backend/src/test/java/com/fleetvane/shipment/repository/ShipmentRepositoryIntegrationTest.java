@@ -77,11 +77,11 @@ class ShipmentRepositoryIntegrationTest {
         s.setVehicleId(vehicleId);
         s.setStatus(status);
         s.setOriginAddress("Warehouse A, Mumbai");
-        s.setOriginLat(19.0760);
-        s.setOriginLng(72.8777);
+        s.setPickupLatitude(19.0760);
+        s.setPickupLongitude(72.8777);
         s.setDestinationAddress("Retail Hub, Pune");
-        s.setDestinationLat(18.5204);
-        s.setDestinationLng(73.8567);
+        s.setDeliveryLatitude(18.5204);
+        s.setDeliveryLongitude(73.8567);
         s.setWeight(500.0);
         return s;
     }

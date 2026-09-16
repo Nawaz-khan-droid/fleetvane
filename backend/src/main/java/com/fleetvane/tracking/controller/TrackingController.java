@@ -25,7 +25,7 @@ public class TrackingController {
     }
 
     @PutMapping("/vehicles/{id}/location")
-    @PreAuthorize("hasAnyRole('DRIVER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('DRIVER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Void> updateLocation(
             @PathVariable Long id,
             @Valid @RequestBody LocationUpdateRequest request,
@@ -37,7 +37,7 @@ public class TrackingController {
     }
 
     @GetMapping("/vehicles/{id}/history")
-    @PreAuthorize("hasAnyRole('DRIVER', 'MANAGER')")
+    @PreAuthorize("hasAnyRole('DRIVER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<Page<GpsEvent>> getVehicleHistory(
             @PathVariable Long id,
             Pageable pageable,

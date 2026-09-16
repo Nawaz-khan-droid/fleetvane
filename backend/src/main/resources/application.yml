@@ -11,7 +11,7 @@ spring:
   # ── JPA / Hibernate ──
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     open-in-view: false
     properties:
       hibernate:
@@ -75,6 +75,8 @@ server:
 # ── Timefold Optimization ──
 timefold:
   solver:
+    # Use FAST_ASSERT for smooth presentation demo speeds while verifying constraint math
+    environment-mode: FAST_ASSERT
     termination:
       spent-limit: 30s
 

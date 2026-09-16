@@ -36,4 +36,18 @@ public class VehiclePersistenceAdapter implements VehiclePersistencePort {
 
         vehicleRepository.save(vehicle);
     }
+
+    @Override
+    public String getPlateNumber(long vehicleId) {
+        return vehicleRepository.findById(vehicleId)
+                .map(Vehicle::getPlateNumber)
+                .orElse(null);
+    }
+
+    @Override
+    public String getStatus(long vehicleId) {
+        return vehicleRepository.findById(vehicleId)
+                .map(Vehicle::getStatus)
+                .orElse(null);
+    }
 }

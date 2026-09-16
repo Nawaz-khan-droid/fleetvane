@@ -16,7 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FleetVane — Intelligent Fleet Orchestration Platform",
+  manifest: '/manifest.json',
+  themeColor: '#2563EB',
+  title: "FleetVane",
   description:
     "FleetVane is a modern fleet management system that streamlines logistics operations with real-time vehicle tracking, shipment lifecycle management, driver coordination, and route intelligence for enterprises across India.",
   keywords: [
@@ -33,11 +35,8 @@ export const metadata: Metadata = {
     "India logistics",
   ],
   authors: [{ name: "FleetVane Team" }],
-  icons: {
-    icon: "/logo.svg",
-  },
   openGraph: {
-    title: "FleetVane — Intelligent Fleet Orchestration",
+    title: "FleetVane",
     description:
       "Streamline fleet operations with real-time tracking, intelligent route optimization, and seamless coordination across your entire fleet.",
     type: "website",
@@ -45,13 +44,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "FleetVane — Intelligent Fleet Orchestration",
+    title: "FleetVane",
     description:
       "Modern fleet management with real-time visibility, shipment tracking, and driver coordination.",
   },
   robots: {
     index: true,
-    follow: true,
   },
 };
 

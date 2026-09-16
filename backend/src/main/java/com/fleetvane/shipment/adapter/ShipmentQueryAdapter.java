@@ -26,13 +26,13 @@ public class ShipmentQueryAdapter implements ShipmentQueryPort {
 
     private ShipmentData toData(Shipment shipment) {
         long weightGrams = shipment.getWeight() != null ? (long) (shipment.getWeight() * 1000) : 0L;
-        long volumeM3x1000 = shipment.getVolumeM3() != null ? (long) (shipment.getVolumeM3() * 1000) : 0L;
+        Double volumeM3 = shipment.getVolumeM3() != null ? shipment.getVolumeM3() : 0.0;
         return new ShipmentData(
                 shipment.getId(),
-                shipment.getDestinationLat(),
-                shipment.getDestinationLng(),
+                shipment.getDeliveryLatitude(),
+                shipment.getDeliveryLongitude(),
                 weightGrams,
-                volumeM3x1000
+                volumeM3
         );
     }
 }
