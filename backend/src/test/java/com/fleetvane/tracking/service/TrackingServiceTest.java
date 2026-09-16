@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.fleetvane.shipment.repository.ShipmentRepository;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
 
@@ -42,11 +44,17 @@ class TrackingServiceTest {
     @Mock
     private DriverProfileRepository driverProfileRepository;
 
+    @Mock
+    private ShipmentRepository shipmentRepository;
+
+    @Mock
+    private SimpMessagingTemplate ws;
+
     private TrackingService trackingService;
 
     @BeforeEach
     void setUp() {
-        trackingService = new TrackingService(vehiclePersistencePort, gpsEventRepository, driverProfileRepository);
+        trackingService = new TrackingService(vehiclePersistencePort, gpsEventRepository, driverProfileRepository, shipmentRepository, ws);
     }
 
     private DriverProfile profileFor(long userId, long vehicleId) {
@@ -130,3 +138,4 @@ class TrackingServiceTest {
         verify(gpsEventRepository, never()).findByVehicleIdOrderByRecordedAtDesc(anyLong(), any());
     }
 }
+

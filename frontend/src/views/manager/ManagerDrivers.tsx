@@ -2,23 +2,16 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Plus, Search } from 'lucide-react';
+import { Users, Plus, Search, Eye, EyeOff, UserCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import t from '@/locales/en.json';
-import { theme } from '@/constants/theme';
 import type { DriverWithProfile, Vehicle } from '@/types';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
-
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -35,51 +28,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import Pagination from '@/components/shared/Pagination';
-import SortableHeader, { type SortDir, useSort } from '@/components/shared/SortableHeader';
-
-// ── Flat sortable driver type ─────────────────────────────
-interface SortableDriver {
-  name: string;
-  email: string;
-  licenseNumber: string;
-  vehicle: string;
-  isAvailable: boolean;
-}
 
 export default function ManagerDrivers() {
   const { state: authState } = useAuth();
-
   const [drivers, setDrivers] = useState<DriverWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [driverName, setDriverName] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
+  
   const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 5;
+  const PAGE_SIZE = 9;
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortKey, setSortKey] = useState<keyof SortableDriver>('name');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  // Available vehicles for create dialog
   const [availableVehicles, setAvailableVehicles] = useState<Vehicle[]>([]);
 
-  // ── Fetch drivers ────────────────────────────────────
   const fetchDrivers = useCallback(async () => {
     try {
       const res = await fetchWithAuth('/api/drivers', {
@@ -87,7 +58,7 @@ export default function ManagerDrivers() {
       });
       if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
       const rawData = await res.json();
-      const pageData = normalizePageResponse<any>(rawData); // Temporarily any, as driver profile type might differ
+      const pageData = normalizePageResponse<any>(rawData);
       setDrivers(pageData.items);
     } catch (err: any) {
       if (err instanceof ApiContractError) {
@@ -104,7 +75,6 @@ export default function ManagerDrivers() {
     fetchDrivers();
   }, [fetchDrivers]);
 
-  // ── Fetch available vehicles when dialog opens ───────
   const fetchAvailableVehicles = useCallback(async () => {
     try {
       const res = await fetchWithAuth('/api/vehicles', {
@@ -118,18 +88,16 @@ export default function ManagerDrivers() {
     }
   }, [authState.token]);
 
-  // ── Create driver ────────────────────────────────────
   const handleCreateDriver = async () => {
     if (!driverName.trim() || !licenseNumber.trim()) return;
-
     setCreating(true);
     try {
       const body: Record<string, string | null> = {
         name: driverName.trim(),
         licenseNumber: licenseNumber.trim(),
         vehicleId: selectedVehicleId || null,
+        // Backend handles email and password generation typically, but sending just what exists
       };
-
       const res = await fetchWithAuth('/api/drivers', {
         method: 'POST',
         headers: {
@@ -152,7 +120,6 @@ export default function ManagerDrivers() {
     }
   };
 
-  // ── Search & Sort pipeline ─────────────────────────
   const filteredDrivers = drivers.filter((d) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -163,281 +130,230 @@ export default function ManagerDrivers() {
     );
   });
 
-  // Map to flat sortable objects
-  const sortableData: (SortableDriver & { _original: DriverWithProfile })[] = filteredDrivers.map((d) => ({
-    name: d.name,
-    email: d.email,
-    licenseNumber: d.driverProfile?.licenseNumber || '',
-    vehicle: d.driverProfile?.vehicle
-      ? `${d.driverProfile.vehicle.plateNumber} (${d.driverProfile.vehicle.model})`
-      : '',
-    isAvailable: d.driverProfile?.isAvailable ?? true,
-    _original: d,
-  }));
+  const totalPages = Math.max(1, Math.ceil(filteredDrivers.length / PAGE_SIZE));
+  const paginatedDrivers = filteredDrivers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  const sortedData = useSort(sortableData, sortKey, sortDir);
-  const totalPages = Math.max(1, Math.ceil(sortedData.length / PAGE_SIZE));
-  const paginatedDrivers = sortedData.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const totalDrivers = drivers.length;
+  const availableCount = drivers.filter(d => d.driverProfile?.isAvailable).length;
+  const unavailableCount = totalDrivers - availableCount;
 
-  const handleSort = (key: keyof SortableDriver) => {
-    if (sortKey === key) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : d === 'desc' ? null : 'asc'));
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
-    }
-  };
-
-  // ── Loading state ────────────────────────────────────
   if (loading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-[400px] w-full rounded-xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-48 w-full rounded-2xl" />)}
+        </div>
       </div>
     );
   }
 
-  return (
-    <>
-      {/* ── Toolbar: Search + Actions ──────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6"
-      >
-        {/* Left: Search bar */}
-        <div className="relative w-full sm:flex-1 sm:max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <Input
-            placeholder="Search by name, email, or license..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-            className={`${theme.form.input} pl-10`}
-          />
-        </div>
+  const generatedEmail = driverName.trim().toLowerCase().replace(/\s+/g, '.') + '@fleetvane.com';
 
-        {/* Right: Create Driver button */}
-        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Driver Management</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Manage fleet drivers and assignments.</p>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Input
+              placeholder="Search drivers..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              className="pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl h-10"
+            />
+          </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
               <Button
-                className={`${theme.button.primarySm} w-full sm:w-auto`}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 h-10 text-sm inline-flex items-center gap-2 shrink-0"
                 onClick={fetchAvailableVehicles}
               >
-                <Plus className="w-4 h-4 mr-2" />
-                {t.manager.createDriver}
+                <Plus className="w-4 h-4" />
+                Add Driver
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-[425px] rounded-2xl p-6">
               <DialogHeader>
-                <DialogTitle>{t.manager.createDriver}</DialogTitle>
+                <DialogTitle className="text-xl">Add New Driver</DialogTitle>
               </DialogHeader>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleCreateDriver();
-                }}
-                className="space-y-4 pt-2"
-              >
-                {/* Driver Name */}
+              <form onSubmit={(e) => { e.preventDefault(); handleCreateDriver(); }} className="space-y-4 pt-4">
                 <div className="space-y-1.5">
-                  <Label>{t.manager.driverName}</Label>
+                  <Label>Full Name</Label>
                   <Input
                     placeholder="John Doe"
                     value={driverName}
                     onChange={(e) => setDriverName(e.target.value)}
-                    className={theme.form.input}
+                    className="rounded-xl border-slate-200 dark:border-slate-700"
                     required
                   />
                 </div>
 
-                {/* License Number */}
                 <div className="space-y-1.5">
-                  <Label>{t.manager.licenseNumber}</Label>
+                  <Label>Email (Auto-generated)</Label>
+                  <Input
+                    value={driverName ? generatedEmail : ''}
+                    readOnly
+                    className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>Initial Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value="fleetvane123!"
+                      readOnly
+                      className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 pr-10 text-slate-500"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>License Number</Label>
                   <Input
                     placeholder="DL-1234567890"
                     value={licenseNumber}
                     onChange={(e) => setLicenseNumber(e.target.value)}
-                    className={theme.form.input}
+                    className="rounded-xl border-slate-200 dark:border-slate-700 uppercase"
                     required
                   />
                 </div>
 
-                {/* Assign to Vehicle */}
                 <div className="space-y-1.5">
-                  <Label>{t.manager.assignVehicleLabel}</Label>
-                  <Select
-                    value={selectedVehicleId}
-                    onValueChange={setSelectedVehicleId}
-                  >
-                    <SelectTrigger className={theme.form.select}>
+                  <Label>Assign Vehicle</Label>
+                  <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                    <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-700">
                       <SelectValue placeholder="Optional — select a vehicle" />
                     </SelectTrigger>
                     <SelectContent>
                       {availableVehicles.map((v) => (
                         <SelectItem key={v.id} value={v.id}>
-                          {v.plateNumber} — {v.type} ({v.model})
+                          {v.plateNumber} — {v.model}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <DialogFooter className="pt-2">
+                <DialogFooter className="pt-4">
                   <DialogClose asChild>
-                    <Button type="button" variant="outline">
-                      {t.common.cancel}
-                    </Button>
+                    <Button type="button" variant="outline" className="rounded-xl">Cancel</Button>
                   </DialogClose>
-                  <Button
-                    type="submit"
-                    className={theme.button.primarySm}
-                    disabled={creating || !driverName.trim() || !licenseNumber.trim()}
-                  >
-                    {creating ? t.common.loading : t.manager.createDriverBtn}
+                  <Button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white" disabled={creating || !driverName.trim() || !licenseNumber.trim()}>
+                    {creating ? 'Creating...' : 'Create Driver'}
                   </Button>
                 </DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </div>
-      </motion.div>
+      </div>
 
-      {/* ── Driver Table ─────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Card className={theme.card.base}>
-          <CardContent className={`${theme.table.scrollCard} overflow-x-auto`}>
-            {filteredDrivers.length === 0 ? (
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: 'Total Drivers', value: totalDrivers, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/30' },
+          { label: 'Available', value: availableCount, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-900/30' },
+          { label: 'Unavailable', value: unavailableCount, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-900/30' },
+        ].map(stat => (
+          <div key={stat.label} className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-4 flex items-center justify-between shadow-sm">
+            <span className="text-sm font-medium text-slate-500">{stat.label}</span>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${stat.bg} ${stat.color}`}>
+              {stat.value}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Driver Cards Grid */}
+      {filteredDrivers.length === 0 ? (
+        <div className="rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-16 text-center max-w-2xl mx-auto my-6">
+          <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center mb-4 mx-auto border border-slate-100 dark:border-slate-700">
+            <Users className="w-7 h-7 text-slate-400" />
+          </div>
+          <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-1">No Drivers Found</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400">There are no drivers matching your search.</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedDrivers.map((driver, i) => (
               <motion.div
-                className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 py-20 text-center"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
+                key={driver.id}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-5 hover:shadow-md transition-shadow cursor-pointer flex flex-col"
               >
-                <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4 mx-auto">
-                  <Users className="w-8 h-8 text-slate-400" />
+                {/* Top: Avatar, Name, Email */}
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-400 font-bold text-lg shrink-0 border border-blue-200 dark:border-blue-800">
+                    {(driver.name || "D").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">{driver.name || "Unknown Driver"}</h3>
+                    <p className="text-sm text-slate-500 truncate">{driver.email}</p>
+                  </div>
                 </div>
-                <p className={theme.typography.body}>{t.manager.noDrivers}</p>
+
+                {/* Middle: License & Vehicle */}
+                <div className="flex flex-col gap-2 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full font-mono text-[10px] px-2 py-0.5 border border-slate-200 dark:border-slate-700">
+                      {driver.driverProfile?.licenseNumber || 'NO LICENSE'}
+                    </Badge>
+                  </div>
+                  <div className="text-sm">
+                    {driver.driverProfile?.vehicle ? (
+                      <span className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-blue-500" />
+                        {driver.driverProfile.vehicle.plateNumber} <span className="text-slate-400 font-normal">({driver.driverProfile.vehicle.model})</span>
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 italic">No vehicle assigned</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bottom: Availability Toggle */}
+                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${driver.driverProfile?.isAvailable ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                    <span className={`text-sm font-medium ${driver.driverProfile?.isAvailable ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                      {driver.driverProfile?.isAvailable ? 'Available' : 'On Duty'}
+                    </span>
+                  </div>
+                  <Switch 
+                    checked={driver.driverProfile?.isAvailable ?? false} 
+                    disabled 
+                    title="Driver sets availability via their portal"
+                  />
+                </div>
               </motion.div>
-            ) : (
-              <>
-              {/* Desktop table */}
-              <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead><SortableHeader label="Name" sortDir={sortKey==='name'?sortDir:null} onSort={()=>handleSort('name')} /></TableHead>
-                    <TableHead><SortableHeader label="Email" sortDir={sortKey==='email'?sortDir:null} onSort={()=>handleSort('email')} /></TableHead>
-                    <TableHead><SortableHeader label={t.manager.licenseNumber} sortDir={sortKey==='licenseNumber'?sortDir:null} onSort={()=>handleSort('licenseNumber')} /></TableHead>
-                    <TableHead><SortableHeader label={t.client.vehicle} sortDir={sortKey==='vehicle'?sortDir:null} onSort={()=>handleSort('vehicle')} /></TableHead>
-                    <TableHead><SortableHeader label="Status" sortDir={sortKey==='isAvailable'?sortDir:null} onSort={()=>handleSort('isAvailable')} /></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedDrivers.map((item, i) => {
-                    const driver = item._original;
-                    return (
-                      <motion.tr
-                        key={driver.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.03 }}
-                        className={`border-b last:border-0 ${theme.table.zebraRow} hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors`}
-                      >
-                        <TableCell className="font-medium">{driver.name}</TableCell>
-                        <TableCell className={theme.typography.caption}>
-                          {driver.email}
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">
-                          {driver.driverProfile?.licenseNumber || '—'}
-                        </TableCell>
-                        <TableCell>
-                          {driver.driverProfile?.vehicle
-                            ? `${driver.driverProfile.vehicle.plateNumber} (${driver.driverProfile.vehicle.model})`
-                            : '—'}
-                        </TableCell>
-                        <TableCell>
-                          <span className="flex items-center gap-2">
-                            <span className={`w-2.5 h-2.5 rounded-full ${driver.driverProfile?.isAvailable ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                            <span>{driver.driverProfile?.isAvailable ? 'Available' : 'On Duty'}</span>
-                          </span>
-                        </TableCell>
-                      </motion.tr>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              </div>
-
-              {/* Mobile card list */}
-              <div className="md:hidden p-4 space-y-3">
-                {paginatedDrivers.map((item, i) => {
-                  const driver = item._original;
-                  return (
-                    <motion.div
-                      key={driver.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 hover:shadow-md transition-shadow duration-200"
-                    >
-                      {/* Name + Status */}
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-sm text-slate-900 dark:text-slate-100">
-                          {driver.name}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <span className={`w-2 h-2 rounded-full ${driver.driverProfile?.isAvailable ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {driver.driverProfile?.isAvailable ? 'Available' : 'On Duty'}
-                          </span>
-                        </span>
-                      </div>
-                      {/* Email */}
-                      <p className={`text-xs mb-2 ${theme.typography.caption}`}>
-                        {driver.email}
-                      </p>
-                      {/* License + Vehicle */}
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide shrink-0">License</span>
-                          <span className="font-mono text-xs text-slate-700 dark:text-slate-300">
-                            {driver.driverProfile?.licenseNumber || '—'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wide shrink-0">Vehicle</span>
-                          <span className="text-xs text-slate-600 dark:text-slate-400">
-                            {driver.driverProfile?.vehicle
-                              ? `${driver.driverProfile.vehicle.plateNumber} (${driver.driverProfile.vehicle.model})`
-                              : '—'}
-                          </span>
-                        </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-    </>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-8">
+              <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

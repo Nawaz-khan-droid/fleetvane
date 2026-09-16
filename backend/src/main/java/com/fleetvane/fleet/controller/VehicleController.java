@@ -22,25 +22,25 @@ public class VehicleController {
     private final VehicleService vehicleService;
 
     @GetMapping
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public Page<VehicleDto> getAllVehicles(Pageable pageable, @RequestParam(required = false) String status) {
         return vehicleService.getAllVehicles(pageable, status);
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto getVehicleById(@PathVariable Long id) {
         return vehicleService.getVehicleById(id);
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto createVehicle(@Valid @RequestBody CreateVehicleRequest request) {
         return vehicleService.createVehicle(request);
     }
 
     @PutMapping("/{id}/status")
-    @PreAuthorize("hasAuthority('MANAGER')")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto updateStatus(@PathVariable Long id, @RequestParam String status) {
         return vehicleService.updateStatus(id, status);
     }

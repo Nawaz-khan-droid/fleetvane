@@ -78,22 +78,22 @@ class RouteSolverServiceTest {
 
     private void givenPortData() {
         when(fleetQueryPort.findAllById(validRequest.vehicleIds())).thenReturn(List.of(
-                new FleetQueryPort.VehicleData(10L, 10L, 19.10, 72.90, 10000L, 30000L)));
+                new FleetQueryPort.VehicleData(10L, 10L, 19.10, 72.90, 10000L, 30.0)));
         when(shipmentQueryPort.findAllById(validRequest.shipmentIds())).thenReturn(List.of(
-                new ShipmentQueryPort.ShipmentData(500L, 18.52, 73.85, 2000L, 1500L),
-                new ShipmentQueryPort.ShipmentData(501L, 18.60, 73.90, 3000L, 2000L)));
+                new ShipmentQueryPort.ShipmentData(500L, 18.52, 73.85, 2000L, 1.5),
+                new ShipmentQueryPort.ShipmentData(501L, 18.60, 73.90, 3000L, 2.0)));
     }
 
     /** Real planning-domain objects so mapping logic runs for real. */
     private VehicleRoutePlan solvedPlan() {
-        RouteVehicle vehicle = new RouteVehicle(10L, 10L, 19.10, 72.90, 10000L, 30000L);
-        vehicle.getStops().add(new DeliveryStop(500L, 500L, 18.52, 73.85, 2000L, 1500L));
-        vehicle.getStops().add(new DeliveryStop(501L, 501L, 18.60, 73.90, 3000L, 2000L));
+        RouteVehicle vehicle = new RouteVehicle(10L, 10L, 19.10, 72.90, 10000L, 30.0);
+        vehicle.getStops().add(new DeliveryStop(500L, 500L, 18.52, 73.85, 2000L, 1.5));
+        vehicle.getStops().add(new DeliveryStop(501L, 501L, 18.60, 73.90, 3000L, 2.0));
 
         VehicleRoutePlan plan = new VehicleRoutePlan(
                 UUID.randomUUID(),
-                List.of(new DeliveryStop(500L, 500L, 18.52, 73.85, 2000L, 1500L),
-                        new DeliveryStop(501L, 501L, 18.60, 73.90, 3000L, 2000L)),
+                List.of(new DeliveryStop(500L, 500L, 18.52, 73.85, 2000L, 1.5),
+                        new DeliveryStop(501L, 501L, 18.60, 73.90, 3000L, 2.0)),
                 List.of(vehicle));
         return plan;
     }

@@ -57,7 +57,9 @@ public class RouteSolverService {
     static final int MAX_VEHICLES = 50;
     static final int MAX_SHIPMENTS = 200;
 
-    @Transactional
+    // No @Transactional here: the Timefold solver blocks for up to 30 seconds.
+    // Holding a DB connection that long would starve the pool (max 5 connections).
+    // Each jobRepository.save() call opens its own short-lived transaction instead.
     public RouteSolutionResponse solveSync(CreateOptimizationJobRequest request, Long userId) {
         // Fail-fast FIRST: reject oversized problems before any database I/O,
         // so a hostile/buggy request cannot force huge IN-clause queries.
@@ -80,7 +82,7 @@ public class RouteSolverService {
         // Solver-input integrity: coordinate-less shipments would silently zero-out
         // distance scoring. Exclude them explicitly and surface the count.
         List<ShipmentQueryPort.ShipmentData> solvable = shipmentData.stream()
-                .filter(s -> s.destinationLat() != null && s.destinationLng() != null)
+                .filter(s -> s.deliveryLatitude() != null && s.deliveryLongitude() != null)
                 .toList();
         int skippedMissingCoords = shipmentData.size() - solvable.size();
         if (skippedMissingCoords > 0) {
@@ -93,11 +95,11 @@ public class RouteSolverService {
         }
 
         List<RouteVehicle> routeVehicles = vehicleData.stream()
-                .map(v -> new RouteVehicle(v.id(), v.originalId(), v.lat(), v.lng(), v.capacityGrams(), v.volumeM3x1000()))
+                .map(v -> new RouteVehicle(v.id(), v.originalId(), v.lat(), v.lng(), v.capacityGrams(), v.volumeM3()))
                 .collect(Collectors.toList());
 
         List<DeliveryStop> deliveryStops = solvable.stream()
-                .map(s -> new DeliveryStop(s.id(), s.id(), s.destinationLat(), s.destinationLng(), s.weightGrams(), s.volumeM3x1000()))
+                .map(s -> new DeliveryStop(s.id(), s.id(), s.deliveryLatitude(), s.deliveryLongitude(), s.weightGrams(), s.volumeM3()))
                 .collect(Collectors.toList());
 
         OptimizationJob job = new OptimizationJob();
@@ -150,7 +152,7 @@ public class RouteSolverService {
             for (DeliveryStop s : v.getStops()) {
                 ShipmentQueryPort.ShipmentData sd = shipmentsById.get(s.getShipmentId());
                 if (sd != null) {
-                    stops.add(new RouteSolutionResponse.Stop(sd.id(), sd.destinationLat(), sd.destinationLng()));
+                    stops.add(new RouteSolutionResponse.Stop(sd.id(), sd.deliveryLatitude(), sd.deliveryLongitude()));
                 }
             }
             routes.add(new RouteSolutionResponse.VehicleRoute(

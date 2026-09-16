@@ -60,3 +60,53 @@ export function createTrafficLayer(): google.maps.TrafficLayer {
   }
   return new window.google.maps.TrafficLayer();
 }
+
+// ── MapTiler / Leaflet Theming Support ─────────────────────────
+
+export function isMapTilerKeyConfigured(): boolean {
+  const apiKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
+  return typeof apiKey === 'string' && apiKey.length > 0 && !apiKey.startsWith('your_');
+}
+
+export function getMapTilerKey(): string {
+  const envKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
+  if (envKey && !envKey.startsWith('your_')) return envKey;
+  // Fallback verified key provided for Capstone
+  return 'ld6NyiWXzksCPU01e9Va';
+}
+
+export type MapTileStyle = 'auto' | 'streets' | 'satellite' | 'dark' | 'outdoor';
+
+export function getLeafletTileUrl(theme: 'light' | 'dark' | string = 'light', style: MapTileStyle = 'auto'): string {
+  const key = getMapTilerKey();
+  const isDark = theme === 'dark';
+
+  if (key) {
+    if (style === 'satellite') {
+      return `https://api.maptiler.com/maps/satellite/256/{z}/{x}/{y}.jpg?key=${key}`;
+    }
+    if (style === 'outdoor') {
+      return `https://api.maptiler.com/maps/outdoor-v2/256/{z}/{x}/{y}.png?key=${key}`;
+    }
+    if (style === 'dark' || (style === 'auto' && isDark)) {
+      return `https://api.maptiler.com/maps/streets-v2-dark/256/{z}/{x}/{y}.png?key=${key}`;
+    }
+    // Default streets (light)
+    return `https://api.maptiler.com/maps/streets-v2/256/{z}/{x}/{y}.png?key=${key}`;
+  }
+
+  // Fallback to open tiles if key is unavailable
+  if (style === 'dark' || (style === 'auto' && isDark)) {
+    return 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+  }
+  return 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+}
+
+export function getLeafletAttribution(style: MapTileStyle = 'auto'): string {
+  const key = getMapTilerKey();
+  if (key) {
+    return '&copy; <a href="https://www.maptiler.com/" target="_blank" rel="noreferrer">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
+  }
+  return '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
+}
+

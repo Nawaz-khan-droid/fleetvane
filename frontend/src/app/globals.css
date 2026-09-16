@@ -6,8 +6,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-dm-sans);
+  --font-mono: var(--font-dm-mono);
+  --font-serif: var(--font-fraunces);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -232,7 +233,7 @@ input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #059669;
+  outline: 2px solid #2563eb;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -243,7 +244,7 @@ select:focus-visible,
 .dark textarea:focus-visible,
 .dark select:focus-visible,
 .dark [tabindex]:focus-visible {
-  outline-color: #34d399;
+  outline-color: #60a5fa;
 }
 
 /* ── Dialog Entrance Animation ──────────────────────────── */
@@ -266,3 +267,47 @@ select:focus-visible,
   50% { transform: translateX(200%); }
   100% { transform: translateX(-100%); }
 }
+
+/* ── Leaflet Dark Mode Theming ─────────────────────────── */
+.dark .leaflet-bar a {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+.dark .leaflet-bar a:hover {
+  background-color: #334155 !important;
+  color: #ffffff !important;
+}
+.dark .leaflet-bar a.leaflet-disabled {
+  background-color: #0f172a !important;
+  color: #64748b !important;
+}
+.dark .leaflet-control-attribution {
+  background-color: rgba(15, 23, 42, 0.85) !important;
+  color: #94a3b8 !important;
+}
+.dark .leaflet-control-attribution a {
+  color: #38bdf8 !important;
+}
+.dark .leaflet-popup-content-wrapper {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid #334155 !important;
+}
+.dark .leaflet-popup-tip {
+  background-color: #1e293b !important;
+}
+.dark .leaflet-popup-close-button {
+  color: #94a3b8 !important;
+}
+.dark .leaflet-popup-close-button:hover {
+  color: #f8fafc !important;
+}
+
+
+/* -- Custom Scrollbar ----------------------------------- */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
+.dark .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(75, 85, 99, 0.5); }

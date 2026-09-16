@@ -8,9 +8,10 @@ import com.fleetvane.fleet.entity.Vehicle;
 import com.fleetvane.fleet.repository.VehicleRepository;
 import com.fleetvane.shipment.entity.Shipment;
 import com.fleetvane.shipment.repository.ShipmentRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.context.annotation.Profile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -26,17 +27,35 @@ public class DataInitializer implements CommandLineRunner {
     private final DriverProfileRepository driverProfileRepository;
     private final ShipmentRepository shipmentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final String adminEmail;
+    private final String adminPassword;
+    private final String managerEmail;
+    private final String managerPassword;
+    private final String clientEmail;
+    private final String clientPassword;
 
     public DataInitializer(UserRepository userRepository,
                            VehicleRepository vehicleRepository,
                            DriverProfileRepository driverProfileRepository,
                            ShipmentRepository shipmentRepository,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           @Value("${fleetvane.demo.admin-email:admin@fleetvane.com}") String adminEmail,
+                           @Value("${fleetvane.demo.admin-password:Admin123!}") String adminPassword,
+                           @Value("${fleetvane.demo.manager-email:manager@fleetvane.com}") String managerEmail,
+                           @Value("${fleetvane.demo.manager-password:Manager123!}") String managerPassword,
+                           @Value("${fleetvane.demo.client-email:client@fleetvane.com}") String clientEmail,
+                           @Value("${fleetvane.demo.client-password:Client123!}") String clientPassword) {
         this.userRepository = userRepository;
         this.vehicleRepository = vehicleRepository;
         this.driverProfileRepository = driverProfileRepository;
         this.shipmentRepository = shipmentRepository;
         this.passwordEncoder = passwordEncoder;
+        this.adminEmail = adminEmail;
+        this.adminPassword = adminPassword;
+        this.managerEmail = managerEmail;
+        this.managerPassword = managerPassword;
+        this.clientEmail = clientEmail;
+        this.clientPassword = clientPassword;
     }
 
     @Override
@@ -48,14 +67,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
-        if (userRepository.findByEmail("admin@fleetvane.com").isEmpty()) {
-            userRepository.save(new User("admin@fleetvane.com", passwordEncoder.encode("Admin123!"), "System Administrator", "ADMIN"));
+        if (userRepository.findByEmail(adminEmail).isEmpty()) {
+            userRepository.save(new User(adminEmail, passwordEncoder.encode(adminPassword), "System Administrator", "ADMIN"));
         }
-        if (userRepository.findByEmail("manager@fleetvane.com").isEmpty()) {
-            userRepository.save(new User("manager@fleetvane.com", passwordEncoder.encode("Manager123!"), "Operations Manager", "MANAGER"));
+        if (userRepository.findByEmail(managerEmail).isEmpty()) {
+            userRepository.save(new User(managerEmail, passwordEncoder.encode(managerPassword), "Operations Manager", "MANAGER"));
         }
-        if (userRepository.findByEmail("client@fleetvane.com").isEmpty()) {
-            userRepository.save(new User("client@fleetvane.com", passwordEncoder.encode("Client123!"), "Demo Client", "CLIENT"));
+        if (userRepository.findByEmail(clientEmail).isEmpty()) {
+            userRepository.save(new User(clientEmail, passwordEncoder.encode(clientPassword), "Demo Client", "CLIENT"));
         }
         String[] driverEmails = {"driver1@fleetvane.com", "driver2@fleetvane.com", "driver3@fleetvane.com"};
         String[] driverNames = {"Rajesh Kumar", "Priya Sharma", "Amit Singh"};
@@ -116,7 +135,7 @@ public class DataInitializer implements CommandLineRunner {
     private void seedShipments() {
         if (shipmentRepository.count() > 0) return;
 
-        Long clientId = userRepository.findByEmail("client@fleetvane.com").map(User::getId).orElse(1L);
+        Long clientId = userRepository.findByEmail(clientEmail).map(User::getId).orElse(1L);
 
         // Mumbai cluster shipments
         saveShipment(clientId, "REQUESTED", "Mumbai Warehouse", 19.0596, 72.8295, "Pune Distribution Center", 18.5204, 73.8567, 800.0, 120, 80, 60);
@@ -151,11 +170,11 @@ public class DataInitializer implements CommandLineRunner {
         s.setClientId(clientId);
         s.setStatus(status);
         s.setOriginAddress(originAddr);
-        s.setOriginLat(oLat);
-        s.setOriginLng(oLng);
+        s.setPickupLatitude(oLat);
+        s.setPickupLongitude(oLng);
         s.setDestinationAddress(destAddr);
-        s.setDestinationLat(dLat);
-        s.setDestinationLng(dLng);
+        s.setDeliveryLatitude(dLat);
+        s.setDeliveryLongitude(dLng);
         s.setWeight(weight);
         s.setLengthCm((double) l);
         s.setWidthCm((double) w);

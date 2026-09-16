@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
@@ -24,6 +25,9 @@ class ShipmentServiceTest {
 
     @Mock
     private ShipmentRepository shipmentRepository;
+
+    @Mock
+    private SimpMessagingTemplate ws;
 
     @InjectMocks
     private ShipmentService shipmentService;
@@ -61,19 +65,19 @@ class ShipmentServiceTest {
 
     @Test
     void testUpdateStatus_StateMachineLogic_Success() {
-        // ASSIGNED -> IN_TRANSIT
+        // ASSIGNED -> IN_TRANSIT (driver must own the shipment)
         shipment.setStatus("ASSIGNED");
         shipment.setDriverId(200L);
         when(shipmentRepository.findByIdAndDriverId(1L, 200L)).thenReturn(Optional.of(shipment));
         when(shipmentRepository.save(any(Shipment.class))).thenReturn(shipment);
 
-        ShipmentDto result = shipmentService.updateStatus(1L, "IN_TRANSIT", "DRIVER", 200L);
+        ShipmentDto result = shipmentService.updateStatus(1L, "IN_TRANSIT", null, "DRIVER", 200L);
         
         assertEquals("IN_TRANSIT", result.status());
         assertNotNull(shipment.getPickedUpAt());
 
         // IN_TRANSIT -> DELIVERED
-        result = shipmentService.updateStatus(1L, "DELIVERED", "DRIVER", 200L);
+        result = shipmentService.updateStatus(1L, "DELIVERED", null, "DRIVER", 200L);
         assertEquals("DELIVERED", result.status());
         assertNotNull(shipment.getDeliveredAt());
     }
@@ -85,7 +89,7 @@ class ShipmentServiceTest {
         when(shipmentRepository.findByIdAndDriverId(1L, 999L)).thenReturn(Optional.empty());
 
         BusinessException exception = assertThrows(BusinessException.class, () -> {
-            shipmentService.updateStatus(1L, "IN_TRANSIT", "DRIVER", 999L);
+            shipmentService.updateStatus(1L, "IN_TRANSIT", null, "DRIVER", 999L);
         });
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
@@ -93,3 +97,5 @@ class ShipmentServiceTest {
         verify(shipmentRepository, never()).save(any(Shipment.class));
     }
 }
+
+

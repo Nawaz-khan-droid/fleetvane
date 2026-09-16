@@ -77,6 +77,14 @@ public class VehicleService {
             initialLng,
             0.0
         );
+        // Set volumetric defaults that the DB requires as NOT NULL
+        vehicle.setMaxVolumeM3(30.0);
+        vehicle.setCurrentWeightKg(0.0);
+        vehicle.setCurrentVolumeM3(0.0);
+        // Persist the depot association if provided
+        if (request.depotId() != null) {
+            vehicle.setDepotId(request.depotId());
+        }
         return mapToDto(vehicleRepository.save(vehicle));
     }
     

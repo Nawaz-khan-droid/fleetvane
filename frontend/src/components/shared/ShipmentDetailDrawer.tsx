@@ -85,7 +85,7 @@ interface ShipmentDetailDrawerProps {
 
 // ── Truncated ID with Tooltip ─────────────────────────────
 function TruncatedId({ id }: { id: string }) {
-  const truncated = id.length > 12 ? `${id.slice(0, 12)}…` : id;
+  const truncated = String(id).length > 12 ? `${String(id).slice(0, 12)}…` : id;
   return (
     <Tooltip>
       <TooltipTrigger asChild>

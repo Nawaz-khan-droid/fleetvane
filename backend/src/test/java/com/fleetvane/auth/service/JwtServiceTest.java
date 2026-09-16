@@ -1,10 +1,20 @@
 package com.fleetvane.auth.service;
 
+import com.fleetvane.auth.config.JwtAuthFilter;
 import com.fleetvane.auth.entity.User;
+import com.fleetvane.auth.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockFilterChain;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class JwtServiceTest {
 
@@ -37,5 +47,24 @@ class JwtServiceTest {
         
         String email = jwtService.extractUsername(token);
         assertEquals("test@fleetvane.com", email);
+    }
+
+    @Test
+    void testJwtFilterClearsStaleAuthenticationForInvalidToken() throws Exception {
+        UserRepository userRepository = mock(UserRepository.class);
+        JwtAuthFilter filter = new JwtAuthFilter(jwtService, userRepository);
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("stale-user", null, List.of())
+        );
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer invalid-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, new MockFilterChain());
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        SecurityContextHolder.clearContext();
     }
 }

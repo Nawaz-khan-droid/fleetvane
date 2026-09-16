@@ -12,14 +12,14 @@ public class RouteVehicle {
     private Double lat;
     private Double lng;
     private Long capacityGrams;
-    private Long volumeCapacity;
+    private Double volumeCapacity;
 
     @PlanningListVariable
     private List<DeliveryStop> stops = new ArrayList<>();
 
     public RouteVehicle() {}
 
-    public RouteVehicle(Long id, Long vehicleId, Double lat, Double lng, Long capacityGrams, Long volumeCapacity) {
+    public RouteVehicle(Long id, Long vehicleId, Double lat, Double lng, Long capacityGrams, Double volumeCapacity) {
         this.id = id;
         this.vehicleId = vehicleId;
         this.lat = lat;
@@ -43,8 +43,8 @@ public class RouteVehicle {
     public Long getCapacityGrams() { return capacityGrams; }
     public void setCapacityGrams(Long capacityGrams) { this.capacityGrams = capacityGrams; }
 
-    public Long getVolumeCapacity() { return volumeCapacity; }
-    public void setVolumeCapacity(Long volumeCapacity) { this.volumeCapacity = volumeCapacity; }
+    public Double getVolumeCapacity() { return volumeCapacity; }
+    public void setVolumeCapacity(Double volumeCapacity) { this.volumeCapacity = volumeCapacity; }
 
     public List<DeliveryStop> getStops() { return stops; }
     public void setStops(List<DeliveryStop> stops) { this.stops = stops; }

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
-  MapPin,
   Truck,
   User,
   Package,
@@ -13,77 +12,68 @@ import {
   Navigation,
   Check,
   Search,
+  MapPin,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from '@/context/RouterContext';
-import t from '@/locales/en.json';
-import { theme } from '@/constants/theme';
+import { getLeafletTileUrl, getLeafletAttribution } from '@/lib/maps';
 import type { Shipment, ShipmentStatus } from '@/types';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTrackingWebSocket } from '@/hooks/useTrackingWebSocket';
 
-// ── Milestone State Machine ───────────────────────────────
-const MILESTONES: { key: ShipmentStatus; label: string }[] = [
-  { key: 'REQUESTED', label: t.client.milestones.REQUESTED },
-  { key: 'ASSIGNED', label: t.client.milestones.ASSIGNED },
-  { key: 'IN_TRANSIT', label: t.client.milestones.IN_TRANSIT },
-  { key: 'DELIVERED', label: t.client.milestones.DELIVERED },
-];
-
-function getStepIndex(status: ShipmentStatus): number {
-  if (status === 'CANCELLED') return 0;
-  const idx = MILESTONES.findIndex((m) => m.key === status);
-  return idx === -1 ? 0 : idx;
-}
-
-function getProgressPercent(status: ShipmentStatus): number {
-  if (status === 'CANCELLED') return 0;
-  return (getStepIndex(status) / (MILESTONES.length - 1)) * 100;
-}
-
-// ── Status badge mapping ──────────────────────────────────
-const statusBadgeClass: Record<ShipmentStatus, string> = {
-  REQUESTED: theme.status.requested,
-  ASSIGNED: theme.status.assigned,
-  IN_TRANSIT: theme.status.inTransit,
-  DELIVERED: theme.status.delivered,
-  CANCELLED: theme.status.cancelled,
-};
+const STEPS = ['REQUESTED', 'ASSIGNED', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED', 'DELIVERED'];
 
 function formatStatus(status: ShipmentStatus): string {
-  return t.client.milestones[status] || status;
+  const map: Record<string, string> = {
+    REQUESTED:   'Requested',
+    ASSIGNED:    'Assigned',
+    DISPATCHED:  'Dispatched',
+    IN_TRANSIT:  'In Transit',
+    ARRIVED:     'Arrived',
+    DELIVERED:   'Delivered',
+    CANCELLED:   'Cancelled',
+  };
+  return map[status] || status;
 }
+
+const statusBadgeColor: Record<ShipmentStatus, string> = {
+  REQUESTED:  'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400',
+  ASSIGNED:   'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+  DISPATCHED: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400',
+  IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+  ARRIVED:    'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-400',
+  DELIVERED:  'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400',
+  CANCELLED:  'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400',
+};
+
+const statusDotColor: Record<ShipmentStatus, string> = {
+  REQUESTED:  'bg-amber-500',
+  ASSIGNED:   'bg-blue-500',
+  DISPATCHED: 'bg-indigo-500',
+  IN_TRANSIT: 'bg-blue-500',
+  ARRIVED:    'bg-teal-500',
+  DELIVERED:  'bg-emerald-500',
+  CANCELLED:  'bg-red-500',
+};
 
 export default function ClientTrackPage() {
   const { state: authState } = useAuth();
   const { params, navigate } = useRouter();
+  const { resolvedTheme } = useTheme();
 
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showMap, setShowMap] = useState(false);
   const [searchId, setSearchId] = useState('');
   const [searchError, setSearchError] = useState<string | null>(null);
 
   const shipmentId = params.id;
   const status = shipment?.status || 'REQUESTED';
-  const isCancelled = status === 'CANCELLED';
 
   // ── Fetch shipment ─────────────────────────────────────
   useEffect(() => {
@@ -107,13 +97,34 @@ export default function ClientTrackPage() {
         const data = await res.json();
         setShipment(data);
       } catch {
-        toast.error(t.common.error);
+        toast.error('An error occurred');
         setSearchError('Failed to fetch shipment details.');
       } finally {
         setLoading(false);
       }
     })();
   }, [shipmentId, authState.token]);
+
+  // ── Live WebSocket milestone subscription ──────────────
+  // When the backend flips a shipment to ARRIVED or DELIVERED, the STOMP
+  // channel pushes a string message. We re-fetch to get the authoritative state.
+  useTrackingWebSocket({
+    token: authState.token,
+    shipmentId: shipmentId,
+    onMilestone: (msg) => {
+      // Display the backend milestone message in the toast notification bar
+      toast.info(msg, { duration: 6000 });
+      // Re-fetch the shipment so the stepper advances to the new status
+      if (shipmentId) {
+        fetch(`/api/shipments/${shipmentId}`, {
+          headers: { Authorization: `Bearer ${authState.token}` },
+        })
+          .then((r) => r.json())
+          .then((data) => setShipment(data))
+          .catch(() => {});
+      }
+    },
+  });
 
   // ── Load Leaflet CSS ───────────────────────────────────
   useEffect(() => {
@@ -129,7 +140,7 @@ export default function ClientTrackPage() {
 
   // ── Initialize map ─────────────────────────────────────
   useEffect(() => {
-    if (status !== 'IN_TRANSIT' || !showMap) return;
+    if (status !== 'IN_TRANSIT') return;
     let map: any;
     let isCancelled = false;
 
@@ -151,7 +162,7 @@ export default function ClientTrackPage() {
         shadowUrl:
           'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
       });
-      // Small delay to allow Dialog animation to render the container
+      // Small delay to allow container render
       await new Promise((r) => setTimeout(r, 150));
       if (isCancelled) return;
       const container = document.getElementById('track-map');
@@ -161,8 +172,9 @@ export default function ClientTrackPage() {
         container.innerHTML = '';
       }
       map = L.map(container).setView([vehiclePos.lat, vehiclePos.lng], 10);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap',
+      L.tileLayer(getLeafletTileUrl(resolvedTheme), {
+        attribution: getLeafletAttribution(),
+        maxZoom: 19,
       }).addTo(map);
       L.marker([vehiclePos.lat, vehiclePos.lng])
         .addTo(map)
@@ -175,321 +187,239 @@ export default function ClientTrackPage() {
         map.remove();
       }
     };
-  }, [status, showMap, shipment?.vehicle?.lat, shipment?.vehicle?.lng]);
+  }, [status, shipment?.vehicle?.lat, shipment?.vehicle?.lng, resolvedTheme]);
 
-  // ── Progress calculation ───────────────────────────────
-  const currentStep = getStepIndex(status);
-  const progressPercent = getProgressPercent(status);
+  const currentStepIndex = STEPS.indexOf(status);
 
-  // ── Handle search ──────────────────────────────────────
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchId.trim()) return;
     navigate('/client/track', { id: searchId.trim() });
   };
 
-  // ── Loading state ──────────────────────────────────────
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-40 w-full" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
+        <Skeleton className="h-24 w-full rounded-2xl" />
+        <Skeleton className="h-[400px] w-full rounded-2xl" />
       </div>
     );
   }
 
-  // ── Empty / Search State ───────────────────────────────
   if (!shipment) {
     return (
-      <div className="max-w-2xl mx-auto py-8 px-4">
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 sm:p-10 text-center"
         >
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/client/dashboard')}
-              className={theme.button.ghost}
-            >
-              <ArrowLeft className="w-4 h-4 mr-1.5" />
-              {t.common.back}
-            </Button>
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-6">
+            <Truck className="w-8 h-8 text-blue-600 dark:text-blue-400" />
           </div>
-
-          <Card className={`${theme.card.base} p-6 sm:p-8 text-center`}>
-            <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center mx-auto mb-4 border border-emerald-200 dark:border-emerald-800">
-              <Package className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-              Track Your Shipment
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
-              Enter your shipment ID or tracking number to view real-time transit status, route details, and live vehicle location.
-            </p>
-
-            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <Input
-                  placeholder="e.g. SH-0012 or UUID..."
-                  value={searchId}
-                  onChange={(e) => setSearchId(e.target.value)}
-                  className="pl-9"
-                  autoFocus
-                />
-              </div>
-              <Button type="submit" className={theme.button.primary} disabled={!searchId.trim()}>
-                Track
-              </Button>
-            </form>
-
-            {searchError && (
-              <p className="text-sm text-red-500 mt-4">{searchError}</p>
-            )}
-
-            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => navigate('/client/dashboard')}
-                className="text-xs"
-              >
-                View all my shipments on dashboard
-              </Button>
-            </div>
-          </Card>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Track Your Shipment</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-8">
+            Enter your shipment ID to view real-time transit status and live vehicle location.
+          </p>
+          <form onSubmit={handleSearch} className="space-y-4">
+            <input
+              type="text"
+              placeholder="Enter Shipment ID"
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3.5 text-center text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"
+              autoFocus
+            />
+            <button
+              type="submit"
+              disabled={!searchId.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 py-3.5 text-sm transition-colors disabled:opacity-50"
+            >
+              Track
+            </button>
+          </form>
+          {searchError && (
+            <p className="text-sm text-red-500 font-medium mt-4">{searchError}</p>
+          )}
         </motion.div>
       </div>
     );
   }
 
   return (
-    <>
-      {/* Back button */}
-      <motion.div
-        initial={{ opacity: 0, x: -12 }}
-        animate={{ opacity: 1, x: 0 }}
-        className="mb-6"
-      >
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/client/dashboard')}
-          className={theme.button.ghost}
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate('/client/dashboard')}
+            className="p-2 -ml-2 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:hover:text-white dark:hover:bg-slate-800 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Tracking <span className="text-slate-500">#{String(shipment.id).slice(0, 8).toUpperCase()}</span>
+          </h2>
+        </div>
+        <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold gap-2 border ${statusBadgeColor[status]}`}>
+          <span className={`w-2 h-2 rounded-full ${statusDotColor[status]}`} />
+          {formatStatus(status)}
+        </div>
+      </div>
+
+      {status === 'DELIVERED' && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-2xl p-4 flex items-center gap-3"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          {t.common.back}
-        </Button>
+          <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <p className="text-emerald-800 dark:text-emerald-300 font-medium text-sm">
+            Delivered Successfully {shipment.updatedAt ? `on ${new Date(shipment.updatedAt).toLocaleString()}` : ''}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Milestone Stepper */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm overflow-x-auto"
+      >
+        <div className="min-w-[500px]">
+          <div className="relative flex justify-between items-center w-full">
+            <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-slate-100 dark:bg-slate-800 rounded-full" />
+            <div 
+              className="absolute left-6 top-1/2 -translate-y-1/2 h-1 bg-blue-600 rounded-full transition-all duration-500"
+              style={{ 
+                width: currentStepIndex >= 0 
+                  ? `calc(${(Math.max(0, currentStepIndex) / (STEPS.length - 1)) * 100}% - 48px)` 
+                  : '0%' 
+              }}
+            />
+            {STEPS.map((step, index) => {
+              const isCompleted = index < currentStepIndex;
+              const isCurrent = index === currentStepIndex;
+              
+              let StepIcon = Package;
+              if (step === 'ASSIGNED') StepIcon = User;
+              if (step === 'IN_TRANSIT') StepIcon = Navigation;
+              if (step === 'DELIVERED') StepIcon = CheckCircle2;
+
+              return (
+                <div key={step} className="relative z-10 flex flex-col items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors ${
+                    isCompleted 
+                      ? 'bg-blue-600 border-blue-600 text-white' 
+                      : isCurrent 
+                        ? 'bg-white dark:bg-slate-900 border-blue-600 text-blue-600 ring-4 ring-blue-50 dark:ring-blue-900/20' 
+                        : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400'
+                  }`}>
+                    {isCompleted ? (
+                      <Check className="w-4 h-4 stroke-[3]" />
+                    ) : (
+                      <StepIcon className="w-4 h-4" />
+                    )}
+                  </div>
+                  <span className={`text-xs font-semibold ${
+                    isCurrent 
+                      ? 'text-blue-600 dark:text-blue-400' 
+                      : isCompleted 
+                        ? 'text-slate-700 dark:text-slate-300' 
+                        : 'text-slate-400 dark:text-slate-500'
+                  }`}>
+                    {formatStatus(step as ShipmentStatus)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </motion.div>
 
-      {/* Milestone bar */}
+      {/* Map Area */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <Card className={`${theme.card.base} ${theme.card.paddingLg} mb-8`}>
-          {isCancelled ? (
-            <div className="text-center py-4">
-              <Badge
-                className={`${theme.status.badge} ${statusBadgeClass.CANCELLED}`}
-              >
-                {t.client.milestones.CANCELLED}
-              </Badge>
-            </div>
-          ) : (
-            <div className={`${theme.milestone.track} overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0`}>
-              {/* Background line */}
-              <div className={`${theme.milestone.line} min-w-[280px]`} />
-              {/* Progress line */}
-              <div
-                className={`${theme.milestone.lineProgress} min-w-[280px]`}
-                style={{ width: `${progressPercent}%` }}
-              />
-
-              {MILESTONES.map((milestone, i) => {
-                const completed = i < currentStep;
-                const active = i === currentStep;
-                return (
-                  <div key={milestone.key} className={`${theme.milestone.step} min-w-[70px]`}>
-                    <div
-                      className={`${
-                        theme.milestone.circle
-                      } ${
-                        completed
-                          ? theme.milestone.circleComplete
-                          : active
-                          ? theme.milestone.circleActive
-                          : theme.milestone.circlePending
-                      }`}
-                    >
-                      {completed && <Check className="w-4 h-4" />}
-                      {active && !completed && (
-                        <span className="text-xs font-bold">{i + 1}</span>
-                      )}
-                      {!active && !completed && (
-                        <span className="text-xs">{i + 1}</span>
-                      )}
-                    </div>
-                    <p
-                      className={`${
-                        theme.milestone.label
-                      } ${
-                        active || completed
-                          ? theme.milestone.labelActive
-                          : theme.milestone.labelPending
-                      }`}
-                    >
-                      {milestone.label}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+        {status === 'IN_TRANSIT' && shipment?.vehicle?.lat != null ? (
+          <div
+            id="track-map"
+            className="w-full h-[360px] md:h-[420px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-sm"
+          />
+        ) : (
+          <div className="w-full h-[360px] md:h-[420px] rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center p-6 text-center text-slate-500 shadow-sm">
+            <MapPin className="w-12 h-12 mb-4 text-slate-300" />
+            <p>
+              {status === 'DELIVERED' 
+                ? 'Shipment has been delivered. Live tracking is no longer active.' 
+                : 'Live tracking will be available once the shipment is in transit.'}
+            </p>
+          </div>
+        )}
       </motion.div>
 
-      {/* Shipment details + Track Live */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main details card (full width on mobile, 2-col on lg) */}
-        <motion.div
-          className="lg:col-span-2"
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className={theme.card.base}>
-            <CardHeader>
-              <CardTitle className={theme.typography.h5}>
-                {t.client.shipmentId}: {shipment.id.slice(0, 12)}...
-              </CardTitle>
-              <CardDescription>
-                <Badge
-                  className={`${theme.status.badge} ${statusBadgeClass[shipment.status]}`}
-                >
-                  {formatStatus(shipment.status)}
-                </Badge>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <DetailRow
-                  icon={MapPin}
-                  label={t.client.origin}
-                  value={shipment.originAddress}
-                />
-                <DetailRow
-                  icon={Navigation}
-                  label={t.client.destination}
-                  value={shipment.destinationAddress}
-                />
-                <DetailRow
-                  icon={Weight}
-                  label={t.client.weight}
-                  value={shipment.weight ? `${shipment.weight} kg` : '—'}
-                />
-                <DetailRow
-                  icon={Calendar}
-                  label={t.client.eta}
-                  value={
-                    shipment.eta
-                      ? new Date(shipment.eta).toLocaleString()
-                      : '—'
-                  }
-                />
-                <DetailRow
-                  icon={Truck}
-                  label={t.client.vehicle}
-                  value={shipment.vehicle?.plateNumber || '—'}
-                />
-                <DetailRow
-                  icon={User}
-                  label={t.client.driver}
-                  value={shipment.driver?.name || '—'}
-                />
+      {/* Info Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 h-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-            </CardContent>
-          </Card>
+              <h3 className="font-semibold text-slate-900 dark:text-white">Carrier</h3>
+            </div>
+            {shipment.driver ? (
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">{shipment.driver.name}</p>
+                <p className="text-xs text-slate-500 mt-1">{shipment.vehicle?.plateNumber || 'Unknown vehicle'}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Not assigned yet</p>
+            )}
+          </div>
         </motion.div>
 
-        {/* Track Live card (full width on mobile, right col on lg) */}
-        {status === 'IN_TRANSIT' && (
-          <motion.div
-            className="w-full lg:w-auto"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Card
-              className={`${theme.card.base} ${theme.card.padding} flex flex-col items-center justify-center text-center h-full`}
-            >
-              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-                <Package className="w-8 h-8 text-emerald-600" />
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 h-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className={theme.typography.h5}>
-                {t.client.milestones.IN_TRANSIT}
-              </h3>
-              <p className={`${theme.typography.caption} mb-6`}>
-                {t.client.trackLive}
-              </p>
-              <Dialog open={showMap} onOpenChange={setShowMap}>
-                <DialogTrigger asChild>
-                  <Button className={theme.button.primary}>
-                    <Navigation className="w-4 h-4 mr-2" />
-                    {t.client.trackLive}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl">
-                  <DialogHeader>
-                    <DialogTitle>{t.client.trackLiveModal}</DialogTitle>
-                  </DialogHeader>
-                  {shipment?.vehicle?.lat != null && shipment?.vehicle?.lng != null ? (
-                    <div
-                      id="track-map"
-                      className={theme.map.containerModal}
-                    />
-                  ) : (
-                    <div className="h-[300px] flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-6 text-center">
-                      <p className={theme.typography.body}>
-                        Live GPS position not yet available for the assigned vehicle. The map appears once the driver starts transmitting location.
-                      </p>
-                    </div>
-                  )}
-                </DialogContent>
-              </Dialog>
-            </Card>
-          </motion.div>
-        )}
-      </div>
-    </>
-  );
-}
+              <h3 className="font-semibold text-slate-900 dark:text-white">Estimated Arrival</h3>
+            </div>
+            {shipment.eta ? (
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white">
+                  {new Date(shipment.eta).toLocaleDateString()}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  {new Date(shipment.eta).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">Pending calculation</p>
+            )}
+          </div>
+        </motion.div>
 
-// ── Detail row helper ─────────────────────────────────────
-function DetailRow({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-      </div>
-      <div>
-        <p className={theme.typography.caption}>{label}</p>
-        <p className={theme.typography.label}>{value}</p>
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 h-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
+                <Navigation className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="font-semibold text-slate-900 dark:text-white">Route</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{shipment.originAddress.split(',')[0]}</span>
+              <ArrowRight className="w-4 h-4 text-slate-400 shrink-0" />
+              <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{shipment.destinationAddress.split(',')[0]}</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">{shipment.weight ? `${shipment.weight} kg cargo` : 'Standard cargo'}</p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

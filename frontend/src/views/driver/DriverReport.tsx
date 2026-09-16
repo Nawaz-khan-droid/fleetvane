@@ -4,56 +4,25 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText,
-  Send,
-  Clock,
+  Timer,
   AlertTriangle,
   Wrench,
-  Timer,
   HelpCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
-import t from '@/locales/en.json';
-import { theme } from '@/constants/theme';
 import type { ReportType, IncidentReport } from '@/types';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import Pagination from '@/components/shared/Pagination';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// ── Report type options ──────────────────────────────────
-const REPORT_TYPE_OPTIONS: { value: ReportType; label: string; icon: React.ElementType }[] = [
-  { value: 'DELAY', label: t.driver.reportTypes.delay, icon: Timer },
-  { value: 'INCIDENT', label: t.driver.reportTypes.incident, icon: AlertTriangle },
-  { value: 'BREAKDOWN', label: t.driver.reportTypes.breakdown, icon: Wrench },
-  { value: 'OTHER', label: t.driver.reportTypes.other, icon: HelpCircle },
+const REPORT_TYPES = [
+  { value: 'DELAY', label: 'Route Delay', desc: 'Traffic or road issues', icon: Timer, color: 'text-amber-600', bg: 'bg-amber-100 dark:bg-amber-900/30' },
+  { value: 'INCIDENT', label: 'Incident', desc: 'Accidents or emergencies', icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100 dark:bg-red-900/30' },
+  { value: 'BREAKDOWN', label: 'Breakdown', desc: 'Vehicle mechanical issue', icon: Wrench, color: 'text-orange-600', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+  { value: 'OTHER', label: 'Other', desc: 'Any other situation', icon: HelpCircle, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800' },
 ];
-
-// ── Badge colour per type ────────────────────────────────
-const typeBadgeClass: Record<ReportType, string> = {
-  DELAY: theme.status.requested,
-  INCIDENT: theme.status.cancelled,
-  BREAKDOWN: theme.status.assigned,
-  OTHER: 'bg-slate-100 text-slate-800 border-slate-200',
-};
 
 export default function DriverReport() {
   const { state: authState } = useAuth();
@@ -67,7 +36,6 @@ export default function DriverReport() {
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 5;
 
-  // ── Fetch recent reports ───────────────────────────────
   useEffect(() => {
     if (!authState.token || !authState.user?.userId) return;
     (async () => {
@@ -77,8 +45,8 @@ export default function DriverReport() {
           { headers: { Authorization: `Bearer ${authState.token}` } }
         );
         if (!res.ok) throw new Error();
-        const data: IncidentReport[] = await res.json();
-        setReports(data);
+        const data = await res.json();
+        setReports(Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : []);
       } catch {
         // silently fail – reports list is supplementary
       } finally {
@@ -87,7 +55,6 @@ export default function DriverReport() {
     })();
   }, [authState.token, authState.user?.userId]);
 
-  // ── Submit handler ─────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportType || !description.trim()) return;
@@ -108,173 +75,156 @@ export default function DriverReport() {
       });
       if (!res.ok) throw new Error();
 
-      toast.success(t.driver.reportSubmitted);
+      toast.success('Report submitted successfully');
       addNotification({
         title: 'Report Submitted',
         message: 'Your incident report has been recorded.',
         type: 'info',
       });
 
-      // Reset form
       setReportType('');
       setDescription('');
 
-      // Refresh list
       const listRes = await fetch(
         `/api/reports?driverId=${authState.user!.userId}`,
         { headers: { Authorization: `Bearer ${authState.token}` } }
       );
       if (listRes.ok) {
-        const data: IncidentReport[] = await listRes.json();
-        setReports(data);
+        const data = await listRes.json();
+        setReports(Array.isArray(data) ? data : Array.isArray(data?.content) ? data.content : []);
       }
     } catch {
-      toast.error(t.common.error);
+      toast.error('Failed to submit report');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-        {/* ── Report Form ─────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <Card className={theme.card.base}>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-600" />
-                <CardTitle className={theme.typography.h5}>
-                  {t.driver.reportTitle}
-                </CardTitle>
-              </div>
-              <CardDescription>{t.driver.reportSubtitle}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Report Type */}
-                <div>
-                  <Label className={theme.form.label}>
-                    {t.driver.reportType}
-                  </Label>
-                  <Select
-                    value={reportType}
-                    onValueChange={(val) => setReportType(val as ReportType)}
-                  >
-                    <SelectTrigger className={`w-full ${theme.form.select}`}>
-                      <SelectValue placeholder={t.driver.reportType} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REPORT_TYPE_OPTIONS.map((opt) => {
-                        const Icon = opt.icon;
-                        return (
-                          <SelectItem key={opt.value} value={opt.value}>
-                            <span className="flex items-center gap-2">
-                              <Icon className="w-4 h-4" />
-                              {opt.label}
-                            </span>
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </div>
+    <div className="max-w-3xl mx-auto space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Submit Incident Report</h2>
+        <p className="text-slate-600 dark:text-slate-400 mt-1">Log any issues that occur during your route.</p>
+      </div>
 
-                {/* Description */}
-                <div>
-                  <Label className={theme.form.label}>
-                    {t.driver.reportDescription}
-                  </Label>
-                  <Textarea
-                    className={theme.form.textarea}
-                    rows={5}
-                    placeholder={t.driver.reportDescriptionPlaceholder}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                  />
-                </div>
-
-                {/* Submit */}
-                <Button
-                  type="submit"
-                  className={theme.button.primary}
-                  disabled={submitting || !reportType || !description.trim()}
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {submitting ? t.common.loading : t.driver.submitReport}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* ── Recent Reports ──────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className={theme.card.base}>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-emerald-600" />
-                <CardTitle className={theme.typography.h5}>
-                  Recent Reports
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              ) : reports.length === 0 ? (
-                <p className={`${theme.typography.caption} text-center py-8`}>
-                  {t.common.noResults}
-                </p>
-              ) : (
-                <>
-                <div className="space-y-3">
-                  {reports.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((report) => (
-                    <div
-                      key={report.id}
-                      className="flex items-start gap-3 p-3 rounded-lg border border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50"
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                Report Type
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {REPORT_TYPES.map((type) => {
+                  const Icon = type.icon;
+                  const isSelected = reportType === type.value;
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => setReportType(type.value as ReportType)}
+                      className={`text-left rounded-2xl border-2 p-4 transition-all flex items-start gap-3 ${
+                        isSelected 
+                          ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
                     >
-                      <Badge
-                        className={`${theme.status.badge} ${typeBadgeClass[report.type]} shrink-0 mt-0.5`}
-                      >
-                        {t.driver.reportTypes[
-                          report.type.toLowerCase() as keyof typeof t.driver.reportTypes
-                        ] || report.type}
-                      </Badge>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2">
-                          {report.description}
+                      <div className={`p-2 rounded-xl shrink-0 ${type.bg} ${type.color}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className={`font-semibold text-sm ${isSelected ? 'text-blue-900 dark:text-blue-100' : 'text-slate-900 dark:text-slate-100'}`}>
+                          {type.label}
                         </p>
-                        <p className={theme.typography.caption}>
-                          {new Date(report.createdAt).toLocaleString()}
+                        <p className={`text-xs mt-0.5 ${isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-500 dark:text-slate-400'}`}>
+                          {type.desc}
                         </p>
                       </div>
-                    </div>
-                  ))}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                Description
+              </label>
+              <div className="relative">
+                <textarea
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none min-h-[120px]"
+                  placeholder="Provide details about the situation..."
+                  maxLength={500}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+                <div className="absolute bottom-3 right-3 text-xs text-slate-400">
+                  {description.length} / 500
                 </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting || !reportType || !description.trim()}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 text-white font-semibold rounded-xl px-5 py-3 text-sm flex items-center justify-center gap-2 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              {submitting ? 'Submitting...' : 'Submit Report'}
+            </button>
+          </form>
+        </div>
+      </motion.div>
+
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Incident History</h3>
+        
+        {loading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-20 w-full rounded-2xl" />
+            <Skeleton className="h-20 w-full rounded-2xl" />
+          </div>
+        ) : reports.length === 0 ? (
+          <div className="text-center py-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <p className="text-slate-500 text-sm">No incident reports found.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {reports.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE).map((report) => {
+              const typeInfo = REPORT_TYPES.find(t => t.value === report.type) || REPORT_TYPES[3];
+              return (
+                <div key={report.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 flex items-start gap-4">
+                  <div className={`px-2.5 py-1 rounded-lg text-xs font-semibold shrink-0 mt-0.5 ${
+                    report.type === 'DELAY' ? 'bg-amber-100 text-amber-700' :
+                    report.type === 'INCIDENT' ? 'bg-red-100 text-red-700' :
+                    report.type === 'BREAKDOWN' ? 'bg-orange-100 text-orange-700' :
+                    'bg-slate-100 text-slate-700'
+                  }`}>
+                    {typeInfo.label}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-900 dark:text-slate-100 break-words">
+                      {report.description}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-2">
+                      {new Date(report.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+            {reports.length > PAGE_SIZE && (
+              <div className="pt-4">
                 <Pagination
                   currentPage={currentPage}
-                  totalPages={Math.max(1, Math.ceil(reports.length / PAGE_SIZE))}
+                  totalPages={Math.ceil(reports.length / PAGE_SIZE)}
                   onPageChange={setCurrentPage}
                 />
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    </>
+              </div>
+            )}
+          </div>
+        )}
+      </motion.div>
+    </div>
   );
 }

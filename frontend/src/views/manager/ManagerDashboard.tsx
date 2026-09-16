@@ -7,55 +7,31 @@ import {
   Clock,
   Navigation,
   PackageCheck,
-  Users,
-  Building2,
-  Play,
-  Square,
   Package,
   FileText,
   UserPlus,
-  CheckCircle,
   CheckCircle2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Map,
-  BarChart3,
-  IndianRupee,
-  Inbox,
+  MapPin,
+  ChevronRight,
+  Activity,
+  User,
+  Calendar,
+  AlertCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { normalizePageResponse, ApiContractError } from '@/lib/utils';
+import { normalizePageResponse } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
-import { theme } from '@/constants/theme';
 import type { Shipment, Vehicle, DriverWithProfile } from '@/types';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { useStore } from '@/store/useStore';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
-import Pagination from '@/components/shared/Pagination';
 import DonutChart from '@/components/shared/DonutChart';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 
-// ── Activity feed helpers ──────────────────────────────
 const activityIconMap: Record<string, React.ElementType> = {
   SHIPMENT_CREATED: Package,
   SHIPMENT_ASSIGNED: Package,
@@ -66,33 +42,30 @@ const activityIconMap: Record<string, React.ElementType> = {
   STATUS_UPDATE: Clock,
 };
 
-const activityBorderColor: Record<string, string> = {
-  DELIVERED: '#059669',
-  SHIPMENT_CREATED: '#d97706',
-  SHIPMENT_ASSIGNED: '#3b82f6',
-  VEHICLE_ASSIGNED: '#3b82f6',
-  REPORT_SUBMITTED: '#ef4444',
-  DRIVER_CREATED: '#a855f7',
-  STATUS_UPDATE: '#94a3b8',
-};
-
 const activityIconColor: Record<string, string> = {
-  DELIVERED: 'text-emerald-500',
-  SHIPMENT_CREATED: 'text-amber-500',
-  SHIPMENT_ASSIGNED: 'text-blue-500',
-  VEHICLE_ASSIGNED: 'text-blue-500',
-  REPORT_SUBMITTED: 'text-red-500',
-  DRIVER_CREATED: 'text-purple-500',
-  STATUS_UPDATE: 'text-slate-400',
+  DELIVERED: 'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10',
+  SHIPMENT_CREATED: 'text-amber-500 bg-amber-50 dark:bg-amber-500/10',
+  SHIPMENT_ASSIGNED: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10',
+  VEHICLE_ASSIGNED: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10',
+  REPORT_SUBMITTED: 'text-red-500 bg-red-50 dark:bg-red-500/10',
+  DRIVER_CREATED: 'text-purple-500 bg-purple-50 dark:bg-purple-500/10',
+  STATUS_UPDATE: 'text-slate-500 bg-slate-50 dark:bg-slate-500/10',
 };
 
-// ── Status badge mapping ──────────────────────────────────
-const statusBadgeClass: Record<string, string> = {
-  REQUESTED: theme.status.requested,
-  ASSIGNED: theme.status.assigned,
-  IN_TRANSIT: theme.status.inTransit,
-  DELIVERED: theme.status.delivered,
-  CANCELLED: theme.status.cancelled,
+const statusBadgeClasses: Record<string, string> = {
+  REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
+  ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
+  CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800',
+};
+
+const statusDotClasses: Record<string, string> = {
+  REQUESTED: 'bg-amber-500',
+  ASSIGNED: 'bg-blue-500',
+  IN_TRANSIT: 'bg-blue-500',
+  DELIVERED: 'bg-emerald-500',
+  CANCELLED: 'bg-red-500',
 };
 
 function formatStatus(status: string): string {
@@ -119,17 +92,16 @@ export default function ManagerDashboard() {
   const { addNotification } = useNotifications();
   const { navigate } = useRouter();
 
-  const [shipments, setShipments] = useState<Shipment[]>([]);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [drivers, setDrivers] = useState<DriverWithProfile[]>([]);
+  const { 
+    shipments, setShipments, 
+    vehicles, setVehicles, 
+    drivers, setDrivers, 
+    activities, setActivities 
+  } = useStore();
+
   const [loading, setLoading] = useState(true);
   const [simulating, setSimulating] = useState(false);
-  const [activities, setActivities] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [stats, setStats] = useState<any>({});
-  const PAGE_SIZE = 5;
 
-  // ── Fetch all data ─────────────────────────────────────
   const fetchAll = useCallback(async () => {
     try {
       const headers = { Authorization: `Bearer ${authState.token}` };
@@ -149,32 +121,18 @@ export default function ManagerDashboard() {
       setVehicles(vData);
       setDrivers(dData);
 
-      setStats({
-        totalVehicles: vData.length,
-        activeVehicles: vData.filter((v: Vehicle) => v.status === 'IN_USE').length,
-        totalShipments: sData.length,
-        activeShipments: sData.filter((s: Shipment) => s.status === 'IN_TRANSIT').length,
-        totalDrivers: dData.length,
-        availableDrivers: dData.filter((d: any) => d.isActive).length,
-      });
-
       const recent = sData.slice(0, 5).map((s: Shipment) => ({
         id: s.id,
         type: s.status === 'DELIVERED' ? 'DELIVERED' : s.status === 'IN_TRANSIT' ? 'SHIPMENT_ASSIGNED' : 'SHIPMENT_CREATED',
         message: s.status === 'DELIVERED'
-          ? `Delivery completed for shipment #${s.id.substring(0, 8)}`
+          ? `Delivery completed for shipment #${String(s.id).substring(0, 8)}`
           : s.status === 'IN_TRANSIT'
-          ? `In transit: #${s.id.substring(0, 8)} (${s.originAddress} → ${s.destinationAddress})`
-          : `Shipment #${s.id.substring(0, 8)} created (${s.originAddress} → ${s.destinationAddress})`,
+          ? `In transit: #${String(s.id).substring(0, 8)} (${s.originAddress} → ${s.destinationAddress})`
+          : `Shipment #${String(s.id).substring(0, 8)} created (${s.originAddress} → ${s.destinationAddress})`,
         time: s.createdAt,
-        entity: s.id.substring(0, 8),
-        icon: s.status === 'DELIVERED' ? CheckCircle2 : Package,
-        color: s.status === 'DELIVERED' ? 'text-emerald-500' : 'text-blue-500',
-        bgColor: s.status === 'DELIVERED' ? 'bg-emerald-500/10' : 'bg-blue-500/10',
       }));
       setActivities(recent);
 
-      // Check for pending (REQUESTED) shipments and notify
       const pendingCount = sData.filter((s) => s.status === 'REQUESTED').length;
       if (pendingCount > 0) {
         addNotification({
@@ -188,41 +146,12 @@ export default function ManagerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [authState.token]);
+  }, [authState.token, addNotification, setShipments, setVehicles, setDrivers, setActivities]);
 
   useEffect(() => {
     fetchAll();
   }, [fetchAll]);
 
-  // ── Computed stats ────────────────────────────────────
-  const activeTrucks = vehicles.filter((v) => v.status === 'IN_USE').length;
-  const pendingDeliveries = shipments.filter((s) => s.status === 'REQUESTED').length;
-  const inTransit = shipments.filter((s) => s.status === 'IN_TRANSIT').length;
-  const deliveredToday = shipments.filter((s) => {
-    if (s.status !== 'DELIVERED' || !s.deliveredAt) return false;
-    const delivered = new Date(s.deliveredAt);
-    const today = new Date();
-    return (
-      delivered.getDate() === today.getDate() &&
-      delivered.getMonth() === today.getMonth() &&
-      delivered.getFullYear() === today.getFullYear()
-    );
-  }).length;
-  const totalDrivers = drivers.length;
-
-  // Deduplicate client IDs
-  const totalClients = new Set(shipments.map((s) => s.clientId)).size;
-
-  // Sorted shipments for table
-  const sortedShipments = [...shipments]
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const totalPages = Math.max(1, Math.ceil(sortedShipments.length / PAGE_SIZE));
-  const paginatedShipments = sortedShipments.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-
-  // ── Simulation toggle ──────────────────────────────────
   const handleSimToggle = async (checked: boolean) => {
     try {
       const res = await fetchWithAuth('/api/simulation', {
@@ -241,430 +170,242 @@ export default function ManagerDashboard() {
     }
   };
 
-  // ── Trend config: icon, percentage text, icon class, text class ──
-  const trendConfig = [
-    { icon: TrendingUp, text: '+12%', iconCls: 'text-emerald-500', textCls: 'text-emerald-600' },
-    { icon: TrendingDown, text: '-8%',  iconCls: pendingDeliveries > 0 ? 'text-red-500' : 'text-slate-400', textCls: pendingDeliveries > 0 ? 'text-red-500' : 'text-slate-500' },
-    { icon: TrendingUp, text: '+5%',  iconCls: 'text-emerald-500', textCls: 'text-emerald-600' },
-    { icon: deliveredToday > 0 ? TrendingUp : Minus, text: deliveredToday > 0 ? '+23%' : 'N/A', iconCls: deliveredToday > 0 ? 'text-emerald-500' : 'text-slate-400', textCls: deliveredToday > 0 ? 'text-emerald-600' : 'text-slate-500 dark:text-slate-400' },
-    { icon: TrendingUp, text: '+2%',  iconCls: 'text-emerald-500', textCls: 'text-emerald-600' },
-    { icon: Minus,     text: '0%',   iconCls: 'text-slate-400', textCls: 'text-slate-500 dark:text-slate-400' },
-  ];
-
-  // ── Stat cards data ───────────────────────────────────
-  const statCards = [
-    { label: t.manager.stats.activeTrucks, value: activeTrucks, icon: Truck, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/50', accent: theme.statCard.emerald },
-    { label: t.manager.stats.pendingDeliveries, value: pendingDeliveries, icon: Clock, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/50', accent: theme.statCard.amber },
-    { label: t.manager.stats.inTransit, value: inTransit, icon: Navigation, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50', accent: theme.statCard.blue },
-    { label: t.manager.stats.deliveredToday, value: deliveredToday, icon: PackageCheck, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/50', accent: theme.statCard.emerald },
-    { label: t.manager.stats.totalDrivers, value: totalDrivers, icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/50', accent: theme.statCard.purple },
-    { label: t.manager.stats.totalClients, value: totalClients, icon: Building2, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-100 dark:bg-rose-900/50', accent: theme.statCard.rose },
-  ];
-
-  // ── Loading state ──────────────────────────────────────
-  if (loading) {
+  const activeTrucks = vehicles.filter((v) => v.status === 'IN_USE').length;
+  const inTransit = shipments.filter((s) => s.status === 'IN_TRANSIT').length;
+  const pendingDeliveries = shipments.filter((s) => s.status === 'REQUESTED').length;
+  const deliveredToday = shipments.filter((s) => {
+    if (s.status !== 'DELIVERED' || !s.deliveredAt) return false;
+    const delivered = new Date(s.deliveredAt);
+    const today = new Date();
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-[300px] rounded-xl" />
-      </div>
+      delivered.getDate() === today.getDate() &&
+      delivered.getMonth() === today.getMonth() &&
+      delivered.getFullYear() === today.getFullYear()
     );
-  }
+  }).length;
+
+  const sortedShipments = [...shipments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+
+  const stats = [
+    { label: 'Active Trucks', value: activeTrucks, icon: Truck, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50' },
+    { label: 'In Transit', value: inTransit, icon: Navigation, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50' },
+    { label: 'Delivered Today', value: deliveredToday, icon: PackageCheck, iconColor: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-900/50' },
+    { label: 'Pending', value: pendingDeliveries, icon: Clock, iconColor: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/50' },
+  ];
 
   return (
-    <>
-      {/* ── Stat cards grid (1/2/3 cols) ────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {statCards.map((stat, i) => {
-          const Icon = stat.icon;
-          const isDeliveredTodayZero = i === 3 && deliveredToday === 0;
-          return (
-            <motion.div
-              key={stat.label}
-              className="h-full"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <motion.div
-                whileHover={{ y: -4, boxShadow: '0 10px 30px -5px rgba(0,0,0,0.08)' }}
-                transition={{ duration: 0.2 }}
-                className="h-full"
-              >
-                <Card className={`h-full bg-gradient-to-br from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/50 ${theme.card.base} ${stat.accent} hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300`}>
-                  <CardContent className="p-5 flex flex-col h-full relative overflow-hidden">
-                    <div className="flex items-start gap-4">
-                      <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${stat.bg} flex items-center justify-center shrink-0 shadow-sm border border-white/20 dark:border-white/5`}>
-                        <Icon className={`w-6 h-6 sm:w-7 sm:h-7 ${stat.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 truncate">{stat.label}</p>
-                        {isDeliveredTodayZero ? (
-                          <div className="flex items-baseline gap-2 mt-1">
-                            <p className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{stat.value}</p>
-                            <p className="text-sm font-medium text-slate-400">No deliveries yet</p>
-                          </div>
-                        ) : (
-                          <p className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white mt-1">{stat.value}</p>
-                        )}
-                        
-                        <div className="flex items-center gap-1.5 mt-2">
-                          {(() => {
-                            const TrendIcon = trendConfig[i].icon;
-                            return <TrendIcon className={`w-4 h-4 ${trendConfig[i].iconCls}`} />;
-                          })()}
-                          <span className={`text-sm font-semibold ${trendConfig[i].textCls}`}>{trendConfig[i].text}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {/* Decorative blurred blob for premium feel */}
-                    <div className={`absolute -bottom-6 -right-6 w-32 h-32 ${stat.bg} rounded-full blur-3xl opacity-40 pointer-events-none`} />
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </motion.div>
-          );
-        })}
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Operations Control</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">{t.manager.dashboardSubtitle}</p>
+        </div>
+        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <Label htmlFor="sim-toggle" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+            {simulating ? 'Simulation Active' : 'Start Simulation'}
+          </Label>
+          <Switch id="sim-toggle" checked={simulating} onCheckedChange={handleSimToggle} />
+        </div>
       </div>
 
-      {/* ── Quick Actions ────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="mb-8"
-      >
-        <Card className={theme.card.base}>
-          <CardHeader>
-            <CardTitle className={theme.typography.h5}>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 max-w-4xl">
-              {[
-                { icon: Package, label: 'New Shipment', path: '/manager/shipments' },
-                { icon: UserPlus, label: 'Add Driver', path: '/manager/drivers' },
-                { icon: Map, label: 'View Fleet', path: '/manager/fleet' },
-                { icon: FileText, label: 'All Shipments', path: '/manager/shipments' },
-              ].map((action) => {
-                const ActionIcon = action.icon;
-                return (
-                  <div
-                    key={action.label}
-                    onClick={() => {
-                      if (action.path) {
-                        navigate(action.path);
-                      }
-                    }}
-                    className="group flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border border-transparent hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:shadow-md hover:shadow-emerald-100 dark:hover:shadow-emerald-950/20 hover:-translate-y-0.5 hover:border-emerald-200 dark:hover:border-emerald-800 transition-all duration-200 cursor-pointer"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-800 flex items-center justify-center transition-colors duration-200">
-                      <ActionIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300" />
-                    </div>
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400 transition-colors">{action.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* ── Shipment Status Donut Chart ────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="mb-8"
-      >
-        <Card className={theme.card.base}>
-          <CardHeader>
-            <CardTitle className={theme.typography.h5}>
-              Shipment Status Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DonutChart
-              data={[
-                { label: 'Requested', value: shipments.filter((s) => s.status === 'REQUESTED').length, color: '#f59e0b' },
-                { label: 'Assigned', value: shipments.filter((s) => s.status === 'ASSIGNED').length, color: '#3b82f6' },
-                { label: 'In Transit', value: shipments.filter((s) => s.status === 'IN_TRANSIT').length, color: '#10b981' },
-                { label: 'Delivered', value: shipments.filter((s) => s.status === 'DELIVERED').length, color: '#64748b' },
-                { label: 'Cancelled', value: shipments.filter((s) => s.status === 'CANCELLED').length, color: '#ef4444' },
-              ]}
-              centerLabel="Shipments"
-              centerValue={String(shipments.length)}
-            />
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* ── Simulation Toggle ─────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="mb-8"
-      >
-        <Card className={`${simulating ? 'border-2 border-emerald-400 animate-pulse' : 'border border-slate-200'} ${theme.card.base}`}>
-          <CardContent className={theme.card.padding}>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                    simulating ? 'bg-emerald-100' : 'bg-slate-100'
-                  }`}
-                >
-                  {simulating ? (
-                    <Square className="w-5 h-5 text-emerald-600" />
-                  ) : (
-                    <Play className="w-5 h-5 text-slate-500" />
-                  )}
+      {/* KPI Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)
+        ) : (
+          stats.map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-5 flex items-start gap-4 shadow-sm"
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${stat.bg}`}>
+                  <Icon className={`w-5 h-5 ${stat.iconColor}`} />
                 </div>
                 <div>
-                  <p className={theme.typography.label}>
-                    {simulating ? t.manager.simulation.active : t.manager.simulation.inactive}
-                  </p>
-                  <p className={theme.typography.caption}>
-                    {simulating ? t.manager.simulation.stop : t.manager.simulation.start}
-                  </p>
+                  <p className="text-xs text-slate-500 font-medium mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded flex w-max mt-1">Live</span>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Switch
-                  id="sim-toggle"
-                  checked={simulating}
-                  onCheckedChange={handleSimToggle}
-                />
-                <Label htmlFor="sim-toggle" className="cursor-pointer font-medium py-1">
-                  {simulating ? (
-                    <span className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                      {t.manager.simulation.stop}
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Play className="w-4 h-4" />
-                      {t.manager.simulation.start}
-                    </span>
-                  )}
-                </Label>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+              </motion.div>
+            );
+          })
+        )}
+      </div>
 
-      {/* ── Recent Shipments ─────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-      >
-        <Card className={theme.card.base}>
-          <CardHeader>
-            <CardTitle className={theme.typography.h5}>
-              {t.manager.shipmentsTitle}
-            </CardTitle>
-            <CardDescription>{t.manager.shipmentsSubtitle}</CardDescription>
-          </CardHeader>
-          <CardContent className={theme.table.scrollCard}>
-            {sortedShipments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center max-w-sm mx-auto">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-3 shadow-sm border border-slate-200/50 dark:border-slate-700">
-                  <PackageCheck className="w-6 h-6 text-slate-400" />
-                </div>
-                <h3 className="text-base font-medium text-slate-900 dark:text-white mb-1">No Recent Shipments</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400">{t.manager.noShipments}</p>
+      {/* Main Content Split */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (7) */}
+        <div className="lg:col-span-7 space-y-6">
+          {/* Donut Chart */}
+          <div className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-6">Shipments by Status</h3>
+            {loading ? (
+              <Skeleton className="h-64 w-full rounded-xl" />
+            ) : (
+              <DonutChart
+                data={[
+                  { label: 'Requested', value: shipments.filter((s) => s.status === 'REQUESTED').length, color: '#f59e0b' },
+                  { label: 'Assigned', value: shipments.filter((s) => s.status === 'ASSIGNED').length, color: '#3b82f6' },
+                  { label: 'In Transit', value: shipments.filter((s) => s.status === 'IN_TRANSIT').length, color: '#10b981' },
+                  { label: 'Delivered', value: shipments.filter((s) => s.status === 'DELIVERED').length, color: '#64748b' },
+                  { label: 'Cancelled', value: shipments.filter((s) => s.status === 'CANCELLED').length, color: '#ef4444' },
+                ]}
+                centerLabel="Total"
+                centerValue={String(shipments.length)}
+              />
+            )}
+          </div>
+
+          {/* Recent Shipments Table */}
+          <div className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm flex flex-col">
+            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Shipments</h3>
+              <button
+                onClick={() => navigate('/manager/shipments')}
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                View all <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {loading ? (
+              <div className="p-5 space-y-4">
+                {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+              </div>
+            ) : sortedShipments.length === 0 ? (
+              <div className="p-8 text-center">
+                <Package className="w-8 h-8 text-slate-400 mx-auto mb-3" />
+                <p className="text-slate-500">No recent shipments</p>
               </div>
             ) : (
-              <>
-              {/* Desktop table view */}
-              <div className="hidden md:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t.client.shipmentId}</TableHead>
-                    <TableHead>{t.client.origin}</TableHead>
-                    <TableHead>{t.client.destination}</TableHead>
-                    <TableHead>{t.client.status}</TableHead>
-                    <TableHead>{t.client.createdAt}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedShipments.map((shipment, i) => (
-                    <motion.tr
-                      key={shipment.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className={`border-b last:border-0 ${theme.table.zebraRow}`}
-                    >
-                      <TableCell className="font-mono text-sm">
-                        {shipment.id.length > 8
-                          ? `${shipment.id.slice(0, 8)}...`
-                          : shipment.id}
-                      </TableCell>
-                      <TableCell>{shipment.originAddress}</TableCell>
-                      <TableCell>{shipment.destinationAddress}</TableCell>
-                      <TableCell>
-                        <Badge
-                          className={`${theme.status.badge} ${
-                            statusBadgeClass[shipment.status] || theme.status.delivered
-                          }`}
-                        >
-                          {formatStatus(shipment.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={theme.typography.caption}>
-                        {new Date(shipment.createdAt).toLocaleDateString()}
-                      </TableCell>
-                    </motion.tr>
-                  ))}
-                </TableBody>
-              </Table>
-              </div>
-              {/* Mobile card view */}
-              <div className="md:hidden space-y-3 p-4">
-                {paginatedShipments.map((shipment, i) => (
-                  <motion.div
-                    key={shipment.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-sm text-slate-900 dark:text-slate-100 truncate max-w-[60%]">
-                        {shipment.id.length > 12 ? `${shipment.id.slice(0, 12)}…` : shipment.id}
-                      </span>
-                      <Badge
-                        className={`${theme.status.badge} ${
-                          statusBadgeClass[shipment.status] || theme.status.delivered
-                        }`}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                      <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">ID</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Route</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Driver</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedShipments.map((shipment) => (
+                      <tr
+                        key={shipment.id}
+                        onClick={() => navigate('/manager/shipments')}
+                        className="border-b border-slate-200 dark:border-slate-800 last:border-0 even:bg-slate-50/50 dark:even:bg-slate-800/20 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors group"
                       >
-                        {formatStatus(shipment.status)}
-                      </Badge>
+                        <td className="px-4 py-3 align-top">
+                          <span className="font-mono text-sm font-medium text-slate-900 dark:text-slate-100">{String(shipment.id).slice(0, 8)}</span>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div className="flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-400">
+                            <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" /><span className="truncate max-w-[150px]" title={shipment.originAddress}>{shipment.originAddress}</span></div>
+                            <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" /><span className="truncate max-w-[150px]" title={shipment.destinationAddress}>{shipment.destinationAddress}</span></div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium gap-1.5 border ${statusBadgeClasses[shipment.status] || statusBadgeClasses.REQUESTED}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${statusDotClasses[shipment.status] || 'bg-slate-500'}`} />
+                            {formatStatus(shipment.status)}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          {shipment.driverId ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                                <User className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-sm text-slate-700 dark:text-slate-300">Driver Assigned</span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-slate-400 italic">Unassigned</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column (5) */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="rounded-2xl border bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col h-full min-h-[400px]">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-600" /> Activity Feed
+              </h3>
+            </div>
+            
+            {loading ? (
+              <div className="space-y-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex gap-4">
+                    <Skeleton className="w-10 h-10 rounded-full shrink-0" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
                     </div>
-                    <div className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400">
-                      <span className="truncate">{shipment.originAddress}</span>
-                      <Navigation className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-                      <span className="truncate">{shipment.destinationAddress}</span>
-                    </div>
-                    <p className={theme.typography.caption}>
-                      {new Date(shipment.createdAt).toLocaleDateString()}
-                    </p>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* ── Recent Activity ──────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="mt-6"
-      >
-        <Card className={theme.card.base}>
-          <CardHeader>
-            <CardTitle className={theme.typography.h5}>
-              {t.activity.title}
-            </CardTitle>
-            <CardDescription>{t.activity.subtitle}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {activities.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Inbox className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-3" />
-                <p className="text-sm text-slate-500 dark:text-slate-400">No recent activity</p>
+            ) : activities.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center">
+                <AlertCircle className="w-10 h-10 text-slate-300 dark:text-slate-700 mb-3" />
+                <p className="text-slate-500">No recent activity</p>
               </div>
             ) : (
-              <div className="space-y-0">
-                {activities.map((act, i) => {
+              <div className="relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent">
+                {activities.map((act) => {
                   const Icon = activityIconMap[act.type] || Clock;
-                  const borderColor = activityBorderColor[act.type] || '#94a3b8';
-                  const iconColor = activityIconColor[act.type] || 'text-slate-400';
+                  const iconStyle = activityIconColor[act.type] || activityIconColor.STATUS_UPDATE;
                   return (
-                    <motion.div
-                      key={act.id}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.45 + i * 0.06 }}
-                      className={`flex items-start gap-3 py-3 pl-4 rounded-r-lg last:pb-0`}
-                      style={{ borderLeft: `4px solid ${borderColor}` }}
-                    >
-                      <div className="mt-0.5">
-                        <Icon className={`w-4 h-4 ${iconColor}`} />
+                    <div key={act.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                      <div className={`flex items-center justify-center w-10 h-10 rounded-full border-4 border-white dark:border-slate-900 z-10 shrink-0 shadow-sm ${iconStyle} md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2`}>
+                        <Icon className="w-4 h-4" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className={theme.typography.label}>{act.message}</p>
-                        <p className={theme.typography.caption}>{timeAgo(act.time)}</p>
+                      <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shadow-sm">
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{act.message}</p>
+                        <time className="text-xs text-slate-500 flex items-center gap-1 mt-1.5"><Calendar className="w-3 h-3" /> {timeAgo(act.time)}</time>
                       </div>
-                    </motion.div>
+                    </div>
                   );
                 })}
               </div>
             )}
-          </CardContent>
-        </Card>
-      </motion.div>
-      {/* ── Fleet Analytics ──────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="mt-6"
-      >
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-          <h3 className={theme.typography.h5}>Fleet Analytics</h3>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {(() => {
-            const deliveredCount = shipments.filter((s) => s.status === 'DELIVERED').length;
-            const utilizationPct = vehicles.length > 0 ? Math.round((activeTrucks / vehicles.length) * 100) : 0;
-            const onTimeRate = shipments.length > 0 ? `${Math.min(100, Math.round((deliveredCount / Math.max(1, shipments.length)) * 100))}%` : '100%';
-            return [
-              { label: 'Avg Delivery Time', value: '2.4 days', icon: Clock, iconBg: 'bg-emerald-100 dark:bg-emerald-900/50', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-              { label: 'Delivery Completion Rate', value: onTimeRate, icon: TrendingUp, iconBg: 'bg-emerald-100 dark:bg-emerald-900/50', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-              { label: 'Fleet Utilization', value: `${utilizationPct}%`, icon: Truck, iconBg: 'bg-amber-100 dark:bg-amber-900/50', iconColor: 'text-amber-600 dark:text-amber-400' },
-              { label: 'Cost per Delivery', value: '₹2,450', icon: IndianRupee, iconBg: 'bg-slate-100 dark:bg-slate-800', iconColor: 'text-slate-600 dark:text-slate-400' },
-            ];
-          })().map((metric) => {
-            const MetricIcon = metric.icon;
-            return (
-              <div
-                key={metric.label}
-                className={`${theme.card.base} ${theme.card.padding} hover:shadow-md transition-shadow duration-200 cursor-default`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-full ${metric.iconBg} flex items-center justify-center shrink-0`}>
-                    <MetricIcon className={`w-5 h-5 ${metric.iconColor}`} />
-                  </div>
-                  <div>
-                    <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100">{metric.value}</p>
-                    <p className="text-sm text-slate-500">{metric.label}</p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      </div>
+
+      {/* Bottom Quick Actions */}
+      <div className="pt-4">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">Quick Actions</h3>
+        <div className="flex flex-wrap gap-4">
+          <button
+            onClick={() => navigate('/manager/drivers')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 py-2.5 text-sm inline-flex items-center gap-2 transition-colors shadow-sm"
+          >
+            <UserPlus className="w-4 h-4" />
+            Create Driver
+          </button>
+          <button
+            onClick={() => navigate('/manager/fleet')}
+            className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl px-5 py-2.5 text-sm inline-flex items-center gap-2 transition-colors"
+          >
+            <Truck className="w-4 h-4" />
+            View Fleet Map
+          </button>
         </div>
-      </motion.div>
-    </>
+      </div>
+    </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Truck, AlertCircle, Eye, EyeOff, Navigation, CheckCircle2, User, Phone, Mail, MapPinned, X, Activity, PackageCheck, Route, Loader2, Plus, Building2, MousePointerClick, Fuel, Weight, Boxes } from 'lucide-react';
@@ -21,6 +23,8 @@ import { setOnSessionExpired, triggerSessionExpired } from '@/lib/fetchWithAuth'
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { loadGoogleMaps, isGoogleMapsKeyConfigured, createTrafficLayer } from '@/lib/maps';
+import { useTrackingWebSocket } from '@/hooks/useTrackingWebSocket';
+import { useStore } from '@/store/useStore';
 import type { Vehicle, VehicleStatus } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
@@ -134,7 +138,7 @@ function AddDepotModal({ token, onClose, onSuccess, pickedCoords, onStartMapPick
     }
     setSubmitting(true);
     try {
-      await axios.post(`${SPRING_URL}/api/depots`, {
+      await axios.post('/api/depots', {
         name: form.name.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
@@ -266,7 +270,7 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    axios.get(`${SPRING_URL}/api/depots`, { headers: authHeaders(token), timeout: 15000 })
+    axios.get(`/api/depots`, { headers: authHeaders(token), timeout: 15000 })
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : [];
         setDepots(data);
@@ -289,7 +293,7 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
     }
     setSubmitting(true);
     try {
-      await axios.post(`${SPRING_URL}/api/vehicles`, {
+      await axios.post(`/api/vehicles`, {
         plateNumber: form.plateNumber.trim().toUpperCase(),
         type: form.type,
         model: form.model.trim(),
@@ -445,17 +449,24 @@ export default function ManagerFleet() {
   const vehiclesQuery = useQuery({
     queryKey: ['vehicles', authState.token],
     queryFn: async (): Promise<Vehicle[]> => {
-      const res = await axios.get(`${SPRING_URL}/api/vehicles`, {
+      const res = await axios.get(`/api/vehicles`, {
         headers: authHeaders(authState.token ?? ''),
         timeout: 15000,
       });
       return normalizePageResponse<Vehicle>(res.data).items;
     },
     enabled: !!authState.token,
-    refetchInterval: 5000,
+    refetchInterval: 30000, // WebSocket handles real-time updates now
   });
 
-  const vehicles = vehiclesQuery.data ?? [];
+  const { vehicles, setVehicles } = useStore();
+
+  useEffect(() => {
+    if (vehiclesQuery.data) {
+      setVehicles(vehiclesQuery.data);
+    }
+  }, [vehiclesQuery.data, setVehicles]);
+
   const refetchVehicles = vehiclesQuery.refetch;
   const loading = vehiclesQuery.isPending;
   const connected = !vehiclesQuery.isPending && !vehiclesQuery.isError;
@@ -494,9 +505,44 @@ export default function ManagerFleet() {
 
   const googleKeyConfigured = isGoogleMapsKeyConfigured();
 
+  const { updateVehicleLocation } = useStore();
+  
+  // --- WEB_SOCKET LIVE TRACKING ---
+  useTrackingWebSocket({
+    token: authState.token,
+    onVehicleUpdate: (loc) => {
+      // 1. Force dynamic view re-render by patching global state
+      updateVehicleLocation(loc.vehicleId, loc.lat, loc.lng, loc.speed, loc.heading);
+      
+      // 2. Also manually update marker if available
+      const marker = markerRefsRef.current.get(loc.vehicleId);
+      if (marker) {
+        if (mapProvider === 'leaflet') {
+          marker.setLatLng([loc.lat, loc.lng]);
+          const el = marker.getElement();
+          const icon = el?.querySelector('.vehicle-dot');
+          if (icon) {
+             icon.style.transform = `rotate(${loc.heading || 0}deg)`;
+             icon.style.backgroundColor = markerColor(loc.status as any);
+          }
+        } else if (mapProvider === 'google') {
+          marker.position = { lat: loc.lat, lng: loc.lng };
+          const icon = marker.content;
+          if (icon) {
+             icon.style.transform = `rotate(${loc.heading || 0}deg)`;
+             icon.style.backgroundColor = markerColor(loc.status as any);
+          }
+        }
+      }
+    }
+  });
+  // --------------------------------
+
+
+
   const fetchDepots = useCallback(async () => {
     try {
-      const res = await axios.get(`${SPRING_URL}/api/depots`, {
+      const res = await axios.get(`/api/depots`, {
         headers: authHeaders(authState.token ?? ''),
         timeout: 15000,
       });
@@ -513,7 +559,7 @@ export default function ManagerFleet() {
 
   const fetchPendingShipments = async (): Promise<any[]> => {
     try {
-      const res = await axios.get(`${SPRING_URL}/api/shipments`, {
+      const res = await axios.get(`/api/shipments`, {
         headers: authHeaders(authState.token ?? ''),
         timeout: 15000,
       });
@@ -543,7 +589,7 @@ export default function ManagerFleet() {
     setOptimizing(true);
     try {
       const res = await axios.post<RouteSolutionResponse>(
-        `${SPRING_URL}/api/dispatch`,
+        `/api/dispatch`,
         {},
         {
           headers: { ...authHeaders(authState.token ?? ''), 'Content-Type': 'application/json' },
@@ -739,7 +785,7 @@ export default function ManagerFleet() {
             const color = markerColor(v.status);
             const icon = L.divIcon({
               html: `<div class="vehicle-dot" style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:transform 0.3s ease"></div>`,
-              className: '', iconSize: [14, 14], iconAnchor: [7, 7],
+              className: '', iconSize: [24, 24], iconAnchor: [12, 12],
             });
             const marker = L.marker([v.lat, v.lng], { icon }).addTo(group);
             marker.on('click', () => setSelectedVehicle(v));

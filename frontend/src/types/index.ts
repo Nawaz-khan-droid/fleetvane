@@ -1,6 +1,27 @@
 export type UserRole = 'CLIENT' | 'DRIVER' | 'MANAGER' | 'ADMIN';
 
-export type ShipmentStatus = 'REQUESTED' | 'ASSIGNED' | 'IN_TRANSIT' | 'DELIVERED' | 'CANCELLED';
+/**
+ * Mirrors the backend OrderStatus enum on DeliveryOrder.java.
+ * Shipment.java still uses legacy statuses — kept as a union here
+ * so both entity types are covered.
+ */
+export type ShipmentStatus =
+  | 'REQUESTED'
+  | 'ASSIGNED'
+  | 'DISPATCHED'
+  | 'IN_TRANSIT'
+  | 'ARRIVED'
+  | 'DELIVERED'
+  | 'CANCELLED';
+
+export type OrderStatus =
+  | 'PENDING_PREPARATION'
+  | 'READY_FOR_DISPATCH'
+  | 'SCHEDULED_ASSIGNED'
+  | 'IN_TRANSIT'
+  | 'ARRIVED'
+  | 'DELIVERED'
+  | 'DELAYED_RISK';
 
 export type VehicleType = 'VAN' | 'TRUCK' | 'HEAVY_HAULER';
 
@@ -18,6 +39,7 @@ export interface UserPayload {
   companyName?: string;
 }
 
+/** Mirrors Shipment.java (the legacy transactional entity). */
 export interface Shipment {
   id: string;
   clientId: string;
@@ -40,6 +62,28 @@ export interface Shipment {
   driverId: string | null;
   vehicle?: Vehicle | null;
   driver?: { id: string; name: string; email: string } | null;
+}
+
+/**
+ * Mirrors DeliveryOrder.java — the new plain-decimal optimisation entity.
+ * Field names match the Java column definitions exactly.
+ */
+export interface DeliveryOrder {
+  id: number;
+  clientUsername: string;
+  vehicleId: string | null;
+  pickupLatitude: number;
+  pickupLongitude: number;
+  deliveryLatitude: number;
+  deliveryLongitude: number;
+  cargoWeightKg: number;
+  cargoVolumeM3: number;
+  readyByTime: string;
+  deliveryDeadline: string;
+  clientPriorityScore: number;
+  status: OrderStatus;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Vehicle {
