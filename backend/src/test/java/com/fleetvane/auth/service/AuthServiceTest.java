@@ -55,6 +55,7 @@ class AuthServiceTest {
         user.setPasswordHash("encoded_password");
         user.setName("Test");
         user.setRole("CLIENT");
+        user.setStatus("ACTIVE");
     }
 
     @Test
@@ -74,7 +75,7 @@ class AuthServiceTest {
         });
         
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
-        assertEquals("Account is deactivated", exception.getMessage());
+        assertEquals("Account is not active", exception.getMessage());
     }
 
     @Test
