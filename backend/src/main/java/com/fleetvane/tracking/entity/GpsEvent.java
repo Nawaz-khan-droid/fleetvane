@@ -28,6 +28,9 @@ public class GpsEvent {
     @Column(name = "recorded_at", nullable = false)
     private Instant recordedAt = Instant.now();
 
+    @Column(name = "driver_id")
+    private Long driverId;
+
     public GpsEvent() {}
 
     public GpsEvent(Long vehicleId, Double lat, Double lng, Double heading, Double speed) {
@@ -59,4 +62,7 @@ public class GpsEvent {
 
     public Instant getRecordedAt() { return recordedAt; }
     public void setRecordedAt(Instant recordedAt) { this.recordedAt = recordedAt; }
+
+    public Long getDriverId() { return driverId; }
+    public void setDriverId(Long driverId) { this.driverId = driverId; }
 }

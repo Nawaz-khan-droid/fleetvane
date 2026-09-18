@@ -5,6 +5,18 @@ import { motion } from 'framer-motion';
 import { Shield, Calendar, Building } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 function formatDate(dateStr?: string): string {
   if (!dateStr) return 'N/A';
@@ -98,6 +110,67 @@ export default function ManagerProfile() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Danger Zone */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="mt-8"
+      >
+        <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-2xl p-6">
+          <h3 className="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Danger Zone</h3>
+          <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-4">
+            Permanently delete your account and all associated data. This action cannot be undone.
+          </p>
+          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="destructive" className="bg-red-600 hover:bg-red-700">Delete Account</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Are you absolutely sure?</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  This action cannot be undone. This will permanently delete your account
+                  and remove your data from our servers.
+                </p>
+                <div className="space-y-2">
+                  <Label>Please type your email to confirm</Label>
+                  <Input 
+                    placeholder={user?.email} 
+                    id="confirmManagerEmail"
+                    onChange={(e) => {
+                      const btn = document.getElementById('confirmManagerDeleteBtn') as HTMLButtonElement;
+                      if (btn) btn.disabled = e.target.value !== user?.email;
+                    }}
+                  />
+                </div>
+                <Button 
+                  id="confirmManagerDeleteBtn"
+                  disabled 
+                  variant="destructive" 
+                  className="w-full"
+                  onClick={async () => {
+                    try {
+                      const res = await fetchWithAuth('/api/auth/account', { method: 'DELETE' });
+                      if (!res.ok) throw new Error();
+                      toast.success('Account deleted successfully');
+                      window.location.href = '/login';
+                    } catch {
+                      toast.error('Failed to delete account');
+                    }
+                  }}
+                >
+                  Confirm Delete Account
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </motion.div>
     </div>
   );

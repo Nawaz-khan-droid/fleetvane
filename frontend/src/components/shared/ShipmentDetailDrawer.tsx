@@ -32,6 +32,9 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '@/components/ui/tooltip';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
+import { useStore } from '@/store/useStore';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
@@ -41,7 +44,9 @@ import type { Shipment, ShipmentStatus } from '@/types';
 const statusBadgeClass: Record<ShipmentStatus, string> = {
   REQUESTED: theme.status.requested,
   ASSIGNED: theme.status.assigned,
+  DISPATCHED: theme.status.inTransit,
   IN_TRANSIT: theme.status.inTransit,
+  ARRIVED: theme.status.inTransit,
   DELIVERED: theme.status.delivered,
   CANCELLED: theme.status.cancelled,
 };
@@ -200,6 +205,7 @@ export default function ShipmentDetailDrawer({
   readOnly = false,
 }: ShipmentDetailDrawerProps) {
   const { state: authState } = useAuth();
+  const updateShipmentStore = useStore((state) => state.updateShipment);
   const [actionLoading, setActionLoading] = useState(false);
 
   if (!shipment) return null;
@@ -225,15 +231,15 @@ export default function ShipmentDetailDrawer({
     if (!shipment) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/shipments/${shipment.id}`, {
+      const res = await fetchWithAuth(`/api/shipments/${shipment.id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authState.token}`,
-        },
         body: JSON.stringify({ status: newStatus, ...body }),
       });
       if (!res.ok) throw new Error();
+      const updatedShipment = await res.json();
+      
+      updateShipmentStore(shipment.id, updatedShipment);
+
       toast.success(
         newStatus === 'IN_TRANSIT'
           ? 'Transit started successfully'

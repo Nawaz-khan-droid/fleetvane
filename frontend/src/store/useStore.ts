@@ -8,9 +8,10 @@ interface AppState {
   activities: any[];
   setShipments: (shipments: Shipment[]) => void;
   addShipment: (shipment: Shipment) => void;
-  updateShipmentStatus: (id: number, status: string) => void;
+  updateShipment: (id: any, shipment: Shipment) => void;
+  updateShipmentStatus: (id: string, status: any) => void;
   setVehicles: (vehicles: Vehicle[]) => void;
-  updateVehicleLocation: (vehicleId: number, lat: number, lng: number, speed: number, heading: number) => void;
+  updateVehicleLocation: (vehicleId: string, lat: number, lng: number, speed: number, heading: number) => void;
   setDrivers: (drivers: DriverWithProfile[]) => void;
   setActivities: (activities: any[]) => void;
   addActivity: (activity: any) => void;
@@ -23,6 +24,9 @@ export const useStore = create<AppState>((set) => ({
   activities: [],
   setShipments: (shipments) => set({ shipments }),
   addShipment: (shipment) => set((state) => ({ shipments: [shipment, ...state.shipments] })),
+  updateShipment: (id, shipment) => set((state) => ({
+    shipments: state.shipments.map(s => s.id === id ? shipment : s)
+  })),
   updateShipmentStatus: (id, status) => set((state) => ({
     shipments: state.shipments.map(s => s.id === id ? { ...s, status } : s)
   })),

@@ -16,9 +16,16 @@ import org.springframework.web.bind.annotation.*;
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
+    private final com.fleetvane.auth.repository.UserRepository userRepository;
 
-    public ShipmentController(ShipmentService shipmentService) {
+    public ShipmentController(ShipmentService shipmentService, com.fleetvane.auth.repository.UserRepository userRepository) {
         this.shipmentService = shipmentService;
+        this.userRepository = userRepository;
+    }
+
+    private Long getCurrentCompanyId(Authentication auth) {
+        String userIdStr = auth.getName();
+        return userRepository.findById(Long.parseLong(userIdStr)).map(com.fleetvane.auth.entity.User::getCompanyId).orElse(null);
     }
 
     public record UpdateStatusRequest(String status, ProofOfDeliveryRequest pod) {}
@@ -33,14 +40,14 @@ public class ShipmentController {
             Authentication auth) {
         String role = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst().orElse("");
         Long userId = Long.parseLong(auth.getName());
-        return shipmentService.getAllShipments(pageable, status, clientId, driverId, role, userId);
+        return shipmentService.getAllShipments(pageable, status, clientId, driverId, role, userId, getCurrentCompanyId(auth));
     }
 
     @GetMapping("/{id}")
     public ShipmentDto getShipment(@PathVariable Long id, Authentication auth) {
         String role = auth.getAuthorities().stream().map(GrantedAuthority::getAuthority).findFirst().orElse("");
         Long userId = Long.parseLong(auth.getName());
-        return shipmentService.getShipmentById(id, role, userId);
+        return shipmentService.getShipmentById(id, role, userId, getCurrentCompanyId(auth));
     }
 
     @PostMapping({"", "/create"})

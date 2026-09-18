@@ -105,6 +105,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- ═══ SendGrid (Email Service) ═══ -->
+        <dependency>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>4.10.1</version>
+        </dependency>
+
         <!-- ═══ Timefold Solver (VRP Engine) ═══ -->
         <dependency>
             <groupId>ai.timefold.solver</groupId>

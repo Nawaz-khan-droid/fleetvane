@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
+import { useStore } from '@/store/useStore';
 import t from '@/locales/en.json';
 import type { Shipment, ShipmentStatus, Vehicle, DriverWithProfile } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,9 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 const statusBadgeClasses: Record<ShipmentStatus, string> = {
   REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
   ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  DISPATCHED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
   IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
+  ARRIVED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
   DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800',
 };
@@ -48,7 +51,9 @@ const statusBadgeClasses: Record<ShipmentStatus, string> = {
 const statusBorderClasses: Record<ShipmentStatus, string> = {
   REQUESTED: 'border-l-4 border-l-amber-500',
   ASSIGNED: 'border-l-4 border-l-blue-500',
+  DISPATCHED: 'border-l-4 border-l-blue-500',
   IN_TRANSIT: 'border-l-4 border-l-blue-500',
+  ARRIVED: 'border-l-4 border-l-blue-500',
   DELIVERED: 'border-l-4 border-l-emerald-500',
   CANCELLED: 'border-l-4 border-l-red-500',
 };
@@ -56,7 +61,9 @@ const statusBorderClasses: Record<ShipmentStatus, string> = {
 const statusDotClasses: Record<ShipmentStatus, string> = {
   REQUESTED: 'bg-amber-500',
   ASSIGNED: 'bg-blue-500',
+  DISPATCHED: 'bg-blue-500',
   IN_TRANSIT: 'bg-blue-500',
+  ARRIVED: 'bg-blue-500',
   DELIVERED: 'bg-emerald-500',
   CANCELLED: 'bg-red-500',
 };
@@ -83,8 +90,8 @@ function timeAgo(dateStr: string): string {
 export default function ManagerShipments() {
   const { state: authState } = useAuth();
   const { addNotification } = useNotifications();
+  const { shipments, setShipments, updateShipment } = useStore();
 
-  const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
 
@@ -181,11 +188,15 @@ export default function ManagerShipments() {
     if (!assigningShipment || !selectedVehicleId || !selectedDriverId) return;
     setAssigning(true);
     try {
-      const res = await fetch(`/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`, {
+      const res = await fetchWithAuth(`/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${authState.token}` },
       });
       if (!res.ok) throw new Error();
+      
+      const updatedShipment = await res.json();
+      updateShipment(updatedShipment.id, updatedShipment);
+
       toast.success(t.manager.vehicleAssigned);
       addNotification({
         title: 'Shipment Assigned',
@@ -193,7 +204,6 @@ export default function ManagerShipments() {
         type: 'success',
       });
       setAssignDialogOpen(false);
-      fetchShipments();
     } catch {
       toast.error(t.common.error);
     } finally {
@@ -203,13 +213,16 @@ export default function ManagerShipments() {
 
   const handleStatusUpdate = async (shipmentId: string, status: ShipmentStatus) => {
     try {
-      const res = await fetch(`/api/shipments/${shipmentId}/status?status=${status}`, {
+      const res = await fetchWithAuth(`/api/shipments/${shipmentId}/status?status=${status}`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${authState.token}` },
       });
       if (!res.ok) throw new Error();
+      
+      const updatedShipment = await res.json();
+      updateShipment(updatedShipment.id, updatedShipment);
+
       toast.success(`Shipment ${status === 'DELIVERED' ? 'delivered' : 'cancelled'} successfully`);
-      fetchShipments();
     } catch {
       toast.error(t.common.error);
     }

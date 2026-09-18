@@ -3,12 +3,15 @@ package com.fleetvane.auth.controller;
 import com.fleetvane.auth.dto.AuthResponse;
 import com.fleetvane.auth.dto.LoginRequest;
 import com.fleetvane.auth.dto.SignupRequest;
+import com.fleetvane.auth.dto.CompleteOnboardingRequest;
 import com.fleetvane.auth.service.AuthService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.WebUtils;
 
@@ -77,5 +80,44 @@ public class AuthController {
         response.addCookie(deleteCookie);
         
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/complete-onboarding")
+    public ResponseEntity<AuthResponse> completeOnboarding(
+            @Valid @RequestBody CompleteOnboardingRequest request,
+            Authentication authentication,
+            HttpServletRequest httpRequest, 
+            HttpServletResponse response) {
+        
+        String userEmail = authentication.getName();
+        AuthService.AuthResult result = authService.completeOnboarding(userEmail, request);
+        setRefreshTokenCookie(httpRequest, response, result.rawRefreshToken());
+        
+        return ResponseEntity.ok(result.response());
+    }
+
+    @DeleteMapping("/account")
+    public ResponseEntity<Void> deleteAccount(
+            Authentication authentication,
+            HttpServletRequest request, 
+            HttpServletResponse response) {
+        
+        String userEmail = authentication.getName();
+        authService.deleteAccount(userEmail);
+        
+        Cookie deleteCookie = new Cookie("refresh_token", null);
+        deleteCookie.setMaxAge(0);
+        deleteCookie.setPath("/");
+        deleteCookie.setHttpOnly(true);
+        deleteCookie.setSecure(true);
+        response.addCookie(deleteCookie);
+        
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/cleanup-test-users")
+    public ResponseEntity<String> cleanupTestUsers() {
+        authService.cleanupTestUsers();
+        return ResponseEntity.ok("Deleted all users except admin and client");
     }
 }

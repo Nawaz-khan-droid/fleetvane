@@ -1,0 +1,1 @@
+ALTER TABLE shipments ADD COLUMN category VARCHAR(255);

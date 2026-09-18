@@ -69,9 +69,17 @@ export default function ClientLayout({ children, title }: ClientLayoutProps) {
           <NotificationBell />
           <button
             onClick={() => navigate('/client/profile')}
+            title="Profile"
             className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm hover:ring-2 hover:ring-blue-400 hover:ring-offset-1 transition-all"
           >
             {initials}
+          </button>
+          <button
+            onClick={handleLogout}
+            title="Sign Out"
+            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-full text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+          >
+            <LogOut className="w-5 h-5" />
           </button>
         </div>
       </header>

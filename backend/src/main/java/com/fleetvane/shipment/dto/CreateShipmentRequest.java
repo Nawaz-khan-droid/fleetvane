@@ -28,10 +28,16 @@ public record CreateShipmentRequest(
     Double widthCm,
 
     @Positive(message = "Height must be positive")
-    Double heightCm
+    Double heightCm,
+
+    @Positive(message = "Volume must be positive")
+    Double volumeM3,
+
+    String category
 ) {
     /** Calculated volume in m³ from dimensions in cm. */
     public Double calculatedVolumeM3() {
+        if (volumeM3 != null) return volumeM3;
         if (lengthCm == null || widthCm == null || heightCm == null) return null;
         return (lengthCm * widthCm * heightCm) / 1_000_000.0;
     }

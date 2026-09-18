@@ -57,7 +57,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent() && Boolean.TRUE.equals(userOpt.get().getIsActive())) {
+                if (userOpt.isPresent() && "ACTIVE".equalsIgnoreCase(userOpt.get().getStatus())) {
                     List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                     if (role != null && !role.isBlank()) {
                         authorities.add(new SimpleGrantedAuthority(role));

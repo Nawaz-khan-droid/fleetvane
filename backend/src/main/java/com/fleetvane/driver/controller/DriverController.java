@@ -42,6 +42,13 @@ public class DriverController {
         return driverService.toggleAvailability(userId);
     }
 
+    @DeleteMapping("/{userId}")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
+    public org.springframework.http.ResponseEntity<Void> deleteDriver(@PathVariable Long userId) {
+        driverService.deleteDriver(userId);
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{userId}/shift/start")
     @PreAuthorize("hasAuthority('DRIVER')")
     public com.fleetvane.driver.shift.DriverShift startShift(@PathVariable Long userId, @RequestParam Long vehicleId) {

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
   });
 }
 
-export async function PATCH(req: NextRequest, context: RouteContext) {
+export async function PUT(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const response = await forwardToBackend(req, `/api/shipments/${id}/status`);
 

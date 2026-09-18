@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from 'react';
 import type { UserPayload, UserRole } from '@/types';
-import { setOnSessionExpired } from '@/lib/fetchWithAuth';
+import { setOnSessionExpired, setAuthToken } from '@/lib/fetchWithAuth';
 
 // ─── State Shape ─────────────────────────────────────────────
 interface AuthState {
@@ -56,9 +56,10 @@ function normalizeUser(rawUser: any): UserPayload {
 interface AuthContextValue {
   state: AuthState;
   login: (email: string, password: string) => Promise<UserPayload>;
-  signup: (name: string, email: string, password: string, companyName: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   hasRole: (roles: UserRole | UserRole[]) => boolean;
+  updateSessionToken?: (token: string, user: UserPayload) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -94,6 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
+  // Sync the token from React State over to the fetch wrapper
+  useEffect(() => {
+    setAuthToken(state.token);
+  }, [state.token]);
+
   // Register session-expired handler so fetchWithAuth can trigger logout on 401
   useEffect(() => {
     setOnSessionExpired(() => {
@@ -121,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const signup = useCallback(async (name: string, email: string, password: string, companyName: string) => {
+  const signup = useCallback(async (name: string, email: string, password: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const res = await fetch('/api/auth/signup', {
@@ -131,7 +137,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name,
           email,
           password,
-          companyName: companyName || undefined,
         }),
       });
       const data = await res.json();
@@ -163,8 +168,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [state.user]
   );
 
+  const updateSessionToken = useCallback((token: string, user: UserPayload) => {
+    dispatch({ type: 'LOGIN_SUCCESS', payload: { user: normalizeUser(user), token } });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ state, login, signup, logout, hasRole }}>
+    <AuthContext.Provider value={{ state, login, signup, logout, hasRole, updateSessionToken }}>
       {children}
     </AuthContext.Provider>
   );

@@ -16,7 +16,13 @@ public class Depot {
     private String address;
     private Double lat;
     private Double lng;
+
+    @Column(name = "is_active", nullable = false)
     private Boolean isActive;
+
+    @Column(name = "company_id")
+    private Long companyId;
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -52,6 +58,10 @@ public class Depot {
     public Double getLat() { return lat; }
     public Double getLng() { return lng; }
     public Boolean getIsActive() { return isActive; }
+    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public Long getCompanyId() { return companyId; }
+    public void setCompanyId(Long companyId) { this.companyId = companyId; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

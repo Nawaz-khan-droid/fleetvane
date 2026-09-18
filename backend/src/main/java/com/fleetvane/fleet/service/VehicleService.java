@@ -26,22 +26,22 @@ public class VehicleService {
     }
     
     @Transactional(readOnly = true)
-    public Page<VehicleDto> getAllVehicles(Pageable pageable, String status) {
+    public Page<VehicleDto> getAllVehicles(Long companyId, Pageable pageable, String status) {
         if (status != null && !status.isBlank()) {
-            return vehicleRepository.findByStatus(status, pageable).map(this::mapToDto);
+            return vehicleRepository.findByCompanyIdAndStatus(companyId, status, pageable).map(this::mapToDto);
         }
-        return vehicleRepository.findAll(pageable).map(this::mapToDto);
+        return vehicleRepository.findByCompanyId(companyId, pageable).map(this::mapToDto);
     }
     
     @Transactional(readOnly = true)
-    public VehicleDto getVehicleById(Long id) {
-        return vehicleRepository.findById(id)
+    public VehicleDto getVehicleById(Long id, Long companyId) {
+        return vehicleRepository.findByIdAndCompanyId(id, companyId)
             .map(this::mapToDto)
             .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", id));
     }
     
     @Transactional
-    public VehicleDto createVehicle(CreateVehicleRequest request) {
+    public VehicleDto createVehicle(Long companyId, CreateVehicleRequest request) {
         // NO hardcoded geographic defaults in production: the initial position must come
         // from real data — an explicit coordinate pair or a configured Depot.
         if (request.lat() == null || request.lng() == null) {
@@ -85,6 +85,7 @@ public class VehicleService {
         if (request.depotId() != null) {
             vehicle.setDepotId(request.depotId());
         }
+        vehicle.setCompanyId(companyId);
         return mapToDto(vehicleRepository.save(vehicle));
     }
     
@@ -94,6 +95,18 @@ public class VehicleService {
             .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", id));
         vehicle.setStatus(status);
         return mapToDto(vehicleRepository.save(vehicle));
+    }
+
+    @Transactional
+    public void deleteVehicle(Long id) {
+        if (!vehicleRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Vehicle", "id", id);
+        }
+        try {
+            vehicleRepository.deleteById(id);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new BusinessException("Cannot delete vehicle because it is still referenced by other records (e.g. shipments or driver assignments).", HttpStatus.CONFLICT);
+        }
     }
 
     private VehicleDto mapToDto(Vehicle vehicle) {

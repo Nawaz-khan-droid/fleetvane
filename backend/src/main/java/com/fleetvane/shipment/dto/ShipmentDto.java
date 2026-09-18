@@ -25,5 +25,6 @@ public record ShipmentDto(
     Long vehicleId,
     Long driverId,
     Instant createdAt,
-    Instant updatedAt
+    Instant updatedAt,
+    String category
 ) {}

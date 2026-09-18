@@ -36,6 +36,14 @@ public class DepotService {
         return mapToDto(depotRepository.save(depot));
     }
 
+    @Transactional
+    public void deleteDepot(Long id) {
+        Depot depot = depotRepository.findById(id)
+            .orElseThrow(() -> new com.fleetvane.shared.exception.ResourceNotFoundException("Depot", "id", id));
+        depot.setIsActive(false);
+        depotRepository.save(depot);
+    }
+
     private DepotDto mapToDto(Depot depot) {
         return new DepotDto(
                 depot.getId(),

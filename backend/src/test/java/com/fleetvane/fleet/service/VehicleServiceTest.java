@@ -65,9 +65,9 @@ class VehicleServiceTest {
     @Test
     void getAllVehicles_WithoutStatusFilter_ShouldReturnAllVehicles() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(vehicleRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(vehicle)));
+        when(vehicleRepository.findByCompanyId(1L, pageable)).thenReturn(new PageImpl<>(List.of(vehicle)));
 
-        Page<VehicleDto> result = vehicleService.getAllVehicles(pageable, null);
+        Page<VehicleDto> result = vehicleService.getAllVehicles(1L, pageable, null);
 
         assertEquals(1, result.getTotalElements());
         assertEquals("MH-01-AB-1234", result.getContent().get(0).plateNumber());
@@ -76,19 +76,19 @@ class VehicleServiceTest {
     @Test
     void getAllVehicles_WithStatusFilter_ShouldReturnFilteredVehicles() {
         Pageable pageable = PageRequest.of(0, 10);
-        when(vehicleRepository.findByStatus("IN_USE", pageable))
+        when(vehicleRepository.findByCompanyIdAndStatus(1L, "IN_USE", pageable))
                 .thenReturn(new PageImpl<>(List.of(vehicle)));
 
-        Page<VehicleDto> result = vehicleService.getAllVehicles(pageable, "IN_USE");
+        Page<VehicleDto> result = vehicleService.getAllVehicles(1L, pageable, "IN_USE");
 
         assertEquals(1, result.getTotalElements());
     }
 
     @Test
     void getVehicleById_Exists_ShouldReturnVehicleDto() {
-        when(vehicleRepository.findById(1L)).thenReturn(Optional.of(vehicle));
+        when(vehicleRepository.findByIdAndCompanyId(1L, 1L)).thenReturn(Optional.of(vehicle));
 
-        VehicleDto result = vehicleService.getVehicleById(1L);
+        VehicleDto result = vehicleService.getVehicleById(1L, 1L);
 
         assertNotNull(result);
         assertEquals(1L, result.id());
@@ -109,7 +109,7 @@ class VehicleServiceTest {
         );
 
         BusinessException exception = assertThrows(BusinessException.class,
-                () -> vehicleService.createVehicle(request));
+                () -> vehicleService.createVehicle(1L, request));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertTrue(exception.getMessage().contains("hardcoded default location"));
@@ -135,7 +135,7 @@ class VehicleServiceTest {
             return v;
         });
 
-        VehicleDto result = vehicleService.createVehicle(request);
+        VehicleDto result = vehicleService.createVehicle(1L, request);
 
         assertNotNull(result);
         assertEquals("DL-04-XYZ-9999", result.plateNumber());

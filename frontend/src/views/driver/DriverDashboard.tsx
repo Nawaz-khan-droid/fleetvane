@@ -242,10 +242,10 @@ export default function DriverDashboard() {
                 <Route className="w-4 h-4 text-white/70" />
                 <span className="font-medium">
                   {calculateDistance(
-                    shipment.pickupLatitude ?? shipment.originLat,
-                    shipment.pickupLongitude ?? shipment.originLng,
-                    shipment.deliveryLatitude ?? shipment.destinationLat,
-                    shipment.deliveryLongitude ?? shipment.destinationLng,
+                    shipment.originLat,
+                    shipment.originLng,
+                    shipment.destinationLat,
+                    shipment.destinationLng,
                   )}
                 </span>
               </div>
@@ -253,10 +253,10 @@ export default function DriverDashboard() {
                 <Clock className="w-4 h-4 text-white/70" />
                 <span className="font-medium">
                   {calculateDuration(
-                    shipment.pickupLatitude ?? shipment.originLat,
-                    shipment.pickupLongitude ?? shipment.originLng,
-                    shipment.deliveryLatitude ?? shipment.destinationLat,
-                    shipment.deliveryLongitude ?? shipment.destinationLng,
+                    shipment.originLat,
+                    shipment.originLng,
+                    shipment.destinationLat,
+                    shipment.destinationLng,
                     shipment.eta,
                   )}
                 </span>
