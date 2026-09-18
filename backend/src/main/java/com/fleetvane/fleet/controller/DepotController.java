@@ -27,4 +27,11 @@ public class DepotController {
     public DepotDto createDepot(@Valid @RequestBody CreateDepotRequest request) {
         return depotService.createDepot(request);
     }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN')")
+    public org.springframework.http.ResponseEntity<Void> deleteDepot(@PathVariable Long id) {
+        depotService.deleteDepot(id);
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
 }

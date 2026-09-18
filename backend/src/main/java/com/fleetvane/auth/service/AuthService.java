@@ -3,6 +3,7 @@ package com.fleetvane.auth.service;
 import com.fleetvane.auth.dto.AuthResponse;
 import com.fleetvane.auth.dto.LoginRequest;
 import com.fleetvane.auth.dto.SignupRequest;
+import com.fleetvane.auth.dto.CompleteOnboardingRequest;
 import com.fleetvane.auth.entity.RefreshToken;
 import com.fleetvane.auth.entity.User;
 import com.fleetvane.auth.repository.RefreshTokenRepository;
@@ -71,7 +72,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse provisionUser(SignupRequest request, String targetRole) {
+    public AuthResponse provisionUser(SignupRequest request, String targetRole, Long managerCompanyId) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
         }
@@ -82,6 +83,7 @@ public class AuthService {
                 request.name(),
                 targetRole
         );
+        user.setCompanyId(managerCompanyId);
 
         User savedUser = userRepository.save(user);
         return new AuthResponse(
@@ -99,8 +101,8 @@ public class AuthService {
             throw new BusinessException("Invalid credentials", HttpStatus.UNAUTHORIZED);
         }
 
-        if (Boolean.FALSE.equals(user.getIsActive())) {
-            throw new BusinessException("Account is deactivated", HttpStatus.FORBIDDEN);
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())) {
+            throw new BusinessException("Account is not active", HttpStatus.FORBIDDEN);
         }
 
         return authenticateAndGenerateTokens(user);
@@ -122,8 +124,8 @@ public class AuthService {
             throw new BusinessException("Refresh token expired", HttpStatus.UNAUTHORIZED);
         }
 
-        if (Boolean.FALSE.equals(refreshToken.getUser().getIsActive())) {
-            throw new BusinessException("Account is deactivated", HttpStatus.FORBIDDEN);
+        if (!"ACTIVE".equalsIgnoreCase(refreshToken.getUser().getStatus())) {
+            throw new BusinessException("Account is not active", HttpStatus.FORBIDDEN);
         }
 
         refreshToken.setRevokedAt(Instant.now());
@@ -194,6 +196,45 @@ public class AuthService {
     }
     
     public record AuthResult(AuthResponse response, String rawRefreshToken) {}
+    
+    @Transactional
+    public AuthResult completeOnboarding(String email, CompleteOnboardingRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+
+        if (!"CLIENT".equals(user.getRole()) && !"MANAGER".equals(user.getRole())) {
+            // Already has a different role, don't allow modifying
+        }
+
+        user.setRole(request.role());
+        user.setPhoneNumber(request.phoneNumber());
+        
+        if ("MANAGER".equals(request.role())) {
+            // Carrier track: Generate a unique shared companyId mapping to Drivers/Dispatchers
+            long uniqueId = Math.abs(UUID.randomUUID().getMostSignificantBits());
+            user.setCompanyId(uniqueId);
+        } else {
+            // Shipper track: Independent client entity, NO carrier workspace root
+            user.setCompanyId(null);
+        }
+        
+        userRepository.save(user);
+
+        // Invalidate old refresh tokens
+        refreshTokenRepository.revokeAllByUser(user.getId(), Instant.now());
+
+        // Generate new tokens
+        return authenticateAndGenerateTokens(user);
+    }
+
+    @Transactional
+    public void deleteAccount(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
+
+        refreshTokenRepository.revokeAllByUser(user.getId(), Instant.now());
+        userRepository.delete(user);
+    }
 
     private String hashToken(String token) {
         try {
@@ -202,6 +243,30 @@ public class AuthService {
             return Base64.getEncoder().encodeToString(hash);
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);
+        }
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @Transactional
+    public void cleanupTestUsers() {
+        java.util.List<User> users = userRepository.findAll();
+        for (User user : users) {
+            if (!"admin@fleetvane.com".equals(user.getEmail()) && !"client@fleetvane.com".equals(user.getEmail())) {
+                refreshTokenRepository.revokeAllByUser(user.getId(), Instant.now());
+                
+                // Clear driver references
+                jdbcTemplate.update("UPDATE shipments SET driver_id = NULL WHERE driver_id = ?", user.getId());
+                
+                // Delete user's own records
+                jdbcTemplate.update("DELETE FROM shipments WHERE client_id = ?", user.getId());
+                
+                // Delete optimization jobs instead of service_records
+                jdbcTemplate.update("DELETE FROM optimization_jobs WHERE requested_by = ?", user.getId());
+                
+                userRepository.delete(user);
+            }
         }
     }
 }

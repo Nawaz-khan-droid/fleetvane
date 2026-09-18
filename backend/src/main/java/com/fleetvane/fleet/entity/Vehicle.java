@@ -25,6 +25,8 @@ public class Vehicle extends BaseEntity {
     private Double currentVolumeM3;
     @Column(name = "depot_id")
     private Long depotId;
+    @Column(name = "company_id")
+    private Long companyId;
 
     public Vehicle() {}
 
@@ -57,6 +59,9 @@ public class Vehicle extends BaseEntity {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public Long getCompanyId() { return companyId; }
+    public void setCompanyId(Long companyId) { this.companyId = companyId; }
 
     public Double getLat() { return lat; }
     public void setLat(Double lat) { this.lat = lat; }

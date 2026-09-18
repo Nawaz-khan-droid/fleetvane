@@ -59,11 +59,23 @@ export default function LoginPage() {
     }
   }
 
-  function fillDemo(acc: typeof demoAccounts[0]) {
+  const fillDemo = async (acc: typeof demoAccounts[0]) => {
     setEmail(acc.email);
     setPassword(acc.password);
     setError(null);
-  }
+    setLoading(true);
+    try {
+      const user = await login(acc.email, acc.password);
+      if (user.role === 'CLIENT') navigate('/client/dashboard');
+      else if (user.role === 'DRIVER') navigate('/driver/dashboard');
+      else navigate('/manager/dashboard');
+    } catch {
+      toast.error(t.auth.invalidCredentials);
+      setError(t.auth.invalidCredentials);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-slate-950">

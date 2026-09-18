@@ -20,29 +20,42 @@ import org.springframework.web.bind.annotation.*;
 public class VehicleController {
 
     private final VehicleService vehicleService;
+    private final com.fleetvane.auth.repository.UserRepository userRepository;
+
+    private Long getCurrentCompanyId() {
+        String userIdStr = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findById(Long.parseLong(userIdStr)).map(com.fleetvane.auth.entity.User::getCompanyId).orElse(null);
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public Page<VehicleDto> getAllVehicles(Pageable pageable, @RequestParam(required = false) String status) {
-        return vehicleService.getAllVehicles(pageable, status);
+        return vehicleService.getAllVehicles(getCurrentCompanyId(), pageable, status);
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto getVehicleById(@PathVariable Long id) {
-        return vehicleService.getVehicleById(id);
+        return vehicleService.getVehicleById(id, getCurrentCompanyId());
     }
 
     @PostMapping
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto createVehicle(@Valid @RequestBody CreateVehicleRequest request) {
-        return vehicleService.createVehicle(request);
+        return vehicleService.createVehicle(getCurrentCompanyId(), request);
     }
 
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto updateStatus(@PathVariable Long id, @RequestParam String status) {
         return vehicleService.updateStatus(id, status);
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
+    public org.springframework.http.ResponseEntity<Void> deleteVehicle(@PathVariable Long id) {
+        vehicleService.deleteVehicle(id);
+        return org.springframework.http.ResponseEntity.noContent().build();
     }
 
     private Long extractUserId(Authentication authentication) {

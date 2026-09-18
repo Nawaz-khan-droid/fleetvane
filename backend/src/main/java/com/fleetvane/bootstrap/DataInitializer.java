@@ -137,25 +137,39 @@ public class DataInitializer implements CommandLineRunner {
 
         Long clientId = userRepository.findByEmail(clientEmail).map(User::getId).orElse(1L);
 
+        List<Vehicle> vehicles = vehicleRepository.findAll();
+        Long v1 = vehicles.size() > 0 ? vehicles.get(0).getId() : null;
+        Long v2 = vehicles.size() > 1 ? vehicles.get(1).getId() : null;
+        Long v3 = vehicles.size() > 2 ? vehicles.get(2).getId() : null;
+        Long v4 = vehicles.size() > 3 ? vehicles.get(3).getId() : null;
+        Long v5 = vehicles.size() > 4 ? vehicles.get(4).getId() : null;
+
+        List<User> drivers = userRepository.findAll().stream().filter(u -> "DRIVER".equals(u.getRole())).toList();
+        Long d1 = drivers.size() > 0 ? drivers.get(0).getId() : null;
+        Long d2 = drivers.size() > 1 ? drivers.get(1).getId() : null;
+        Long d3 = drivers.size() > 2 ? drivers.get(2).getId() : null;
+        Long d4 = drivers.size() > 3 ? drivers.get(3).getId() : null;
+        Long d5 = drivers.size() > 4 ? drivers.get(4).getId() : null;
+
         // Mumbai cluster shipments
         saveShipment(clientId, "REQUESTED", "Mumbai Warehouse", 19.0596, 72.8295, "Pune Distribution Center", 18.5204, 73.8567, 800.0, 120, 80, 60);
-        saveShipment(clientId, "ASSIGNED", "Mumbai Port", 19.0370, 72.8534, "Navi Mumbai Hub", 19.0330, 73.0297, 1200.0, 150, 100, 80, 1L, 2L);
-        saveShipment(clientId, "IN_TRANSIT", "Andheri Depot", 19.1136, 72.8697, "Thane Office", 19.2183, 72.9781, 500.0, 80, 60, 40, 3L, 1L);
+        saveShipment(clientId, "ASSIGNED", "Mumbai Port", 19.0370, 72.8534, "Navi Mumbai Hub", 19.0330, 73.0297, 1200.0, 150, 100, 80, v1, d2);
+        saveShipment(clientId, "IN_TRANSIT", "Andheri Depot", 19.1136, 72.8697, "Thane Office", 19.2183, 72.9781, 500.0, 80, 60, 40, v3, d1);
 
         // Bangalore cluster shipments
         saveShipment(clientId, "REQUESTED", "Whitefield Tech Park", 12.9698, 77.7500, "Electronic City", 12.8456, 77.6602, 300.0, 60, 40, 30);
-        saveShipment(clientId, "DELIVERED", "Koramangala Hub", 12.9352, 77.6245, "Indiranagar Depot", 12.9784, 77.6408, 150.0, 50, 40, 30, 2L, 2L);
-        saveShipment(clientId, "IN_TRANSIT", "HSR Layout", 12.9116, 77.6389, "BTM Extension", 12.9165, 77.6103, 650.0, 90, 70, 50, 2L, 2L);
+        saveShipment(clientId, "DELIVERED", "Koramangala Hub", 12.9352, 77.6245, "Indiranagar Depot", 12.9784, 77.6408, 150.0, 50, 40, 30, v2, d2);
+        saveShipment(clientId, "IN_TRANSIT", "HSR Layout", 12.9116, 77.6389, "BTM Extension", 12.9165, 77.6103, 650.0, 90, 70, 50, v2, d2);
 
         // Delhi cluster shipments
         saveShipment(clientId, "REQUESTED", "Connaught Place", 28.6315, 77.2167, "Gurgaon Cyber Hub", 28.4595, 77.0266, 2000.0, 200, 150, 100);
-        saveShipment(clientId, "ASSIGNED", "Nehru Place", 28.5494, 77.2530, "Noida Sector 62", 28.6270, 77.3720, 1500.0, 180, 120, 90, 3L, 3L);
-        saveShipment(clientId, "IN_TRANSIT", "Chandni Chowk", 28.6506, 77.2303, "Faridabad Industrial", 28.4089, 77.3178, 900.0, 110, 80, 60, 3L, 3L);
-        saveShipment(clientId, "DELIVERED", "Karol Bagh", 28.6519, 77.1905, "Dwarka Sector 10", 28.5800, 77.0450, 400.0, 70, 50, 40, 3L, 3L);
+        saveShipment(clientId, "ASSIGNED", "Nehru Place", 28.5494, 77.2530, "Noida Sector 62", 28.6270, 77.3720, 1500.0, 180, 120, 90, v3, d3);
+        saveShipment(clientId, "IN_TRANSIT", "Chandni Chowk", 28.6506, 77.2303, "Faridabad Industrial", 28.4089, 77.3178, 900.0, 110, 80, 60, v3, d3);
+        saveShipment(clientId, "DELIVERED", "Karol Bagh", 28.6519, 77.1905, "Dwarka Sector 10", 28.5800, 77.0450, 400.0, 70, 50, 40, v3, d3);
 
         // Chennai + Kolkata
         saveShipment(clientId, "REQUESTED", "Chennai T. Nagar", 13.0418, 80.2341, "Chennai Port", 13.0850, 80.2950, 1100.0, 130, 90, 70);
-        saveShipment(clientId, "ASSIGNED", "Kolkata Salt Lake", 22.5804, 88.4168, "Howrah Station", 22.5850, 88.3460, 750.0, 100, 70, 50, 5L, 5L);
+        saveShipment(clientId, "ASSIGNED", "Kolkata Salt Lake", 22.5804, 88.4168, "Howrah Station", 22.5850, 88.3460, 750.0, 100, 70, 50, v5, d5 != null ? d5 : d1);
     }
 
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,

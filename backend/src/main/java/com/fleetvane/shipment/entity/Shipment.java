@@ -4,12 +4,22 @@ import com.fleetvane.shared.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
+import com.fleetvane.auth.entity.User;
 import java.time.Instant;
 
 @Entity
 @Table(name = "shipments")
 public class Shipment extends BaseEntity {
+    @Column(name = "client_id")
     private Long clientId;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id", insertable = false, updatable = false)
+    private User client;
+    
     private String status;
     private String originAddress;
     private Double pickupLatitude;
@@ -39,11 +49,15 @@ public class Shipment extends BaseEntity {
     private String podSignatureBase64;
     private Long vehicleId;
     private Long driverId;
+    private String category;
 
     public Shipment() {}
 
     public Long getClientId() { return clientId; }
     public void setClientId(Long clientId) { this.clientId = clientId; }
+
+    public User getClient() { return client; }
+    public void setClient(User client) { this.client = client; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -107,6 +121,9 @@ public class Shipment extends BaseEntity {
 
     public Long getDriverId() { return driverId; }
     public void setDriverId(Long driverId) { this.driverId = driverId; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 }
 
 

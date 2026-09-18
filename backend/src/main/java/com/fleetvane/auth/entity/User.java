@@ -3,7 +3,12 @@ package com.fleetvane.auth.entity;
 import com.fleetvane.shared.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
+import com.fleetvane.shipment.entity.Shipment;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "users")
@@ -18,11 +23,20 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false, length = 20)
+    @Column(name = "role", nullable = false)
     private String role;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
+    @Column(name = "company_id")
+    private Long companyId;
+
+    @Column(name = "phone_number", length = 20)
+    private String phoneNumber;
+
+    @Column(length = 30)
+    private String status = "pending_activation";
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Shipment> shipments = new ArrayList<>();
 
     public User() {}
 
@@ -45,6 +59,12 @@ public class User extends BaseEntity {
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
 
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    public Long getCompanyId() { return companyId; }
+    public void setCompanyId(Long companyId) { this.companyId = companyId; }
+
+    public String getPhoneNumber() { return phoneNumber; }
+    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

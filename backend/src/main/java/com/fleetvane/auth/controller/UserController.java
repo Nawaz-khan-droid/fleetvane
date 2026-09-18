@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final AuthService authService;
+    private final com.fleetvane.auth.repository.UserRepository userRepository;
 
-    public UserController(AuthService authService) {
+    public UserController(AuthService authService, com.fleetvane.auth.repository.UserRepository userRepository) {
         this.authService = authService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping
@@ -36,7 +38,12 @@ public class UserController {
             );
         }
 
-        AuthResponse response = authService.provisionUser(request, targetRole);
+        Long currentUserId = Long.parseLong(authentication.getName());
+        Long companyId = userRepository.findById(currentUserId)
+                .map(com.fleetvane.auth.entity.User::getCompanyId)
+                .orElse(currentUserId); // fallback to self if admin
+
+        AuthResponse response = authService.provisionUser(request, targetRole, companyId);
         return ResponseEntity.ok(response);
     }
 }

@@ -18,8 +18,20 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
+import { AddressAutocomplete } from '@/components/shared/AddressAutocomplete';
 import Pagination from '@/components/shared/Pagination';
 import ShipmentDetailDrawer from '@/components/shared/ShipmentDetailDrawer';
+
+const SHIPMENT_CATEGORIES = [
+  'General Goods',
+  'Perishables',
+  'Electronics',
+  'Hazardous Materials',
+  'Furniture',
+  'Documents',
+  'Medical Supplies',
+  'Other'
+];
 
 function formatStatus(status: ShipmentStatus): string {
   const map: Record<string, string> = {
@@ -35,7 +47,9 @@ function formatStatus(status: ShipmentStatus): string {
 const statusBadgeColor: Record<ShipmentStatus, string> = {
   REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400',
   ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+  DISPATCHED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
   IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+  ARRIVED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
   DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400',
 };
@@ -43,7 +57,9 @@ const statusBadgeColor: Record<ShipmentStatus, string> = {
 const statusDotColor: Record<ShipmentStatus, string> = {
   REQUESTED: 'bg-amber-500',
   ASSIGNED: 'bg-blue-500',
+  DISPATCHED: 'bg-blue-500',
   IN_TRANSIT: 'bg-blue-500',
+  ARRIVED: 'bg-blue-500',
   DELIVERED: 'bg-emerald-500',
   CANCELLED: 'bg-red-500',
 };
@@ -64,6 +80,7 @@ export default function ClientDashboard() {
   const [destination, setDestination] = useState('');
   const [weight, setWeight] = useState('');
   const [volumeM3, setVolumeM3] = useState('');
+  const [category, setCategory] = useState('General Goods');
   const [submitting, setSubmitting] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,9 +102,8 @@ export default function ClientDashboard() {
 
   const fetchShipments = useCallback(async () => {
     try {
-      const res = await fetch(
-        `/api/shipments?clientId=${authState.user?.userId}`,
-        { headers: { Authorization: `Bearer ${authState.token}` } }
+      const res = await fetchWithAuth(
+        `/api/shipments?clientId=${authState.user?.userId}`
       );
       if (!res.ok) throw new Error('Failed to fetch shipments');
       const data = await res.json();
@@ -158,7 +174,7 @@ export default function ClientDashboard() {
         return;
       }
 
-      const res = await fetchWithAuth('/api/shipments/create', {
+      const res = await fetchWithAuth('/api/shipments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -168,13 +184,13 @@ export default function ClientDashboard() {
           clientId: authState.user?.userId,
           originAddress: origin.trim(),
           destinationAddress: destination.trim(),
-          // Plain-decimal fields for DeliveryOrder compatibility
           pickupLatitude: originGeo.lat,
           pickupLongitude: originGeo.lon,
           deliveryLatitude: destGeo.lat,
           deliveryLongitude: destGeo.lon,
-          cargoWeightKg: weight ? parseFloat(weight) : null,
-          cargoVolumeM3: volumeM3 ? parseFloat(volumeM3) : null,
+          weight: weight ? parseFloat(weight) : 100, // fallback for required weight
+          volumeM3: volumeM3 ? parseFloat(volumeM3) : null,
+          category: category,
         }),
       });
       if (!res.ok) throw new Error();
@@ -201,6 +217,27 @@ export default function ClientDashboard() {
       setSubmitting(false);
     }
   };
+  const cancelShipment = async (id: string) => {
+    if (!window.confirm('Are you sure you want to cancel this shipment request?')) return;
+    
+    try {
+      const res = await fetchWithAuth(`/api/shipments/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authState.token}`,
+        },
+        body: JSON.stringify({ status: 'CANCELLED' })
+      });
+      
+      if (!res.ok) throw new Error('Failed to cancel shipment');
+      
+      toast.success('Shipment cancelled');
+      setShipments(shipments.map(s => s.id === id ? { ...s, status: 'CANCELLED' as ShipmentStatus } : s));
+    } catch {
+      toast.error('Failed to cancel shipment');
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -219,27 +256,33 @@ export default function ClientDashboard() {
               <DialogTitle>Create New Shipment</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+              <AddressAutocomplete
+                label="Origin Address"
+                placeholder="Enter pickup location"
+                value={origin}
+                onChange={setOrigin}
+                required
+              />
+              
+              <AddressAutocomplete
+                label="Destination Address"
+                placeholder="Enter delivery location"
+                value={destination}
+                onChange={setDestination}
+                required
+              />
+              
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Origin Address</label>
-                <input
-                  type="text"
-                  placeholder="Enter pickup location"
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Shipment Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Destination Address</label>
-                <input
-                  type="text"
-                  placeholder="Enter delivery location"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  required
-                />
+                >
+                  {SHIPMENT_CATEGORIES.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Weight (kg) - Optional</label>
@@ -394,7 +437,18 @@ export default function ClientDashboard() {
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                       {shipment.eta ? new Date(shipment.eta).toLocaleDateString() : '—'}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right flex justify-end gap-2">
+                      {shipment.status === 'REQUESTED' && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            cancelShipment(shipment.id);
+                          }}
+                          className="bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

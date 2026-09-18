@@ -79,6 +79,18 @@ public class DriverService {
         return mapToDto(driverProfileRepository.save(profile), null);
     }
 
+    @Transactional
+    public void deleteDriver(Long userId) {
+        DriverProfile profile = driverProfileRepository.findByUserId(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("DriverProfile", "userId", userId));
+        try {
+            driverProfileRepository.delete(profile);
+            userRepository.deleteById(userId);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new BusinessException("Cannot delete driver because they are still referenced by other records (e.g. shipments or shifts).", HttpStatus.CONFLICT);
+        }
+    }
+
     /**
      * Maps a DriverProfile to DTO. If usersById is provided, uses the batch-loaded map
      * to avoid individual DB lookups. Falls back to a single query when the map is null.

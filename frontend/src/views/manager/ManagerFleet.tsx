@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -19,7 +20,7 @@ function formatCoords(lat?: number | null, lng?: number | null): string {
 
 import { useAuth } from '@/context/AuthContext';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
-import { setOnSessionExpired, triggerSessionExpired } from '@/lib/fetchWithAuth';
+import { setOnSessionExpired, triggerSessionExpired, fetchWithAuth } from '@/lib/fetchWithAuth';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
 import { loadGoogleMaps, isGoogleMapsKeyConfigured, createTrafficLayer } from '@/lib/maps';
@@ -512,10 +513,10 @@ export default function ManagerFleet() {
     token: authState.token,
     onVehicleUpdate: (loc) => {
       // 1. Force dynamic view re-render by patching global state
-      updateVehicleLocation(loc.vehicleId, loc.lat, loc.lng, loc.speed, loc.heading);
+      updateVehicleLocation(loc.vehicleId.toString(), loc.lat, loc.lng, loc.speed, loc.heading);
       
       // 2. Also manually update marker if available
-      const marker = markerRefsRef.current.get(loc.vehicleId);
+      const marker = markerRefsRef.current.get(loc.vehicleId.toString());
       if (marker) {
         if (mapProvider === 'leaflet') {
           marker.setLatLng([loc.lat, loc.lng]);
@@ -540,6 +541,12 @@ export default function ManagerFleet() {
 
 
 
+  const [sidebarPortal, setSidebarPortal] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setSidebarPortal(document.getElementById('fleet-actions-portal'));
+  }, []);
+
   const fetchDepots = useCallback(async () => {
     try {
       const res = await axios.get(`/api/depots`, {
@@ -555,6 +562,23 @@ export default function ManagerFleet() {
   useEffect(() => {
     fetchDepots();
     setMapReady(true);
+  }, [fetchDepots]);
+
+  useEffect(() => {
+    (window as any).deleteDepot = (id: number) => {
+      if (window.confirm('Are you sure you want to delete this hub?')) {
+        fetchWithAuth(`/api/depots/${id}`, { method: 'DELETE' })
+          .then((res) => {
+            if (!res.ok) throw new Error();
+            toast.success('Hub deleted successfully');
+            fetchDepots();
+          })
+          .catch(() => toast.error('Failed to delete hub.'));
+      }
+    };
+    return () => {
+      delete (window as any).deleteDepot;
+    };
   }, [fetchDepots]);
 
   const fetchPendingShipments = async (): Promise<any[]> => {
@@ -674,9 +698,15 @@ export default function ManagerFleet() {
 
           const mapEl = document.getElementById('fleet-map');
           if (!mapEl || isCancelled) return;
-          mapInstance = L.map(mapEl).setView([0, 0], 2);
+          mapInstance = L.map(mapEl, {
+            worldCopyJump: false,
+            maxBounds: [[-90, -180], [90, 180]],
+            maxBoundsViscosity: 1.0,
+            minZoom: 3,
+          }).setView([20, 0], 3);
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap',
+            noWrap: true,
           }).addTo(mapInstance);
 
           leafletMarkers = L.layerGroup().addTo(mapInstance);
@@ -778,7 +808,15 @@ export default function ManagerFleet() {
               className: '', iconSize: [20, 20], iconAnchor: [10, 10]
             });
             const marker = L.marker([d.lat, d.lng], { icon: depotIcon }).addTo(group);
-            marker.bindTooltip(`<b>${d.name}</b><br/>${d.city}`);
+            marker.bindPopup(`
+              <div class="p-2 min-w-[140px]">
+                <div class="font-bold text-sm mb-1">${d.name}</div>
+                <div class="text-xs text-slate-500 mb-3">${d.city}</div>
+                <button onclick="window.deleteDepot(${d.id})" class="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded w-full border border-red-200 transition-colors">
+                  Delete Hub
+                </button>
+              </div>
+            `);
           });
 
           vehicles.forEach((v) => {
@@ -1129,12 +1167,31 @@ export default function ManagerFleet() {
                   />
                 </div>
 
-                <button
-                  onClick={() => setSelectedVehicle(null)}
-                  className={`${theme.button.outline} w-full mt-6`}
-                >
-                  {t.manager.close}
-                </button>
+                <div className="mt-6 flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Are you sure you want to delete this vehicle?')) {
+                        fetchWithAuth(`/api/vehicles/${selectedVehicle.id}`, { method: 'DELETE' })
+                          .then((res) => {
+                            if (!res.ok) throw new Error();
+                            setVehicles(vehicles.filter(v => v.id !== selectedVehicle.id));
+                            setSelectedVehicle(null);
+                            toast.success('Vehicle deleted');
+                          })
+                          .catch(() => toast.error('Cannot delete vehicle. It may be assigned to active drivers or shipments.'));
+                      }
+                    }}
+                    className={`${theme.button.outline} w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200`}
+                  >
+                    Delete Vehicle
+                  </button>
+                  <button
+                    onClick={() => setSelectedVehicle(null)}
+                    className={`${theme.button.outline} w-full`}
+                  >
+                    {t.manager.close}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -1142,10 +1199,7 @@ export default function ManagerFleet() {
       </AnimatePresence>
 
       {/* ═══ MAIN FLEET VIEW — full-width immersive map ═══ */}
-      <div
-        className="relative -mx-4 lg:-mx-8 rounded-none"
-        style={{ height: 'min(75vh, calc(100vh - 6rem))' }}
-      >
+      <div className="relative w-full h-full rounded-none overflow-hidden">
         {/* Map Surface */}
         <div
           id="fleet-map"
@@ -1155,11 +1209,11 @@ export default function ManagerFleet() {
 
         {showMapsErrorPanel && <MapsUnavailablePanel message={mapsError!} />}
 
-        {/* ── Top-Left: Fleet Actions Panel ── */}
-        {canManageFleet && (
-          <div className="absolute top-4 left-4 z-10 w-52">
-            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
-              <div className="px-3 py-2.5 border-b border-slate-200/50 dark:border-slate-700/50">
+        {/* ── Top-Left: Fleet Actions Panel (Portaled) ── */}
+        {canManageFleet && sidebarPortal && createPortal(
+          <div className="w-full mt-4">
+            <div className="bg-white/95 dark:bg-slate-900/95 rounded-xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
+              <div className="px-3 py-2.5 border-b border-slate-200/50 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/50">
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 tracking-wide uppercase">Fleet Actions</p>
               </div>
               <div className="p-2 space-y-1">
@@ -1187,11 +1241,12 @@ export default function ManagerFleet() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          sidebarPortal
         )}
 
-        {/* ── Top-Right: Map Controls Panel ── */}
-        <div className="absolute top-4 right-4 z-10 w-48">
+        {/* ── Bottom-Right: Map Controls Panel ── */}
+        <div className="absolute bottom-48 right-4 z-10 w-48">
           <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
             <div className="px-3 py-2.5 border-b border-slate-200/50 dark:border-slate-700/50">
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 tracking-wide uppercase">Map Controls</p>
@@ -1287,7 +1342,7 @@ export default function ManagerFleet() {
 
         {/* ── Bottom: Live Status Feed — horizontal vehicle cards ── */}
         <div className="absolute bottom-0 left-0 right-0 z-10">
-          <div className="bg-gradient-to-t from-black/60 via-black/30 to-transparent pt-8 pb-0">
+          <div className="bg-gradient-to-t from-transparent to-transparent pt-8 pb-0">
             <div className="px-4 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={theme.liveIndicator.wrapper} title={connected ? 'Polling Spring Boot every 5s' : 'Backend unreachable'}>
@@ -1299,18 +1354,18 @@ export default function ManagerFleet() {
                     {connected ? 'Live' : 'Offline'}
                   </span>
                 </span>
-                <span className="text-white/60 text-[11px]">•</span>
-                <span className="text-white/80 text-[11px] font-medium">
+                <span className="text-slate-500 text-[11px]">•</span>
+                <span className="text-slate-900 dark:text-white text-[11px] font-bold">
                   {totalCount} vehicle{totalCount !== 1 ? 's' : ''} tracked
                 </span>
               </div>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-4 pb-4 scrollbar-thin">
+            <div className="flex gap-3 overflow-x-auto overflow-y-hidden px-4 pb-4">
               {vehicles.map((v) => (
                 <button
                   key={v.id}
                   onClick={() => handleVehicleClick(v)}
-                  className="flex-shrink-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/20 dark:border-slate-700/50 text-left hover:scale-[1.02] transition-transform cursor-pointer"
+                  className="flex-shrink-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 shadow-lg border border-slate-200 dark:border-slate-700/50 text-left hover:scale-[1.02] transition-transform cursor-pointer"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{v.plateNumber}</span>

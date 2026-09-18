@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Plus, Search, Eye, EyeOff, UserCircle } from 'lucide-react';
+import { Users, Plus, Search, Eye, EyeOff, UserCircle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
+import { useStore } from '@/store/useStore';
 import t from '@/locales/en.json';
 import type { DriverWithProfile, Vehicle } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -35,7 +36,7 @@ import Pagination from '@/components/shared/Pagination';
 
 export default function ManagerDrivers() {
   const { state: authState } = useAuth();
-  const [drivers, setDrivers] = useState<DriverWithProfile[]>([]);
+  const { drivers, setDrivers } = useStore();
   const [loading, setLoading] = useState(true);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -81,24 +82,30 @@ export default function ManagerDrivers() {
         headers: { Authorization: `Bearer ${authState.token}` },
       });
       if (!res.ok) throw new Error();
-      const data: Vehicle[] = await res.json();
-      setAvailableVehicles(data.filter((v) => v.status === 'AVAILABLE'));
+      const data = await res.json();
+      const vehiclesArray: Vehicle[] = Array.isArray(data) ? data : (data.content || []);
+      setAvailableVehicles(vehiclesArray.filter((v) => v.status === 'AVAILABLE'));
     } catch {
       toast.error(t.common.error);
     }
   }, [authState.token]);
 
+  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+
   const handleCreateDriver = async () => {
-    if (!driverName.trim() || !licenseNumber.trim()) return;
+    if (!driverName.trim() || !licenseNumber.trim() || !email.trim() || !phoneNumber.trim()) return;
     setCreating(true);
     try {
       const body: Record<string, string | null> = {
         name: driverName.trim(),
+        email: email.trim(),
+        phoneNumber: phoneNumber.trim(),
         licenseNumber: licenseNumber.trim(),
         vehicleId: selectedVehicleId || null,
-        // Backend handles email and password generation typically, but sending just what exists
+        companyId: authState.user?.companyId?.toString() || '1',
       };
-      const res = await fetchWithAuth('/api/drivers', {
+      const res = await fetchWithAuth('/api/auth/invite-driver', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -107,9 +114,11 @@ export default function ManagerDrivers() {
         body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error();
-      toast.success(t.manager.driverCreated);
+      toast.success(t.manager.driverCreated || 'Driver provisioned successfully. Verification link deployed.');
       setCreateDialogOpen(false);
       setDriverName('');
+      setEmail('');
+      setPhoneNumber('');
       setLicenseNumber('');
       setSelectedVehicleId('');
       fetchDrivers();
@@ -196,31 +205,26 @@ export default function ManagerDrivers() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Email (Auto-generated)</Label>
+                  <Label>Corporate / Personal Email</Label>
                   <Input
-                    value={driverName ? generatedEmail : ''}
-                    readOnly
-                    className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-500"
+                    placeholder="driver@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    className="rounded-xl border-slate-200 dark:border-slate-700"
+                    required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Initial Password</Label>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? 'text' : 'password'}
-                      value="fleetvane123!"
-                      readOnly
-                      className="rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 pr-10 text-slate-500"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
+                  <Label>Mobile Number <span className="text-red-500">*</span></Label>
+                  <Input
+                    placeholder="+1 234 567 8900"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="rounded-xl border-slate-200 dark:border-slate-700"
+                    required
+                  />
                 </div>
 
                 <div className="space-y-1.5">
@@ -309,6 +313,24 @@ export default function ManagerDrivers() {
                     <h3 className="font-semibold text-slate-900 dark:text-slate-100 truncate">{driver.name || "Unknown Driver"}</h3>
                     <p className="text-sm text-slate-500 truncate">{driver.email}</p>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm('Are you sure you want to delete this driver?')) {
+                        fetchWithAuth(`/api/drivers/${driver.id}`, { method: 'DELETE' })
+                          .then((res) => {
+                            if (!res.ok) throw new Error();
+                            setDrivers(drivers.filter(d => d.id !== driver.id));
+                            toast.success('Driver deleted');
+                          })
+                          .catch(() => toast.error('Cannot delete driver. They may be assigned to active shipments.'));
+                      }
+                    }}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+                    title="Delete Driver"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
 
                 {/* Middle: License & Vehicle */}

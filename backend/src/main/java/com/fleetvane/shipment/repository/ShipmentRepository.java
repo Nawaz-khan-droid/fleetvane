@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface ShipmentRepository extends JpaRepository<Shipment, Long> {
     Page<Shipment> findByClientId(Long clientId, Pageable pageable);
+    Page<Shipment> findByClient_CompanyId(Long companyId, Pageable pageable);
+    Page<Shipment> findByClient_CompanyIdAndStatus(Long companyId, String status, Pageable pageable);
     Page<Shipment> findByDriverId(Long driverId, Pageable pageable);
     Page<Shipment> findByStatus(String status, Pageable pageable);
     List<Shipment> findByStatus(String status);

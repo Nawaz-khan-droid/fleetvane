@@ -28,7 +28,7 @@ public class ShipmentService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ShipmentDto> getAllShipments(Pageable pageable, String status, Long clientId, Long driverId, String role, Long userId) {
+    public Page<ShipmentDto> getAllShipments(Pageable pageable, String status, Long clientId, Long driverId, String role, Long userId, Long companyId) {
         Page<Shipment> shipments;
         
         if ("CLIENT".equals(role)) {
@@ -51,7 +51,7 @@ public class ShipmentService {
     }
 
     @Transactional(readOnly = true)
-    public ShipmentDto getShipmentById(Long id, String role, Long userId) {
+    public ShipmentDto getShipmentById(Long id, String role, Long userId, Long companyId) {
         Shipment shipment;
         
         if ("CLIENT".equals(role) || "ROLE_CLIENT".equals(role)) {
@@ -63,6 +63,7 @@ public class ShipmentService {
         } else {
             shipment = shipmentRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Shipment", "id", id));
+            // Open marketplace: Managers can view any shipment details
         }
         
         return mapToDto(shipment);
@@ -84,6 +85,7 @@ public class ShipmentService {
         shipment.setWidthCm(request.widthCm());
         shipment.setHeightCm(request.heightCm());
         shipment.setVolumeM3(request.calculatedVolumeM3());
+        shipment.setCategory(request.category());
 
         return mapToDto(shipmentRepository.save(shipment));
     }
@@ -214,7 +216,8 @@ public class ShipmentService {
                 shipment.getVehicleId(),
                 shipment.getDriverId(),
                 shipment.getCreatedAt(),
-                shipment.getUpdatedAt()
+                shipment.getUpdatedAt(),
+                shipment.getCategory()
         );
     }
 }

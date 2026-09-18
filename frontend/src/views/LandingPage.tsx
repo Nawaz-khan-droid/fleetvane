@@ -134,12 +134,15 @@ function TiltCard({ img, name, desc, accent, onContactClick }: { img: string; na
 
 /* ================================================================== */
 /*  Main LandingPage                                                   */
+import { DemoModal } from '../components/DemoModal';
+
 /* ================================================================== */
 
 export default function LandingPage() {
   const { navigate } = useRouter();
   const { login } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
   const scrollTo = useCallback((id: string) => {
@@ -190,7 +193,7 @@ export default function LandingPage() {
               <span className="font-serif tracking-tight">{t.brand.name}</span>
             </button>
 
-            <div className="hidden lg:flex items-center gap-8">
+            <div className="hidden lg:flex items-center gap-6">
               <button type="button" onClick={() => scrollTo('features')} className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                 {t.nav.features}
               </button>
@@ -200,13 +203,13 @@ export default function LandingPage() {
               <button type="button" onClick={() => scrollTo('contact')} className="text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                 {t.nav.contact}
               </button>
-              <div className="h-4 w-px bg-slate-300 dark:bg-slate-700" />
+              <div className="h-4 w-px bg-slate-300 dark:bg-slate-700 mx-2" />
               <ThemeToggle className="text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800" />
-              <Button variant="ghost" className="text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl" onClick={() => navigate('/login')}>
-                {t.nav.login}
+              <Button variant="ghost" className="text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-medium" onClick={() => navigate('/login')}>
+                Login / Sign Up
               </Button>
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm" onClick={() => navigate('/signup')}>
-                {t.nav.signup}
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm px-6" onClick={() => setDemoOpen(true)}>
+                Book a Demo
               </Button>
             </div>
 
@@ -233,15 +236,16 @@ export default function LandingPage() {
             <button type="button" onClick={() => scrollTo('contact')} className="block w-full text-left py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600">{t.nav.contact}</button>
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2">
               <Button variant="outline" className="w-full border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl" onClick={() => { navigate('/login'); setMobileOpen(false); }}>
-                {t.nav.login}
+                Login / Sign Up
               </Button>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm" onClick={() => { navigate('/signup'); setMobileOpen(false); }}>
-                {t.nav.signup}
+              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm" onClick={() => { setDemoOpen(true); setMobileOpen(false); }}>
+                Book a Demo
               </Button>
             </div>
           </motion.div>
         )}
       </nav>
+      <DemoModal isOpen={demoOpen} onClose={() => setDemoOpen(false)} />
 
       <main className="flex-1 pt-16">
         {/* Hero Section */}

@@ -37,6 +37,7 @@ export interface UserPayload {
   role: UserRole;
   createdAt?: string;
   companyName?: string;
+  companyId?: string | number;
 }
 
 /** Mirrors Shipment.java (the legacy transactional entity). */

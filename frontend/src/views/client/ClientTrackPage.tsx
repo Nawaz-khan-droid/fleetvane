@@ -19,6 +19,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from '@/context/RouterContext';
@@ -86,9 +87,7 @@ export default function ClientTrackPage() {
     setSearchError(null);
     (async () => {
       try {
-        const res = await fetch(`/api/shipments/${shipmentId}`, {
-          headers: { Authorization: `Bearer ${authState.token}` },
-        });
+        const res = await fetchWithAuth(`/api/shipments/${shipmentId}`);
         if (!res.ok) {
           setShipment(null);
           setSearchError('Shipment not found. Please check the ID.');
@@ -116,9 +115,7 @@ export default function ClientTrackPage() {
       toast.info(msg, { duration: 6000 });
       // Re-fetch the shipment so the stepper advances to the new status
       if (shipmentId) {
-        fetch(`/api/shipments/${shipmentId}`, {
-          headers: { Authorization: `Bearer ${authState.token}` },
-        })
+        fetchWithAuth(`/api/shipments/${shipmentId}`)
           .then((r) => r.json())
           .then((data) => setShipment(data))
           .catch(() => {});
@@ -171,10 +168,15 @@ export default function ClientTrackPage() {
         delete (container as any)._leaflet_id;
         container.innerHTML = '';
       }
-      map = L.map(container).setView([vehiclePos.lat, vehiclePos.lng], 10);
+      map = L.map(container, {
+        minZoom: 3,
+        maxBounds: [[-90, -180], [90, 180]],
+        maxBoundsViscosity: 1.0,
+      }).setView([vehiclePos.lat, vehiclePos.lng], 10);
       L.tileLayer(getLeafletTileUrl(resolvedTheme), {
         attribution: getLeafletAttribution(),
         maxZoom: 19,
+        noWrap: true,
       }).addTo(map);
       L.marker([vehiclePos.lat, vehiclePos.lng])
         .addTo(map)

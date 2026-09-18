@@ -40,9 +40,8 @@ export default function DriverReport() {
     if (!authState.token || !authState.user?.userId) return;
     (async () => {
       try {
-        const res = await fetch(
-          `/api/reports?driverId=${authState.user!.userId}`,
-          { headers: { Authorization: `Bearer ${authState.token}` } }
+        const res = await fetchWithAuth(
+          `/api/reports?driverId=${authState.user!.userId}`
         );
         if (!res.ok) throw new Error();
         const data = await res.json();
@@ -85,9 +84,8 @@ export default function DriverReport() {
       setReportType('');
       setDescription('');
 
-      const listRes = await fetch(
-        `/api/reports?driverId=${authState.user!.userId}`,
-        { headers: { Authorization: `Bearer ${authState.token}` } }
+      const listRes = await fetchWithAuth(
+        `/api/reports?driverId=${authState.user!.userId}`
       );
       if (listRes.ok) {
         const data = await listRes.json();

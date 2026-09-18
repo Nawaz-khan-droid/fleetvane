@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import LandingPage from '@/views/LandingPage';
 import LoginPage from '@/views/auth/LoginPage';
 import SignupPage from '@/views/auth/SignupPage';
+import OnboardingPage from '@/views/auth/OnboardingPage';
 
 // Client pages
 import ClientLayout from '@/views/client/ClientLayout';
@@ -76,6 +77,7 @@ function AppRouter() {
     if (route === '/') return <LandingPage />;
     if (route === '/login') return <LoginPage />;
     if (route === '/signup') return <SignupPage />;
+    if (route === '/onboarding') return <ProtectedRoute allowedRoles={['CLIENT']}><OnboardingPage /></ProtectedRoute>;
     if (route === '/privacy') return <LegalPrivacyPage />;
     if (route === '/terms') return <LegalTermsPage />;
 

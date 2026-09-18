@@ -237,19 +237,19 @@ export default function DriverRoute() {
     if (currentProviderRef.current === mapProvider) return;
 
     const hasRouteCoords =
-      (shipment.pickupLatitude ?? shipment.originLat) != null &&
-      (shipment.pickupLongitude ?? shipment.originLng) != null &&
-      (shipment.deliveryLatitude ?? shipment.destinationLat) != null &&
-      (shipment.deliveryLongitude ?? shipment.destinationLng) != null;
+      shipment.originLat != null &&
+      shipment.originLng != null &&
+      shipment.destinationLat != null &&
+      shipment.destinationLng != null;
     if (!hasRouteCoords) return;
 
     const originCoords: [number, number] = [
-      (shipment.pickupLatitude ?? shipment.originLat) as number,
-      (shipment.pickupLongitude ?? shipment.originLng) as number,
+      shipment.originLat as number,
+      shipment.originLng as number,
     ];
     const destCoords: [number, number] = [
-      (shipment.deliveryLatitude ?? shipment.destinationLat) as number,
-      (shipment.deliveryLongitude ?? shipment.destinationLng) as number,
+      shipment.destinationLat as number,
+      shipment.destinationLng as number,
     ];
 
     let mapInstance: any;
@@ -280,10 +280,15 @@ export default function DriverRoute() {
           (originCoords[1] + destCoords[1]) / 2,
         ];
 
-        mapInstance = L.map('driver-route-map').setView(center, 6);
+        mapInstance = L.map('driver-route-map', {
+          minZoom: 3,
+          maxBounds: [[-90, -180], [90, 180]],
+          maxBoundsViscosity: 1.0,
+        }).setView(center, 6);
         const tileLayer = L.tileLayer(getLeafletTileUrl(resolvedTheme), {
           attribution: getLeafletAttribution(),
           maxZoom: 19,
+          noWrap: true,
         }).addTo(mapInstance);
         tileLayerRef.current = tileLayer;
         mapRef.current = mapInstance;
@@ -384,6 +389,7 @@ export default function DriverRoute() {
         const newLayer = L.tileLayer(getLeafletTileUrl(resolvedTheme), {
           attribution: getLeafletAttribution(),
           maxZoom: 19,
+          noWrap: true,
         }).addTo(mapRef.current);
         tileLayerRef.current = newLayer;
       } catch (err) {
@@ -465,7 +471,7 @@ export default function DriverRoute() {
 
       {/* Map Container */}
       <div className="flex-1 w-full bg-slate-100 dark:bg-slate-800 relative z-0">
-        {shipment && (shipment.pickupLatitude ?? shipment.originLat) != null && (shipment.deliveryLatitude ?? shipment.destinationLat) != null ? (
+        {shipment && shipment.originLat != null && shipment.destinationLat != null ? (
           <div
             ref={() => setMapReady(true)}
             id="driver-route-map"

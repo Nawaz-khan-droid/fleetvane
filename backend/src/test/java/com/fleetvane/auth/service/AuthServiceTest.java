@@ -64,7 +64,7 @@ class AuthServiceTest {
         User deactivatedUser = new User();
         deactivatedUser.setEmail("test@fleetvane.com");
         deactivatedUser.setPasswordHash("encoded_password");
-        deactivatedUser.setIsActive(false);
+        deactivatedUser.setStatus("DEACTIVATED");
 
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(deactivatedUser));
         when(passwordEncoder.matches("password", "encoded_password")).thenReturn(true);
