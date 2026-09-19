@@ -37,13 +37,17 @@ public class ShipmentService {
             shipments = shipmentRepository.findByDriverId(userId, pageable);
         } else {
             if (status != null && !status.isBlank()) {
-                shipments = shipmentRepository.findByStatus(status.toUpperCase(), pageable);
+                shipments = shipmentRepository.findByClient_CompanyIdAndStatus(companyId, status.toUpperCase(), pageable);
             } else if (clientId != null) {
                 shipments = shipmentRepository.findByClientId(clientId, pageable);
             } else if (driverId != null) {
                 shipments = shipmentRepository.findByDriverId(driverId, pageable);
             } else {
-                shipments = shipmentRepository.findAll(pageable);
+                if (companyId != null) {
+                    shipments = shipmentRepository.findByClient_CompanyId(companyId, pageable);
+                } else {
+                    shipments = shipmentRepository.findAll(pageable);
+                }
             }
         }
         

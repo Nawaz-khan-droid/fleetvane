@@ -67,10 +67,10 @@ function formatVehicleStatus(status: VehicleStatus): string {
 
 function markerColor(status: VehicleStatus): string {
   switch (status) {
-    case 'AVAILABLE': return '#10b981';
-    case 'IN_USE': return '#3b82f6';
+    case 'AVAILABLE': return '#3b82f6';
+    case 'IN_USE': return '#10b981';
     case 'MAINTENANCE': return '#ef4444';
-    default: return '#10b981';
+    default: return '#3b82f6';
   }
 }
 
@@ -460,7 +460,7 @@ export default function ManagerFleet() {
     refetchInterval: 30000, // WebSocket handles real-time updates now
   });
 
-  const { vehicles, setVehicles } = useStore();
+  const { vehicles, setVehicles, drivers } = useStore();
 
   useEffect(() => {
     if (vehiclesQuery.data) {
@@ -747,6 +747,11 @@ export default function ManagerFleet() {
           mapInstance = new window.google.maps.Map(mapEl, {
             center: { lat: 0, lng: 0 },
             zoom: 2,
+            minZoom: 3,
+            restriction: {
+              latLngBounds: { north: 85, south: -85, west: -180, east: 180 },
+              strictBounds: true,
+            },
             mapId: 'DEMO_MAP_ID',
             disableDefaultUI: true,
             zoomControl: true,
@@ -833,7 +838,7 @@ export default function ManagerFleet() {
 
           if (pickedCoords) {
             const pickIcon = L.divIcon({
-              html: `<div style="width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 0 10px #ef4444;animation:ping 1s infinite"></div>`,
+              html: `<div style="width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 0 10px #ef4444"></div>`,
               className: '', iconSize: [18, 18], iconAnchor: [9, 9],
             });
             L.marker([pickedCoords.lat, pickedCoords.lng], { icon: pickIcon }).addTo(group);
@@ -871,7 +876,24 @@ export default function ManagerFleet() {
             el.style.cssText = 'width:20px;height:20px;border-radius:4px;background:#9333ea;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)';
             el.textContent = '🏢';
             el.title = d.name;
-            new AdvancedMarkerElement({ map, position: { lat: d.lat, lng: d.lng }, content: el });
+            const marker = new AdvancedMarkerElement({ map, position: { lat: d.lat, lng: d.lng }, content: el });
+            
+            const infoWindow = new window.google.maps.InfoWindow({
+              content: `
+                <div class="p-2 min-w-[140px]">
+                  <div class="font-bold text-sm mb-1">${d.name}</div>
+                  <div class="text-xs text-slate-500 mb-3">${d.city}</div>
+                  <button onclick="window.deleteDepot(${d.id})" class="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded w-full border border-red-200 transition-colors">
+                    Delete Hub
+                  </button>
+                </div>
+              `
+            });
+
+            marker.addListener('click', () => {
+              infoWindow.open({ anchor: marker, map });
+            });
+
             bounds.extend({ lat: d.lat, lng: d.lng });
           });
 
@@ -1155,9 +1177,10 @@ export default function ManagerFleet() {
                     icon={User}
                     label={t.manager.assignedDriver}
                     value={
-                      selectedVehicle.driverProfiles && selectedVehicle.driverProfiles.length > 0
-                        ? selectedVehicle.driverProfiles[0].user.name
-                        : '—'
+                      (() => {
+                        const assignedDriver = drivers?.find(d => d.driverProfile?.vehicleId === String(selectedVehicle.id));
+                        return assignedDriver ? assignedDriver.name : '—';
+                      })()
                     }
                   />
                   <DetailRow
@@ -1304,15 +1327,15 @@ export default function ManagerFleet() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Available
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Available
                   </span>
-                  <span className="text-[11px] font-semibold text-emerald-600">{availableCount}</span>
+                  <span className="text-[11px] font-semibold text-blue-600">{availableCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Active
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
                   </span>
-                  <span className="text-[11px] font-semibold text-blue-600">{activeCount}</span>
+                  <span className="text-[11px] font-semibold text-emerald-600">{activeCount}</span>
                 </div>
               </div>
             </div>
@@ -1382,17 +1405,20 @@ export default function ManagerFleet() {
                     <Boxes className="w-3.5 h-3.5 text-slate-400" />
                     <span className="text-xs text-slate-600 dark:text-slate-300">{v.capacity} kg</span>
                   </div>
-                  {v.driverProfiles && v.driverProfiles.length > 0 ? (
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-600 dark:text-slate-300">{v.driverProfiles[0].user.name}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <User className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-400 italic">Unassigned</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const assignedDriver = drivers?.find(d => String(d.driverProfile?.vehicleId) === String(v.id));
+                    return assignedDriver ? (
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-xs text-slate-600 dark:text-slate-300">{assignedDriver.name}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="text-xs text-slate-400 italic">Unassigned</span>
+                      </div>
+                    );
+                  })()}
                 </button>
               ))}
               {vehicles.length === 0 && (

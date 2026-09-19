@@ -344,6 +344,11 @@ export default function ShipmentDetailDrawer({
               value={shipment.weight ? `${shipment.weight} kg` : '—'}
             />
             <InfoItem
+              icon={Package}
+              label="Category"
+              value={shipment.category || '—'}
+            />
+            <InfoItem
               icon={Clock}
               label={t.client.eta}
               value={shipment.eta ? formatDateTime(shipment.eta) : '—'}

@@ -96,19 +96,26 @@ public class DriverService {
      * to avoid individual DB lookups. Falls back to a single query when the map is null.
      */
     private DriverProfileDto mapToDto(DriverProfile profile, Map<Long, User> usersById) {
-        String userName;
+        String userName = null;
+        String email = null;
         if (usersById != null) {
             User user = usersById.get(profile.getUserId());
-            userName = user != null ? user.getName() : null;
+            if (user != null) {
+                userName = user.getName();
+                email = user.getEmail();
+            }
         } else {
-            userName = userRepository.findById(profile.getUserId())
-                    .map(User::getName)
-                    .orElse(null);
+            User user = userRepository.findById(profile.getUserId()).orElse(null);
+            if (user != null) {
+                userName = user.getName();
+                email = user.getEmail();
+            }
         }
         return new DriverProfileDto(
             profile.getId(),
             profile.getUserId(),
             userName,
+            email,
             profile.getLicenseNumber(),
             profile.getVehicleId(),
             profile.getIsAvailable(),

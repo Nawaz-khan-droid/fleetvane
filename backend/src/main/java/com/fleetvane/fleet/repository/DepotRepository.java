@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface DepotRepository extends JpaRepository<Depot, Long> {
-    List<Depot> findByIsActiveTrue();
+    List<Depot> findByCompanyIdAndIsActiveTrue(Long companyId);
 }

@@ -48,13 +48,13 @@ public class VehicleController {
     @PutMapping("/{id}/status")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public VehicleDto updateStatus(@PathVariable Long id, @RequestParam String status) {
-        return vehicleService.updateStatus(id, status);
+        return vehicleService.updateStatus(id, getCurrentCompanyId(), status);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public org.springframework.http.ResponseEntity<Void> deleteVehicle(@PathVariable Long id) {
-        vehicleService.deleteVehicle(id);
+        vehicleService.deleteVehicle(id, getCurrentCompanyId());
         return org.springframework.http.ResponseEntity.noContent().build();
     }
 

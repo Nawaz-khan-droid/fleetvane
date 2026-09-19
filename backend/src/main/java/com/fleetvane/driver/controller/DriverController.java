@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,10 +37,10 @@ public class DriverController {
         return driverService.createProfile(userId, request);
     }
 
-    @PutMapping("/{userId}/availability")
+    @PutMapping("/me/availability")
     @PreAuthorize("hasAuthority('DRIVER')")
-    public DriverProfileDto toggleAvailability(@PathVariable Long userId) {
-        return driverService.toggleAvailability(userId);
+    public DriverProfileDto toggleAvailability(Authentication authentication) {
+        return driverService.toggleAvailability(authenticatedUserId(authentication));
     }
 
     @DeleteMapping("/{userId}")
@@ -49,15 +50,25 @@ public class DriverController {
         return org.springframework.http.ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{userId}/shift/start")
+    @PostMapping("/me/shift/start")
     @PreAuthorize("hasAuthority('DRIVER')")
-    public com.fleetvane.driver.shift.DriverShift startShift(@PathVariable Long userId, @RequestParam Long vehicleId) {
-        return shiftService.startShift(userId, vehicleId);
+    public com.fleetvane.driver.shift.DriverShift startShift(Authentication authentication, @RequestParam Long vehicleId) {
+        return shiftService.startShift(authenticatedUserId(authentication), vehicleId);
     }
 
-    @PostMapping("/{userId}/shift/end")
+    @PostMapping("/me/shift/end")
     @PreAuthorize("hasAuthority('DRIVER')")
-    public com.fleetvane.driver.shift.DriverShift endShift(@PathVariable Long userId) {
-        return shiftService.endShift(userId);
+    public com.fleetvane.driver.shift.DriverShift endShift(Authentication authentication) {
+        return shiftService.endShift(authenticatedUserId(authentication));
+    }
+
+    private Long authenticatedUserId(Authentication authentication) {
+        try {
+            return Long.valueOf(authentication.getName());
+        } catch (NumberFormatException ex) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                    "Authentication must use user ID as principal name");
+        }
     }
 }
