@@ -68,31 +68,76 @@ public class DataInitializer implements CommandLineRunner {
 
     private void seedUsers() {
         if (userRepository.findByEmail(adminEmail).isEmpty()) {
-            userRepository.save(new User(adminEmail, passwordEncoder.encode(adminPassword), "System Administrator", "ADMIN"));
+            User admin = new User(adminEmail, passwordEncoder.encode(adminPassword), "System Administrator", "ADMIN");
+            admin.setCompanyId(1L);
+            admin.setStatus("ACTIVE");
+            userRepository.save(admin);
+        } else {
+            User admin = userRepository.findByEmail(adminEmail).get();
+            admin.setCompanyId(1L);
+            admin.setStatus("ACTIVE");
+            userRepository.save(admin);
         }
         if (userRepository.findByEmail(managerEmail).isEmpty()) {
-            userRepository.save(new User(managerEmail, passwordEncoder.encode(managerPassword), "Operations Manager", "MANAGER"));
+            User manager = new User(managerEmail, passwordEncoder.encode(managerPassword), "Operations Manager", "MANAGER");
+            manager.setCompanyId(1L);
+            manager.setStatus("ACTIVE");
+            userRepository.save(manager);
+        } else {
+            User manager = userRepository.findByEmail(managerEmail).get();
+            manager.setCompanyId(1L);
+            manager.setStatus("ACTIVE");
+            userRepository.save(manager);
         }
         if (userRepository.findByEmail(clientEmail).isEmpty()) {
-            userRepository.save(new User(clientEmail, passwordEncoder.encode(clientPassword), "Demo Client", "CLIENT"));
+            User client = new User(clientEmail, passwordEncoder.encode(clientPassword), "Demo Client", "CLIENT");
+            client.setCompanyId(1L);
+            client.setStatus("ACTIVE");
+            userRepository.save(client);
+        } else {
+            User client = userRepository.findByEmail(clientEmail).get();
+            client.setCompanyId(1L);
+            client.setStatus("ACTIVE");
+            userRepository.save(client);
         }
         String[] driverEmails = {"driver1@fleetvane.com", "driver2@fleetvane.com", "driver3@fleetvane.com"};
         String[] driverNames = {"Rajesh Kumar", "Priya Sharma", "Amit Singh"};
         for (int i = 0; i < driverEmails.length; i++) {
             if (userRepository.findByEmail(driverEmails[i]).isEmpty()) {
-                userRepository.save(new User(driverEmails[i], passwordEncoder.encode("Driver123!"), driverNames[i], "DRIVER"));
+                User driver = new User(driverEmails[i], passwordEncoder.encode("Driver123!"), driverNames[i], "DRIVER");
+                driver.setCompanyId(1L);
+                driver.setStatus("ACTIVE");
+                userRepository.save(driver);
+            } else {
+                User driver = userRepository.findByEmail(driverEmails[i]).get();
+                driver.setCompanyId(1L);
+                driver.setStatus("ACTIVE");
+                userRepository.save(driver);
             }
         }
     }
 
     private void seedVehicles() {
-        if (vehicleRepository.count() > 0) return;
+        if (vehicleRepository.count() > 0) {
+            vehicleRepository.findAll().forEach(v -> {
+                if (v.getCompanyId() == null) {
+                    v.setCompanyId(1L);
+                    vehicleRepository.save(v);
+                }
+            });
+            return;
+        }
 
         Vehicle v1 = createVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "IN_USE", 19.0760, 72.8777, 45.0, 1L);
+        v1.setCompanyId(1L);
         Vehicle v2 = createVehicle("KA-03-CD-5678", "VAN", "Mahindra Bolero", 2000.0, 8.0, "ELECTRIC", "AVAILABLE", 12.9716, 77.5946, 90.0, 3L);
+        v2.setCompanyId(1L);
         Vehicle v3 = createVehicle("DL-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "IN_USE", 28.7041, 77.1025, 180.0, 2L);
+        v3.setCompanyId(1L);
         Vehicle v4 = createVehicle("TN-05-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "AVAILABLE", 13.0827, 80.2707, 270.0, 5L);
+        v4.setCompanyId(1L);
         Vehicle v5 = createVehicle("WB-06-IJ-7890", "TRUCK", "Tata Ace", 1500.0, 6.0, "PETROL", "AVAILABLE", 22.5726, 88.3639, 135.0, 6L);
+        v5.setCompanyId(1L);
 
         vehicleRepository.saveAll(List.of(v1, v2, v3, v4, v5));
     }

@@ -2,8 +2,12 @@ package com.fleetvane.auth.controller;
 
 import com.fleetvane.auth.entity.InvitationToken;
 import com.fleetvane.auth.entity.User;
+import com.fleetvane.auth.dto.ActivateAccountRequest;
+import com.fleetvane.auth.dto.InviteDriverRequest;
 import com.fleetvane.auth.repository.InvitationTokenRepository;
 import com.fleetvane.auth.repository.UserRepository;
+import com.fleetvane.auth.security.InvitationTokenHasher;
+import com.fleetvane.shared.exception.BusinessException;
 import com.sendgrid.Method;
 import com.sendgrid.Request;
 import com.sendgrid.Response;
@@ -12,14 +16,19 @@ import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import jakarta.validation.Valid;
 
-import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
@@ -33,6 +42,8 @@ import com.fleetvane.driver.repository.DriverProfileRepository;
 @RestController
 @RequestMapping("/api/auth")
 public class EmailAuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailAuthController.class);
 
     private final UserRepository userRepository;
     private final InvitationTokenRepository tokenRepository;
@@ -63,30 +74,37 @@ public class EmailAuthController {
     // 🏢 1. GENERATE & EMAIL 48-HOUR ACTIVATION LINK (Fleet Manager Action)
     // =========================================================================
     @PostMapping("/invite-driver")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN')")
     @Transactional
-    public ResponseEntity<?> inviteDriver(@RequestBody Map<String, String> request) {
+    public ResponseEntity<?> inviteDriver(@Valid @RequestBody InviteDriverRequest request) {
+        User invitingManager = currentAuthenticatedUser();
+        if (invitingManager.getCompanyId() == null) {
+            throw new BusinessException("Your account is not assigned to a company", HttpStatus.FORBIDDEN);
+        }
+
+        String normalizedEmail = request.email().trim().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new BusinessException("A user with this email already exists", HttpStatus.CONFLICT);
+        }
+
         // Create the Driver user profile shell in the database
         User driver = new User();
-        driver.setName(request.getOrDefault("name", request.get("fullName")));
-        driver.setEmail(request.get("email"));
-        driver.setPhoneNumber(request.get("phoneNumber")); 
-        String companyIdStr = request.get("companyId");
-        if (companyIdStr != null && !companyIdStr.isEmpty()) {
-            driver.setCompanyId(Long.parseLong(companyIdStr));
-        } else {
-            driver.setCompanyId(1L); // Default fallback
-        }
+        driver.setName(request.name().trim());
+        driver.setEmail(normalizedEmail);
+        driver.setPhoneNumber(request.phoneNumber().trim());
+        // Tenant ownership is always resolved from the authenticated manager, never the request body.
+        driver.setCompanyId(invitingManager.getCompanyId());
         driver.setRole("DRIVER");
         // We set dummy password hash for now, updated upon activation
         driver.setPasswordHash(passwordEncoder.encode(secureRandom.nextInt() + "dummy"));
-        driver.setStatus("pending_activation");
+        driver.setStatus("PENDING_ACTIVATION");
         
         userRepository.save(driver);
 
         DriverProfile profile = new DriverProfile(
             driver.getId(),
-            request.get("licenseNumber"),
-            request.get("vehicleId") != null && !request.get("vehicleId").isEmpty() ? Long.parseLong(request.get("vehicleId")) : null,
+            request.licenseNumber().trim(),
+            request.vehicleId(),
             false
         );
         driverProfileRepository.save(profile);
@@ -99,13 +117,17 @@ public class EmailAuthController {
         // Save Token details with a firm 48-hour expiration timestamp
         InvitationToken inviteToken = new InvitationToken();
         inviteToken.setUser(driver);
-        inviteToken.setTokenHash(secureToken);
+        inviteToken.setTokenHash(InvitationTokenHasher.sha256(secureToken));
         inviteToken.setLinkExpiresAt(LocalDateTime.now().plusHours(48));
         tokenRepository.save(inviteToken);
 
         // Formulate the absolute validation URL link
         String activationUrl = appBaseUrl + "/activate?token=" + secureToken;
         
+        System.out.println("=========================================================");
+        System.out.println("🚀 DRIVER ACTIVATION LINK: " + activationUrl);
+        System.out.println("=========================================================");
+
         // Send email via SendGrid
         if (sendGridApiKey != null && !sendGridApiKey.isEmpty()) {
             Email from = new Email(senderEmail);
@@ -136,23 +158,13 @@ public class EmailAuthController {
                 sgRequest.setEndpoint("mail/send");
                 sgRequest.setBody(mail.build());
                 
-                System.out.println("======================================================");
-                System.out.println("LOCAL DEV: Activation Link Generated -> " + activationUrl);
-                System.out.println("======================================================");
-
-                if (sendGridApiKey != null && !sendGridApiKey.isEmpty()) {
-                    Response response = sg.api(sgRequest);
-                    System.out.println("SendGrid Response: " + response.getStatusCode());
-                } else {
-                    System.out.println("WARNING: sendgrid.api.key is missing. Email was NOT sent to " + driver.getEmail());
-                }
+                Response response = sg.api(sgRequest);
+                log.info("Driver invitation email submitted for {} with status {}", driver.getId(), response.getStatusCode());
             } catch (Exception e) {
-                System.out.println("SendGrid Error: " + e.getMessage());
+                log.error("Failed to submit driver invitation email for {}", driver.getId(), e);
             }
         } else {
-            System.out.println("======================================================");
-            System.out.println("LOCAL DEV (NO API KEY): Activation Link Generated -> " + activationUrl);
-            System.out.println("======================================================");
+            log.warn("SendGrid is not configured; invitation email for driver {} was not sent", driver.getId());
         }
 
         return ResponseEntity.ok(Map.of("message", "Driver provisioned. Verification link deployed."));
@@ -163,11 +175,11 @@ public class EmailAuthController {
     // =========================================================================
     @PostMapping("/activate-account")
     @Transactional
-    public ResponseEntity<?> activateAccount(@RequestBody Map<String, String> request) {
-        String token = request.get("token");
-        String password = request.get("password");
+    public ResponseEntity<?> activateAccount(@Valid @RequestBody ActivateAccountRequest request) {
+        String token = request.token();
+        String password = request.password();
 
-        Optional<InvitationToken> inviteOpt = tokenRepository.findByTokenHash(token);
+        Optional<InvitationToken> inviteOpt = tokenRepository.findByTokenHash(InvitationTokenHasher.sha256(token));
         if (inviteOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid or corrupt security link."));
         }
@@ -185,7 +197,7 @@ public class EmailAuthController {
         // Commit Account Activation Changes atomically
         User driver = invite.getUser();
         driver.setPasswordHash(passwordEncoder.encode(password)); 
-        driver.setStatus("active");
+        driver.setStatus("ACTIVE");
         userRepository.save(driver);
 
         // Terminate Token Lifecycle instantly to prevent link recycling exploits
@@ -202,7 +214,7 @@ public class EmailAuthController {
     @Transactional
     public ResponseEntity<?> rejectInvitation(@RequestBody Map<String, String> request) {
         String token = request.get("token");
-        Optional<InvitationToken> inviteOpt = tokenRepository.findByTokenHash(token);
+        Optional<InvitationToken> inviteOpt = tokenRepository.findByTokenHash(InvitationTokenHasher.sha256(token));
 
         if (inviteOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Link is invalid or already processed."));
@@ -215,7 +227,7 @@ public class EmailAuthController {
 
         User driver = invite.getUser();
         userRepository.delete(driver); 
-        System.out.println("⚠️ Roster Alert: Unintended recipient flagged email typo. Database row purged.");
+        log.info("Pending driver invitation rejected and removed for driver {}", driver.getId());
         return ResponseEntity.ok(Map.of("message", "Invitation successfully cancelled. Data cleared."));
     }
     // =========================================================================
@@ -227,10 +239,24 @@ public class EmailAuthController {
         List<InvitationToken> expiredTokens = tokenRepository.findAllByLinkExpiresAtBeforeAndIsUsedFalse(LocalDateTime.now());
         for (InvitationToken token : expiredTokens) {
             User driver = token.getUser();
-            if ("pending_activation".equals(driver.getStatus())) {
+            if ("PENDING_ACTIVATION".equalsIgnoreCase(driver.getStatus())) {
                 userRepository.delete(driver);
                 // Token is deleted via CASCADE
             }
+        }
+    }
+
+    private User currentAuthenticatedUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BusinessException("Authentication is required", HttpStatus.UNAUTHORIZED);
+        }
+        try {
+            Long userId = Long.valueOf(authentication.getName());
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new BusinessException("Authenticated user no longer exists", HttpStatus.UNAUTHORIZED));
+        } catch (NumberFormatException ex) {
+            throw new BusinessException("Authentication must use user ID as principal name", HttpStatus.UNAUTHORIZED);
         }
     }
 }

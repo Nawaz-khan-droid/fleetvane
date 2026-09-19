@@ -16,12 +16,29 @@ import java.util.stream.Collectors;
 public class DepotService {
 
     private final DepotRepository depotRepository;
+    private final com.fleetvane.auth.repository.UserRepository userRepository;
 
     @Transactional(readOnly = true)
     public List<DepotDto> getAllActiveDepots() {
-        return depotRepository.findByIsActiveTrue().stream()
+        Long companyId = getCurrentUserCompanyId();
+        return depotRepository.findByCompanyIdAndIsActiveTrue(companyId).stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
+    }
+
+    private Long getCurrentUserCompanyId() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new com.fleetvane.shared.exception.BusinessException("Authentication required", org.springframework.http.HttpStatus.UNAUTHORIZED);
+        }
+        try {
+            Long userId = Long.valueOf(authentication.getName());
+            return userRepository.findById(userId)
+                    .map(com.fleetvane.auth.entity.User::getCompanyId)
+                    .orElseThrow(() -> new com.fleetvane.shared.exception.BusinessException("User not found", org.springframework.http.HttpStatus.UNAUTHORIZED));
+        } catch (NumberFormatException e) {
+            throw new com.fleetvane.shared.exception.BusinessException("Invalid authentication principal", org.springframework.http.HttpStatus.UNAUTHORIZED);
+        }
     }
 
     @Transactional
@@ -33,6 +50,7 @@ public class DepotService {
                 request.lat(),
                 request.lng()
         );
+        depot.setCompanyId(getCurrentUserCompanyId());
         return mapToDto(depotRepository.save(depot));
     }
 

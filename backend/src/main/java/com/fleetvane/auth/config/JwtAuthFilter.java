@@ -57,26 +57,31 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 var userOpt = userRepository.findById(userId);
-                if (userOpt.isPresent() && "ACTIVE".equalsIgnoreCase(userOpt.get().getStatus())) {
-                    List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-                    if (role != null && !role.isBlank()) {
-                        authorities.add(new SimpleGrantedAuthority(role));
-                        authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                if (userOpt.isPresent()) {
+                    String status = userOpt.get().getStatus();
+                    if ("ACTIVE".equalsIgnoreCase(status) || "pending_activation".equalsIgnoreCase(status)) {
+                        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                        if (role != null && !role.isBlank()) {
+                            authorities.add(new SimpleGrantedAuthority(role));
+                            authorities.add(new SimpleGrantedAuthority("ROLE_" + role));
+                        }
+
+                        UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+                                .username(String.valueOf(userId))
+                                .password("")
+                                .authorities(authorities)
+                                .build();
+
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    } else {
+                        SecurityContextHolder.clearContext();
                     }
-
-                    UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
-                            .username(String.valueOf(userId))
-                            .password("")
-                            .authorities(authorities)
-                            .build();
-
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 } else {
                     SecurityContextHolder.clearContext();
                 }

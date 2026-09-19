@@ -48,7 +48,7 @@ public class DispatchService {
             throw new BusinessException("No pending shipments to dispatch", HttpStatus.BAD_REQUEST);
         }
 
-        List<Vehicle> vehicles = vehicleRepository.findAll();
+        List<Vehicle> vehicles = vehicleRepository.findByStatus("AVAILABLE");
         if (vehicles.isEmpty()) {
             throw new BusinessException("No vehicles available for dispatch", HttpStatus.BAD_REQUEST);
         }

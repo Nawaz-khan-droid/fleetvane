@@ -90,20 +90,19 @@ public class VehicleService {
     }
     
     @Transactional
-    public VehicleDto updateStatus(Long id, String status) {
-        Vehicle vehicle = vehicleRepository.findById(id)
+    public VehicleDto updateStatus(Long id, Long companyId, String status) {
+        Vehicle vehicle = vehicleRepository.findByIdAndCompanyId(id, companyId)
             .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", id));
         vehicle.setStatus(status);
         return mapToDto(vehicleRepository.save(vehicle));
     }
 
     @Transactional
-    public void deleteVehicle(Long id) {
-        if (!vehicleRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Vehicle", "id", id);
-        }
+    public void deleteVehicle(Long id, Long companyId) {
+        Vehicle vehicle = vehicleRepository.findByIdAndCompanyId(id, companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", id));
         try {
-            vehicleRepository.deleteById(id);
+            vehicleRepository.delete(vehicle);
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             throw new BusinessException("Cannot delete vehicle because it is still referenced by other records (e.g. shipments or driver assignments).", HttpStatus.CONFLICT);
         }

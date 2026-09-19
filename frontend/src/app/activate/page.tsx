@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, Suspense, FormEvent, useEffect } from 'react';
+import { useState, Suspense, FormEvent } from 'react';
 import { Lock, Eye, EyeOff, Loader2, KeyRound } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -23,15 +23,6 @@ function ActivationForm() {
     const [error, setError] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
 
-    // Device Fingerprinting Tracking
-    useEffect(() => {
-        let deviceUuid = localStorage.getItem('device_uuid');
-        if (!deviceUuid) {
-            deviceUuid = crypto.randomUUID ? crypto.randomUUID() : 'fallback-uuid-' + Date.now();
-            localStorage.setItem('device_uuid', deviceUuid);
-        }
-    }, []);
-
     const handleFormSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
         e.preventDefault();
         setError('');
@@ -48,13 +39,10 @@ function ActivationForm() {
 
         setLoading(true);
         try {
-            const deviceUuid = localStorage.getItem('device_uuid');
-            const backendUrl = process.env.NEXT_PUBLIC_SPRING_BOOT_URL || 'http://localhost:8080';
-            
-            const response = await fetch(`${backendUrl}/api/auth/activate-account`, {
+            const response = await fetch('/api/auth/activate-account', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token, password, deviceUuid })
+                body: JSON.stringify({ token, password })
             });
 
             if (response.ok) {

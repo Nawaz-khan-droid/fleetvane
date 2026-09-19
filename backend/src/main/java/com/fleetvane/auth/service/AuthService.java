@@ -198,8 +198,8 @@ public class AuthService {
     public record AuthResult(AuthResponse response, String rawRefreshToken) {}
     
     @Transactional
-    public AuthResult completeOnboarding(String email, CompleteOnboardingRequest request) {
-        User user = userRepository.findByEmail(email)
+    public AuthResult completeOnboarding(Long userId, CompleteOnboardingRequest request) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
 
         if (!"CLIENT".equals(user.getRole()) && !"MANAGER".equals(user.getRole())) {
@@ -218,6 +218,7 @@ public class AuthService {
             user.setCompanyId(null);
         }
         
+        user.setStatus("ACTIVE");
         userRepository.save(user);
 
         // Invalidate old refresh tokens
@@ -228,8 +229,8 @@ public class AuthService {
     }
 
     @Transactional
-    public void deleteAccount(String email) {
-        User user = userRepository.findByEmail(email)
+    public void deleteAccount(Long userId) {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException("User not found", HttpStatus.NOT_FOUND));
 
         refreshTokenRepository.revokeAllByUser(user.getId(), Instant.now());

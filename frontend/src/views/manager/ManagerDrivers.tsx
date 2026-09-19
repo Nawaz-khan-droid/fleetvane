@@ -32,17 +32,22 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import Pagination from '@/components/shared/Pagination';
 
 export default function ManagerDrivers() {
   const { state: authState } = useAuth();
-  const { drivers, setDrivers } = useStore();
+  const { drivers, setDrivers, vehicles } = useStore();
   const [loading, setLoading] = useState(true);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [driverName, setDriverName] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [vehicleComboboxOpen, setVehicleComboboxOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [creating, setCreating] = useState(false);
   
@@ -60,7 +65,20 @@ export default function ManagerDrivers() {
       if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
       const rawData = await res.json();
       const pageData = normalizePageResponse<any>(rawData);
-      setDrivers(pageData.items);
+      const mappedDrivers = pageData.items.map((d: any) => ({
+        id: String(d.userId),
+        name: d.userName || 'Unknown Driver',
+        email: d.email || '',
+        role: 'DRIVER',
+        driverProfile: {
+          id: String(d.id),
+          licenseNumber: d.licenseNumber,
+          vehicleId: d.vehicleId ? String(d.vehicleId) : null,
+          isAvailable: d.isAvailable,
+          vehicle: d.vehicleId && vehicles.length > 0 ? vehicles.find(v => v.id === String(d.vehicleId)) || null : null
+        }
+      }));
+      setDrivers(mappedDrivers);
     } catch (err: any) {
       if (err instanceof ApiContractError) {
         toast.error('Unable to load drivers. Unexpected response format.');
@@ -103,7 +121,6 @@ export default function ManagerDrivers() {
         phoneNumber: phoneNumber.trim(),
         licenseNumber: licenseNumber.trim(),
         vehicleId: selectedVehicleId || null,
-        companyId: authState.user?.companyId?.toString() || '1',
       };
       const res = await fetchWithAuth('/api/auth/invite-driver', {
         method: 'POST',
@@ -113,7 +130,10 @@ export default function ManagerDrivers() {
         },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || 'Failed to create driver');
+      }
       toast.success(t.manager.driverCreated || 'Driver provisioned successfully. Verification link deployed.');
       setCreateDialogOpen(false);
       setDriverName('');
@@ -122,8 +142,8 @@ export default function ManagerDrivers() {
       setLicenseNumber('');
       setSelectedVehicleId('');
       fetchDrivers();
-    } catch {
-      toast.error(t.common.error);
+    } catch (err: any) {
+      toast.error(err.message || t.common.error);
     } finally {
       setCreating(false);
     }
@@ -163,8 +183,8 @@ export default function ManagerDrivers() {
     <div className="space-y-6 pb-12">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Driver Management</h2>
+        <div className="hidden sm:block">
+          {/* Removed redundant heading, handled by TopNav */}
           <p className="text-sm text-slate-500 dark:text-slate-400">Manage fleet drivers and assignments.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -228,7 +248,7 @@ export default function ManagerDrivers() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>License Number</Label>
+                  <Label>License Number <span className="text-red-500">*</span></Label>
                   <Input
                     placeholder="DL-1234567890"
                     value={licenseNumber}
@@ -240,18 +260,52 @@ export default function ManagerDrivers() {
 
                 <div className="space-y-1.5">
                   <Label>Assign Vehicle</Label>
-                  <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-                    <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-700">
-                      <SelectValue placeholder="Optional — select a vehicle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableVehicles.map((v) => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.plateNumber} — {v.model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={vehicleComboboxOpen} onOpenChange={setVehicleComboboxOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={vehicleComboboxOpen}
+                        className="w-full justify-between font-normal rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                      >
+                        {selectedVehicleId
+                          ? (() => {
+                              const v = availableVehicles.find((vehicle) => vehicle.id === selectedVehicleId);
+                              return v ? `${v.plateNumber} — ${v.model}` : 'Select a vehicle...';
+                            })()
+                          : "Optional — select a vehicle"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-xl" align="start" style={{ zIndex: 100 }}>
+                      <Command>
+                        <CommandInput placeholder="Search vehicle by plate or model..." className="border-none focus:ring-0" />
+                        <CommandList className="max-h-[200px] overflow-y-auto">
+                          <CommandEmpty>No vehicle found.</CommandEmpty>
+                          <CommandGroup>
+                            {availableVehicles.map((v) => (
+                              <CommandItem
+                                key={v.id}
+                                value={`${v.plateNumber} ${v.model}`}
+                                onSelect={() => {
+                                  setSelectedVehicleId(v.id === selectedVehicleId ? "" : v.id);
+                                  setVehicleComboboxOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    selectedVehicleId === v.id ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {v.plateNumber} — {v.model}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
                 <DialogFooter className="pt-4">
@@ -357,7 +411,7 @@ export default function ManagerDrivers() {
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${driver.driverProfile?.isAvailable ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                     <span className={`text-sm font-medium ${driver.driverProfile?.isAvailable ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
-                      {driver.driverProfile?.isAvailable ? 'Available' : 'On Duty'}
+                      {driver.driverProfile?.isAvailable ? 'Available' : 'Unavailable'}
                     </span>
                   </div>
                   <Switch 

@@ -144,7 +144,20 @@ export default function ManagerShipments() {
       ]);
       if (!vehRes.ok || !drvRes.ok) throw new Error();
       const allVehicles: Vehicle[] = normalizePageResponse<Vehicle>(await vehRes.json()).items;
-      const allDrivers: DriverWithProfile[] = normalizePageResponse<DriverWithProfile>(await drvRes.json()).items;
+      const rawDrivers = normalizePageResponse<any>(await drvRes.json()).items;
+      const allDrivers: DriverWithProfile[] = rawDrivers.map((d: any) => ({
+        id: String(d.userId),
+        name: d.userName || 'Unknown Driver',
+        email: d.email || '',
+        role: 'DRIVER',
+        driverProfile: {
+          id: String(d.id),
+          licenseNumber: d.licenseNumber,
+          vehicleId: d.vehicleId ? String(d.vehicleId) : null,
+          isAvailable: d.isAvailable,
+          vehicle: d.vehicleId ? allVehicles.find(v => v.id === String(d.vehicleId)) || null : null
+        }
+      }));
       setAvailableVehicles(allVehicles.filter((v) => v.status === 'AVAILABLE'));
       setAvailableDrivers(allDrivers.filter((d) => d.driverProfile?.isAvailable));
     } catch {
@@ -242,7 +255,6 @@ export default function ManagerShipments() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Shipment Management</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">Track and assign fleet shipments.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">

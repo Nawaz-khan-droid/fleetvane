@@ -10,9 +10,11 @@ import t from '@/locales/en.json';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTheme } from 'next-themes';
 
 export default function ManagerSettings() {
   const { state: authState } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState<'account' | 'security' | 'appearance'>('account');
 
@@ -25,9 +27,6 @@ export default function ManagerSettings() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-
-  // Appearance state
-  const [themePref, setThemePref] = useState<'light' | 'dark' | 'system'>('system');
 
   const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,8 +82,11 @@ export default function ManagerSettings() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Settings</h2>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="hidden sm:block">
+          {/* Removed redundant heading */}
+        </div>
         <p className="text-sm text-slate-500 dark:text-slate-400">Manage your account preferences and security.</p>
       </div>
 
@@ -309,13 +311,13 @@ export default function ManagerSettings() {
                       { id: 'light', label: 'Light Mode', icon: Sun, desc: 'Clean and bright' },
                       { id: 'dark', label: 'Dark Mode', icon: Moon, desc: 'Easy on the eyes' },
                       { id: 'system', label: 'System', icon: Monitor, desc: 'Matches device' },
-                    ].map((theme) => {
-                      const Icon = theme.icon;
-                      const isActive = themePref === theme.id;
+                    ].map((t) => {
+                      const Icon = t.icon;
+                      const isActive = theme === t.id;
                       return (
                         <button
-                          key={theme.id}
-                          onClick={() => setThemePref(theme.id as any)}
+                          key={t.id}
+                          onClick={() => setTheme(t.id)}
                           className={`flex flex-col items-center text-center p-4 rounded-2xl border-2 transition-all ${
                             isActive
                               ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
@@ -328,9 +330,9 @@ export default function ManagerSettings() {
                             <Icon className="w-5 h-5" />
                           </div>
                           <span className={`font-semibold mb-1 ${isActive ? 'text-blue-700 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100'}`}>
-                            {theme.label}
+                            {t.label}
                           </span>
-                          <span className="text-xs text-slate-500">{theme.desc}</span>
+                          <span className="text-xs text-slate-500">{t.desc}</span>
                         </button>
                       );
                     })}

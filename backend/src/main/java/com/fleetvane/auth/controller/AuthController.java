@@ -89,8 +89,8 @@ public class AuthController {
             HttpServletRequest httpRequest, 
             HttpServletResponse response) {
         
-        String userEmail = authentication.getName();
-        AuthService.AuthResult result = authService.completeOnboarding(userEmail, request);
+        Long userId = Long.parseLong(authentication.getName());
+        AuthService.AuthResult result = authService.completeOnboarding(userId, request);
         setRefreshTokenCookie(httpRequest, response, result.rawRefreshToken());
         
         return ResponseEntity.ok(result.response());
@@ -102,8 +102,8 @@ public class AuthController {
             HttpServletRequest request, 
             HttpServletResponse response) {
         
-        String userEmail = authentication.getName();
-        authService.deleteAccount(userEmail);
+        Long userId = Long.parseLong(authentication.getName());
+        authService.deleteAccount(userId);
         
         Cookie deleteCookie = new Cookie("refresh_token", null);
         deleteCookie.setMaxAge(0);
@@ -116,6 +116,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/cleanup-test-users")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<String> cleanupTestUsers() {
         authService.cleanupTestUsers();
         return ResponseEntity.ok("Deleted all users except admin and client");

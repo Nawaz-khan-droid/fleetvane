@@ -221,7 +221,7 @@ export default function ManagerLayout({ children, title }: ManagerLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <ThemeToggle />
+            {/* ThemeToggle removed to prevent redundancy with Settings */}
             <NotificationBell />
             <button
               onClick={() => navigate('/manager/profile')}

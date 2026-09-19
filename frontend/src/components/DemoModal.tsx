@@ -13,11 +13,11 @@ export function DemoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     let password = 'Client123!';
     switch (role) {
       case 'MANAGER':
-        email = 'admin@fleetvane.com';
-        password = 'Admin123!';
+        email = 'manager@fleetvane.com';
+        password = 'Manager123!';
         break;
       case 'DRIVER':
-        email = 'driver@fleetvane.com';
+        email = 'driver1@fleetvane.com';
         password = 'Driver123!';
         break;
       case 'CLIENT':

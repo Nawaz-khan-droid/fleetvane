@@ -143,4 +143,26 @@ class VehicleServiceTest {
         assertEquals(2.3522, result.lng());
         assertEquals(0.0, result.heading());
     }
+
+    @Test
+    void updateStatus_UsesCompanyScopedVehicleLookup() {
+        when(vehicleRepository.findByIdAndCompanyId(1L, 42L)).thenReturn(Optional.of(vehicle));
+        when(vehicleRepository.save(vehicle)).thenReturn(vehicle);
+
+        VehicleDto result = vehicleService.updateStatus(1L, 42L, "MAINTENANCE");
+
+        assertEquals("MAINTENANCE", result.status());
+        verify(vehicleRepository).findByIdAndCompanyId(1L, 42L);
+        verify(vehicleRepository, never()).findById(1L);
+    }
+
+    @Test
+    void deleteVehicle_RejectsVehicleOutsideManagersCompany() {
+        when(vehicleRepository.findByIdAndCompanyId(1L, 42L)).thenReturn(Optional.empty());
+
+        assertThrows(Exception.class, () -> vehicleService.deleteVehicle(1L, 42L));
+
+        verify(vehicleRepository, never()).delete(any(Vehicle.class));
+        verify(vehicleRepository, never()).deleteById(anyLong());
+    }
 }
