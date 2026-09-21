@@ -217,7 +217,7 @@ export default function OnboardingPage() {
                     <select
                       value={industry}
                       onChange={(e) => setIndustry(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 [&>option]:dark:bg-slate-900 [&>option]:dark:text-slate-100"
                     >
                       <option value="">Select industry</option>
                       <option value="delivery">Delivery & Logistics</option>

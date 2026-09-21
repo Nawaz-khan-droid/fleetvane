@@ -36,9 +36,16 @@ public class DriverService {
             .orElseThrow(() -> new ResourceNotFoundException("DriverProfile", "userId", userId));
     }
 
+    public UserRepository getUserRepository() {
+        return userRepository;
+    }
+
     @Transactional(readOnly = true)
-    public Page<DriverProfileDto> getAllDrivers(Pageable pageable) {
-        Page<DriverProfile> profiles = driverProfileRepository.findAll(pageable);
+    public Page<DriverProfileDto> getAllDrivers(Long companyId, Pageable pageable) {
+        Page<DriverProfile> profiles = companyId != null 
+            ? driverProfileRepository.findByCompanyId(companyId, pageable)
+            : driverProfileRepository.findAll(pageable);
+
         
         // Batch-fetch all users in ONE query instead of N+1
         List<Long> userIds = profiles.getContent().stream()
