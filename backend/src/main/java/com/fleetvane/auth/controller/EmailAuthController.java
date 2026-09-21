@@ -99,7 +99,7 @@ public class EmailAuthController {
         driver.setPasswordHash(passwordEncoder.encode(secureRandom.nextInt() + "dummy"));
         driver.setStatus("PENDING_ACTIVATION");
         
-        userRepository.save(driver);
+        driver = userRepository.save(driver);
 
         DriverProfile profile = new DriverProfile(
             driver.getId(),

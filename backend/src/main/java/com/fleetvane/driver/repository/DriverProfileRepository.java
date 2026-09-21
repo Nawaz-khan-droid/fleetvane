@@ -8,8 +8,14 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
 @Repository
 public interface DriverProfileRepository extends JpaRepository<DriverProfile, Long> {
     Optional<DriverProfile> findByUserId(Long userId);
     Page<DriverProfile> findByIsAvailable(Boolean isAvailable, Pageable pageable);
+    
+    @Query("SELECT dp FROM DriverProfile dp JOIN User u ON dp.userId = u.id WHERE u.companyId = :companyId")
+    Page<DriverProfile> findByCompanyId(@Param("companyId") Long companyId, Pageable pageable);
 }

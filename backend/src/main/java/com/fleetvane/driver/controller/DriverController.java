@@ -19,10 +19,15 @@ public class DriverController {
     private final DriverService driverService;
     private final com.fleetvane.driver.shift.DriverShiftService shiftService;
 
+    private Long getCurrentCompanyId() {
+        String userIdStr = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        return driverService.getUserRepository().findById(Long.parseLong(userIdStr)).map(com.fleetvane.auth.entity.User::getCompanyId).orElse(null);
+    }
+
     @GetMapping("")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
     public Page<DriverProfileDto> getAllDrivers(Pageable pageable) {
-        return driverService.getAllDrivers(pageable);
+        return driverService.getAllDrivers(getCurrentCompanyId(), pageable);
     }
 
     @GetMapping("/{userId}")

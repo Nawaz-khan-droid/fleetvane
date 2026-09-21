@@ -313,7 +313,7 @@ export default function ManagerDrivers() {
                     <Button type="button" variant="outline" className="rounded-xl">Cancel</Button>
                   </DialogClose>
                   <Button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white" disabled={creating || !driverName.trim() || !licenseNumber.trim()}>
-                    {creating ? 'Creating...' : 'Create Driver'}
+                    {creating ? 'Creating...' : 'Create Driver Account'}
                   </Button>
                 </DialogFooter>
               </form>
