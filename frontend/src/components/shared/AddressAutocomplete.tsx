@@ -13,9 +13,10 @@ interface AddressAutocompleteProps {
   value: string;
   onChange: (val: string) => void;
   required?: boolean;
+  onSelect?: (suggestion: Suggestion) => void;
 }
 
-export function AddressAutocomplete({ label, placeholder, value, onChange, required }: AddressAutocompleteProps) {
+export function AddressAutocomplete({ label, placeholder, value, onChange, required, onSelect }: AddressAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -50,7 +51,7 @@ export function AddressAutocomplete({ label, placeholder, value, onChange, requi
     debounceRef.current = setTimeout(async () => {
       try {
         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(val)}&limit=5`, {
-          headers: { 'Accept-Language': 'en' }
+          headers: { 'Accept-Language': 'en', 'User-Agent': 'FleetVane/1.0' }
         });
         const data = await res.json();
         setSuggestions(data || []);
@@ -63,12 +64,11 @@ export function AddressAutocomplete({ label, placeholder, value, onChange, requi
   };
 
   const handleSelect = (s: Suggestion) => {
-    // Keep it short for the input, maybe split by comma and take first 2 parts
-    const parts = s.display_name.split(',');
-    const shortName = parts.length > 2 ? `${parts[0].trim()}, ${parts[1].trim()}` : s.display_name;
-    
-    onChange(shortName);
+    onChange(s.display_name);
     setShowDropdown(false);
+    if (onSelect) {
+      onSelect(s);
+    }
   };
 
   return (

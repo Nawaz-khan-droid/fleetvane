@@ -86,6 +86,11 @@ public class EmailAuthController {
         if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new BusinessException("A user with this email already exists", HttpStatus.CONFLICT);
         }
+        
+        long driverCount = userRepository.countByCompanyIdAndRole(invitingManager.getCompanyId(), "DRIVER");
+        if (driverCount >= 10) {
+            throw new BusinessException("You have reached the maximum limit of 10 drivers per account.", HttpStatus.BAD_REQUEST);
+        }
 
         // Create the Driver user profile shell in the database
         User driver = new User();
@@ -95,9 +100,16 @@ public class EmailAuthController {
         // Tenant ownership is always resolved from the authenticated manager, never the request body.
         driver.setCompanyId(invitingManager.getCompanyId());
         driver.setRole("DRIVER");
-        // We set dummy password hash for now, updated upon activation
-        driver.setPasswordHash(passwordEncoder.encode(secureRandom.nextInt() + "dummy"));
-        driver.setStatus("PENDING_ACTIVATION");
+        
+        boolean isDemo = (invitingManager.getCompanyId() != null && invitingManager.getCompanyId() == 1L);
+        
+        if (isDemo) {
+            driver.setPasswordHash(passwordEncoder.encode("Driver123!"));
+            driver.setStatus("ACTIVE");
+        } else {
+            driver.setPasswordHash(passwordEncoder.encode(secureRandom.nextInt() + "dummy"));
+            driver.setStatus("PENDING_ACTIVATION");
+        }
         
         driver = userRepository.save(driver);
 
@@ -108,6 +120,10 @@ public class EmailAuthController {
             false
         );
         driverProfileRepository.save(profile);
+
+        if (isDemo) {
+            return ResponseEntity.ok(Map.of("message", "Demo Driver account created and instantly activated. Password is 'Driver123!'."));
+        }
 
         // Generate a 32-byte secure random token (64 hex characters)
         byte[] tokenBytes = new byte[32];
@@ -258,5 +274,62 @@ public class EmailAuthController {
         } catch (NumberFormatException ex) {
             throw new BusinessException("Authentication must use user ID as principal name", HttpStatus.UNAUTHORIZED);
         }
+    }
+
+    // =========================================================================
+    // 🚀 DEMO MODE: Instant driver creation (no email verification)
+    // Only works when the manager is a demo account (companyId == 1)
+    // =========================================================================
+    @PostMapping("/invite-driver/demo")
+    @PreAuthorize("hasAnyAuthority('MANAGER', 'ROLE_MANAGER', 'ADMIN', 'ROLE_ADMIN')")
+    @Transactional
+    public ResponseEntity<?> createDemoDriver(@Valid @RequestBody InviteDriverRequest request) {
+        User invitingManager = currentAuthenticatedUser();
+        if (invitingManager.getCompanyId() == null) {
+            throw new BusinessException("Your account is not assigned to a company", HttpStatus.FORBIDDEN);
+        }
+
+        // Only permit demo accounts (companyId 1 = seeded demo company)
+        if (!Long.valueOf(1L).equals(invitingManager.getCompanyId())) {
+            throw new BusinessException("Demo driver creation is only available for demo accounts", HttpStatus.FORBIDDEN);
+        }
+
+        String normalizedEmail = request.email().trim().toLowerCase();
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
+            throw new BusinessException("A user with this email already exists", HttpStatus.CONFLICT);
+        }
+
+        long driverCount = userRepository.countByCompanyIdAndRole(invitingManager.getCompanyId(), "DRIVER");
+        if (driverCount >= 10) {
+            throw new BusinessException("You have reached the maximum limit of 10 drivers per account.", HttpStatus.BAD_REQUEST);
+        }
+
+        // Create driver with default password (Driver123!) and immediately ACTIVE status
+        User driver = new User();
+        driver.setName(request.name().trim());
+        driver.setEmail(normalizedEmail);
+        driver.setPhoneNumber(request.phoneNumber() != null ? request.phoneNumber().trim() : "");
+        driver.setCompanyId(invitingManager.getCompanyId());
+        driver.setRole("DRIVER");
+        driver.setPasswordHash(passwordEncoder.encode("Driver123!"));
+        driver.setStatus("ACTIVE");
+        driver = userRepository.save(driver);
+
+        DriverProfile profile = new DriverProfile(
+            driver.getId(),
+            request.licenseNumber() != null ? request.licenseNumber().trim() : "DEMO-LICENSE",
+            request.vehicleId(),
+            false
+        );
+        driverProfileRepository.save(profile);
+
+        log.info("Demo driver created instantly: {} (id={})", driver.getEmail(), driver.getId());
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Demo driver account created successfully with default password: Driver123!",
+            "driverId", driver.getId(),
+            "email", driver.getEmail(),
+            "defaultPassword", "Driver123!"
+        ));
     }
 }

@@ -14,6 +14,21 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { normalizePageResponse, ApiContractError } from '@/lib/utils';
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 import { loadGoogleMaps, getLeafletTileUrl, getLeafletAttribution } from '@/lib/maps';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
@@ -135,6 +150,37 @@ const PodModal = ({ shipment, onClose, onSubmit }: { shipment: any, onClose: () 
     </div>
   );
 };
+
+// --- QR SCANNER MODAL ---
+const QrScannerModal = ({ shipment, onClose, onSuccess }: { shipment: any, onClose: () => void, onSuccess: (qrToken: string) => void }) => {
+  const [inputValue, setInputValue] = useState(shipment.qrToken || ''); // Auto-fill for demo
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white dark:bg-slate-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl p-6">
+        <h2 className="text-xl font-bold font-fraunces text-slate-900 dark:text-white mb-4">Scan QR Code</h2>
+        <p className="text-sm text-slate-500 mb-6">
+          For this demo, the client's QR code token is pre-filled below. Click Confirm to verify pickup.
+        </p>
+        <input 
+          type="text" 
+          value={inputValue} 
+          onChange={(e) => setInputValue(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white mb-6"
+        />
+        <div className="flex gap-3">
+          <button onClick={onClose} className="flex-1 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-medium">
+            Cancel
+          </button>
+          <button onClick={() => onSuccess(inputValue)} className="flex-1 py-3.5 bg-blue-600 text-white rounded-xl font-medium">
+            Confirm Pickup
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
 // ------------------------------------
 
 export default function DriverRoute() {
@@ -149,6 +195,7 @@ export default function DriverRoute() {
   const [mapProvider, setMapProvider] = useState<'leaflet' | 'google'>('leaflet');
   const [mapReady, setMapReady] = useState(false);
   const [isPodModalOpen, setIsPodModalOpen] = useState(false);
+  const [isQrModalOpen, setIsQrModalOpen] = useState(false);
   const { resolvedTheme } = useTheme();
   const tileLayerRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
@@ -167,6 +214,68 @@ export default function DriverRoute() {
       setShipment(prev => prev ? { ...prev, status: 'DELIVERED' } : null);
     } catch (err) {
       toast.error('Failed to submit Proof of Delivery');
+    }
+  };
+
+  const handleQrSubmit = async (qrToken: string) => {
+    if (!shipment) return;
+    try {
+      const res = await fetchWithAuth(`/api/shipments/${shipment.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'AT_PICKUP', pod: { qrToken } })
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Invalid QR Token');
+      }
+      
+      // Also automatically transition to IN_TRANSIT for smoother demo
+      const transitRes = await fetchWithAuth(`/api/shipments/${shipment.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'IN_TRANSIT' })
+      });
+      if (!transitRes.ok) throw new Error('Failed to transition to In Transit');
+
+      toast.success('Pickup verified! Status updated to In Transit.');
+      setIsQrModalOpen(false);
+      setShipment(prev => prev ? { ...prev, status: 'IN_TRANSIT' } : null);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to verify QR Code');
+    }
+  };
+
+  const handleCompleteDeliveryClick = () => {
+    if (shipment?.destinationLat == null || shipment?.destinationLng == null) {
+      setIsPodModalOpen(true);
+      return;
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const distanceKm = haversineKm(
+            position.coords.latitude,
+            position.coords.longitude,
+            shipment.destinationLat as number,
+            shipment.destinationLng as number
+          );
+          
+          if (distanceKm > 0.1) {
+            toast.error(`Geofence Block: You are ${Math.round(distanceKm * 1000)}m away. Must be within 100m to complete delivery.`);
+          } else {
+            setIsPodModalOpen(true);
+          }
+        },
+        (error) => {
+          toast.warning("Could not get your location. Bypassing geofence for demo purposes.");
+          setIsPodModalOpen(true);
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      setIsPodModalOpen(true);
     }
   };
 
@@ -527,29 +636,42 @@ export default function DriverRoute() {
               </div>
             </div>
 
-            <button
-              onClick={handleTripToggle}
-              className={`w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-colors ${
-                isSimulating 
-                  ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20 shadow-lg' 
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 shadow-lg'
-              }`}
-            >
-              {isSimulating ? (
-                <>
-                  <Square className="w-5 h-5 fill-current" />
-                  End Trip
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5 fill-current" />
-                  Start Trip
-                </>
-              )}
-            </button>
-            {shipment.status !== 'DELIVERED' && (
+            {authState.user?.companyId === 1 && (
               <button
-                onClick={() => setIsPodModalOpen(true)}
+                onClick={handleTripToggle}
+                className={`w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-colors ${
+                  isSimulating 
+                    ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20 shadow-lg' 
+                    : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20 shadow-lg'
+                }`}
+              >
+                {isSimulating ? (
+                  <>
+                    <Square className="w-5 h-5 fill-current" />
+                    End Trip
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5 fill-current" />
+                    Start Trip
+                  </>
+                )}
+              </button>
+            )}
+
+            {shipment.status === 'EN_ROUTE_TO_PICKUP' && (
+              <button
+                onClick={() => setIsQrModalOpen(true)}
+                className="w-full mt-3 py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-colors bg-blue-600 hover:bg-blue-700 shadow-blue-600/20 shadow-lg"
+              >
+                <Camera className="w-5 h-5 fill-current" />
+                Scan QR at Pickup
+              </button>
+            )}
+
+            {shipment.status === 'IN_TRANSIT' && (
+              <button
+                onClick={handleCompleteDeliveryClick}
                 className="w-full mt-3 py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-3 transition-colors bg-blue-600 hover:bg-blue-700 shadow-blue-600/20 shadow-lg"
               >
                 <CheckCircle className="w-5 h-5 fill-current" />
@@ -558,6 +680,14 @@ export default function DriverRoute() {
             )}
           </div>
         </motion.div>
+      )}
+
+      {isQrModalOpen && (
+        <QrScannerModal
+          shipment={shipment}
+          onClose={() => setIsQrModalOpen(false)}
+          onSuccess={handleQrSubmit}
+        />
       )}
 
       {isPodModalOpen && (

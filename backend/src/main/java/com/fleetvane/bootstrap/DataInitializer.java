@@ -8,6 +8,8 @@ import com.fleetvane.fleet.entity.Vehicle;
 import com.fleetvane.fleet.repository.VehicleRepository;
 import com.fleetvane.shipment.entity.Shipment;
 import com.fleetvane.shipment.repository.ShipmentRepository;
+import com.fleetvane.shared.entity.Company;
+import com.fleetvane.shared.repository.CompanyRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Profile;
@@ -26,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final VehicleRepository vehicleRepository;
     private final DriverProfileRepository driverProfileRepository;
     private final ShipmentRepository shipmentRepository;
+    private final CompanyRepository companyRepository;
     private final PasswordEncoder passwordEncoder;
     private final String adminEmail;
     private final String adminPassword;
@@ -38,6 +41,7 @@ public class DataInitializer implements CommandLineRunner {
                            VehicleRepository vehicleRepository,
                            DriverProfileRepository driverProfileRepository,
                            ShipmentRepository shipmentRepository,
+                           CompanyRepository companyRepository,
                            PasswordEncoder passwordEncoder,
                            @Value("${fleetvane.demo.admin-email:admin@fleetvane.com}") String adminEmail,
                            @Value("${fleetvane.demo.admin-password:Admin123!}") String adminPassword,
@@ -49,6 +53,7 @@ public class DataInitializer implements CommandLineRunner {
         this.vehicleRepository = vehicleRepository;
         this.driverProfileRepository = driverProfileRepository;
         this.shipmentRepository = shipmentRepository;
+        this.companyRepository = companyRepository;
         this.passwordEncoder = passwordEncoder;
         this.adminEmail = adminEmail;
         this.adminPassword = adminPassword;
@@ -67,36 +72,50 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
+        Company transportCompany;
+        Company shipperCompany;
+
+        if (companyRepository.count() == 0) {
+            transportCompany = companyRepository.save(new Company("Demo Transport Logistics", "TRANSPORT"));
+            shipperCompany = companyRepository.save(new Company("Acme Corp", "SHIPPER"));
+        } else {
+            transportCompany = companyRepository.findByType("TRANSPORT").stream().findFirst().orElseGet(() -> companyRepository.save(new Company("Demo Transport Logistics", "TRANSPORT")));
+            shipperCompany = companyRepository.findByType("SHIPPER").stream().findFirst().orElseGet(() -> companyRepository.save(new Company("Acme Corp", "SHIPPER")));
+        }
+
+        Long transportId = transportCompany.getId();
+        Long shipperId = shipperCompany.getId();
+
         if (userRepository.findByEmail(adminEmail).isEmpty()) {
             User admin = new User(adminEmail, passwordEncoder.encode(adminPassword), "System Administrator", "ADMIN");
-            admin.setCompanyId(1L);
+            admin.setCompanyId(transportId);
             admin.setStatus("ACTIVE");
             userRepository.save(admin);
         } else {
             User admin = userRepository.findByEmail(adminEmail).get();
-            admin.setCompanyId(1L);
+            admin.setCompanyId(transportId);
             admin.setStatus("ACTIVE");
             userRepository.save(admin);
         }
         if (userRepository.findByEmail(managerEmail).isEmpty()) {
             User manager = new User(managerEmail, passwordEncoder.encode(managerPassword), "Operations Manager", "MANAGER");
-            manager.setCompanyId(1L);
+            manager.setCompanyId(transportId);
             manager.setStatus("ACTIVE");
             userRepository.save(manager);
         } else {
             User manager = userRepository.findByEmail(managerEmail).get();
-            manager.setCompanyId(1L);
+            manager.setCompanyId(transportId);
             manager.setStatus("ACTIVE");
             userRepository.save(manager);
         }
         if (userRepository.findByEmail(clientEmail).isEmpty()) {
             User client = new User(clientEmail, passwordEncoder.encode(clientPassword), "Demo Client", "CLIENT");
-            client.setCompanyId(1L);
+            client.setCompanyId(shipperId);
             client.setStatus("ACTIVE");
             userRepository.save(client);
         } else {
             User client = userRepository.findByEmail(clientEmail).get();
-            client.setCompanyId(1L);
+            client.setCompanyId(shipperId);
             client.setStatus("ACTIVE");
             userRepository.save(client);
         }
@@ -105,12 +124,12 @@ public class DataInitializer implements CommandLineRunner {
         for (int i = 0; i < driverEmails.length; i++) {
             if (userRepository.findByEmail(driverEmails[i]).isEmpty()) {
                 User driver = new User(driverEmails[i], passwordEncoder.encode("Driver123!"), driverNames[i], "DRIVER");
-                driver.setCompanyId(1L);
+                driver.setCompanyId(transportId);
                 driver.setStatus("ACTIVE");
                 userRepository.save(driver);
             } else {
                 User driver = userRepository.findByEmail(driverEmails[i]).get();
-                driver.setCompanyId(1L);
+                driver.setCompanyId(transportId);
                 driver.setStatus("ACTIVE");
                 userRepository.save(driver);
             }
@@ -181,6 +200,7 @@ public class DataInitializer implements CommandLineRunner {
         if (shipmentRepository.count() > 0) return;
 
         Long clientId = userRepository.findByEmail(clientEmail).map(User::getId).orElse(1L);
+        Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(com.fleetvane.shared.entity.Company::getId).orElse(1L);
 
         List<Vehicle> vehicles = vehicleRepository.findAll();
         Long v1 = vehicles.size() > 0 ? vehicles.get(0).getId() : null;
@@ -219,14 +239,23 @@ public class DataInitializer implements CommandLineRunner {
 
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
                                String destAddr, Double dLat, Double dLng, Double weight, int l, int w, int h) {
-        saveShipment(clientId, status, originAddr, oLat, oLng, destAddr, dLat, dLng, weight, l, w, h, null, null);
+        Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(com.fleetvane.shared.entity.Company::getId).orElse(1L);
+        saveShipment(clientId, status, originAddr, oLat, oLng, destAddr, dLat, dLng, weight, l, w, h, null, null, transportId);
     }
 
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
                                String destAddr, Double dLat, Double dLng, Double weight, int l, int w, int h,
                                Long vehicleId, Long driverId) {
+        Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(com.fleetvane.shared.entity.Company::getId).orElse(1L);
+        saveShipment(clientId, status, originAddr, oLat, oLng, destAddr, dLat, dLng, weight, l, w, h, vehicleId, driverId, transportId);
+    }
+
+    private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
+                               String destAddr, Double dLat, Double dLng, Double weight, int l, int w, int h,
+                               Long vehicleId, Long driverId, Long transportCompanyId) {
         Shipment s = new Shipment();
         s.setClientId(clientId);
+        s.setTransportCompanyId(transportCompanyId);
         s.setStatus(status);
         s.setOriginAddress(originAddr);
         s.setPickupLatitude(oLat);

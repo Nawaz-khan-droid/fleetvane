@@ -15,6 +15,8 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Navigation$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/navigation.js [app-client] (ecmascript) <export default as Navigation>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Plus$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/plus.js [app-client] (ecmascript) <export default as Plus>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$search$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Search$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/search.js [app-client] (ecmascript) <export default as Search>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$qr$2d$code$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__QrCode$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/qr-code.js [app-client] (ecmascript) <export default as QrCode>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$locate$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Locate$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/locate.js [app-client] (ecmascript) <export default as Locate>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/sonner/dist/index.mjs [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/context/AuthContext.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/lib/fetchWithAuth.ts [app-client] (ecmascript)");
@@ -54,30 +56,39 @@ const SHIPMENT_CATEGORIES = [
     'Other'
 ];
 function formatStatus(status) {
+    // Client-friendly human-readable labels
     const map = {
-        REQUESTED: 'Requested',
-        ASSIGNED: 'Assigned',
-        IN_TRANSIT: 'In Transit',
-        DELIVERED: 'Delivered',
-        CANCELLED: 'Cancelled'
+        REQUESTED: 'Pending Review',
+        ASSIGNED: 'Confirmed ✓',
+        EN_ROUTE_TO_PICKUP: 'Driver On The Way',
+        AT_PICKUP: 'Driver At Pickup',
+        IN_TRANSIT: 'Out for Delivery',
+        DELIVERED: 'Delivered ✓',
+        CANCELLED: 'Cancelled',
+        DISPATCHED: 'Out for Delivery',
+        ARRIVED: 'Arrived'
     };
     return map[status] || status;
 }
 const statusBadgeColor = {
     REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400',
     ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+    EN_ROUTE_TO_PICKUP: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-400',
+    AT_PICKUP: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400',
     DISPATCHED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
-    IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
-    ARRIVED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+    IN_TRANSIT: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-400',
+    ARRIVED: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400',
     DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400',
     CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400'
 };
 const statusDotColor = {
     REQUESTED: 'bg-amber-500',
     ASSIGNED: 'bg-blue-500',
+    EN_ROUTE_TO_PICKUP: 'bg-violet-500',
+    AT_PICKUP: 'bg-orange-500',
     DISPATCHED: 'bg-blue-500',
-    IN_TRANSIT: 'bg-blue-500',
-    ARRIVED: 'bg-blue-500',
+    IN_TRANSIT: 'bg-teal-500',
+    ARRIVED: 'bg-green-500',
     DELIVERED: 'bg-emerald-500',
     CANCELLED: 'bg-red-500'
 };
@@ -93,14 +104,78 @@ function ClientDashboard() {
     const [filter, setFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('ALL');
     // Form state
     const [origin, setOrigin] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
+    const [originCoords, setOriginCoords] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [gpsLoading, setGpsLoading] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [destination, setDestination] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [weight, setWeight] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [volumeM3, setVolumeM3] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [category, setCategory] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('General Goods');
+    const [description, setDescription] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('');
     const [submitting, setSubmitting] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [selectedShipment, setSelectedShipment] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [currentPage, setCurrentPage] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(1);
     const PAGE_SIZE = 10;
+    // GPS pre-fill for pickup location on dialog open
+    const prefillGPS = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "ClientDashboard.useCallback[prefillGPS]": async ()=>{
+            if (!navigator.geolocation) return;
+            setGpsLoading(true);
+            navigator.geolocation.getCurrentPosition({
+                "ClientDashboard.useCallback[prefillGPS]": async (pos)=>{
+                    const { latitude, longitude } = pos.coords;
+                    setOriginCoords({
+                        lat: latitude,
+                        lon: longitude
+                    });
+                    // Reverse-geocode to get a human-readable address
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+                            headers: {
+                                'Accept-Language': 'en'
+                            }
+                        });
+                        const data = await res.json();
+                        if (data?.display_name) {
+                            setOrigin(data.display_name);
+                        }
+                    } catch  {
+                        setOrigin(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+                    } finally{
+                        setGpsLoading(false);
+                    }
+                }
+            }["ClientDashboard.useCallback[prefillGPS]"], {
+                "ClientDashboard.useCallback[prefillGPS]": ()=>{
+                    setGpsLoading(false);
+                    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"])('Could not access GPS. Please enter your pickup address manually.', {
+                        icon: '📍'
+                    });
+                }
+            }["ClientDashboard.useCallback[prefillGPS]"], {
+                timeout: 8000
+            });
+        }
+    }["ClientDashboard.useCallback[prefillGPS]"], []);
+    // Trigger GPS pre-fill when the dialog opens
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "ClientDashboard.useEffect": ()=>{
+            if (dialogOpen) {
+                prefillGPS();
+            } else {
+                // Reset form on close
+                setOrigin('');
+                setOriginCoords(null);
+                setDestination('');
+                setWeight('');
+                setVolumeM3('');
+                setDescription('');
+                setCategory('General Goods');
+            }
+        }
+    }["ClientDashboard.useEffect"], [
+        dialogOpen,
+        prefillGPS
+    ]);
     const geocodeAddress = async (address)=>{
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`, {
@@ -197,10 +272,14 @@ function ClientDashboard() {
                     deliveryLongitude: destGeo.lon,
                     weight: weight ? parseFloat(weight) : 100,
                     volumeM3: volumeM3 ? parseFloat(volumeM3) : null,
-                    category: category
+                    category: category,
+                    description: description.trim() || null
                 })
             });
-            if (!res.ok) throw new Error();
+            if (!res.ok) {
+                const errData = await res.json().catch(()=>null);
+                throw new Error(errData?.detail || errData?.message || 'Failed to create shipment');
+            }
             const newShipment = await res.json();
             __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Shipment created successfully');
             addNotification({
@@ -224,24 +303,26 @@ function ClientDashboard() {
     const cancelShipment = async (id)=>{
         if (!window.confirm('Are you sure you want to cancel this shipment request?')) return;
         try {
-            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/shipments/${id}`, {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/shipments/${id}/status`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${authState.token}`
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     status: 'CANCELLED'
                 })
             });
-            if (!res.ok) throw new Error('Failed to cancel shipment');
+            if (!res.ok) {
+                const errData = await res.json().catch(()=>null);
+                throw new Error(errData?.detail || 'Failed to cancel shipment');
+            }
             __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Shipment cancelled');
             setShipments(shipments.map((s)=>s.id === id ? {
                     ...s,
                     status: 'CANCELLED'
                 } : s));
-        } catch  {
-            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error('Failed to cancel shipment');
+        } catch (err) {
+            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error(err.message || 'Failed to cancel shipment');
         }
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -255,7 +336,7 @@ function ClientDashboard() {
                         children: "My Shipments"
                     }, void 0, false, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 246,
+                        lineNumber: 310,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -271,19 +352,19 @@ function ClientDashboard() {
                                             className: "w-4 h-4"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                            lineNumber: 250,
+                                            lineNumber: 314,
                                             columnNumber: 15
                                         }, this),
                                         "New Shipment"
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                    lineNumber: 249,
+                                    lineNumber: 313,
                                     columnNumber: 13
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 248,
+                                lineNumber: 312,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogContent"], {
@@ -293,38 +374,110 @@ function ClientDashboard() {
                                             children: "Create New Shipment"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                            lineNumber: 256,
+                                            lineNumber: 320,
                                             columnNumber: 15
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                        lineNumber: 255,
+                                        lineNumber: 319,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
                                         onSubmit: handleSubmit,
                                         className: "space-y-4 pt-4",
                                         children: [
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$AddressAutocomplete$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AddressAutocomplete"], {
-                                                label: "Origin Address",
-                                                placeholder: "Enter pickup location",
-                                                value: origin,
-                                                onChange: setOrigin,
-                                                required: true
-                                            }, void 0, false, {
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                        className: "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1",
+                                                        children: [
+                                                            "📍 Pickup Location",
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                className: "ml-2 text-xs text-blue-500 font-normal",
+                                                                children: "(Pre-filled from your GPS — editable)"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                lineNumber: 327,
+                                                                columnNumber: 19
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                        lineNumber: 325,
+                                                        columnNumber: 17
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "relative",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$AddressAutocomplete$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AddressAutocomplete"], {
+                                                                label: "",
+                                                                placeholder: gpsLoading ? 'Detecting your location...' : 'Your current location or enter pickup address',
+                                                                value: origin,
+                                                                onChange: (val)=>{
+                                                                    setOrigin(val);
+                                                                    setOriginCoords(null); // clear GPS coords if manually edited
+                                                                },
+                                                                required: true
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                lineNumber: 330,
+                                                                columnNumber: 19
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                type: "button",
+                                                                onClick: prefillGPS,
+                                                                title: "Use my current GPS location",
+                                                                className: "absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 hover:text-blue-600 transition-colors",
+                                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$locate$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Locate$3e$__["Locate"], {
+                                                                    className: `w-4 h-4 ${gpsLoading ? 'animate-pulse' : ''}`
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                    lineNumber: 346,
+                                                                    columnNumber: 21
+                                                                }, this)
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                lineNumber: 340,
+                                                                columnNumber: 19
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                        lineNumber: 329,
+                                                        columnNumber: 17
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 259,
+                                                lineNumber: 324,
                                                 columnNumber: 15
                                             }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$AddressAutocomplete$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AddressAutocomplete"], {
-                                                label: "Destination Address",
-                                                placeholder: "Enter delivery location",
-                                                value: destination,
-                                                onChange: setDestination,
-                                                required: true
-                                            }, void 0, false, {
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                children: [
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                        className: "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1",
+                                                        children: "🏁 Drop-off Location"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                        lineNumber: 353,
+                                                        columnNumber: 17
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$AddressAutocomplete$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AddressAutocomplete"], {
+                                                        label: "",
+                                                        placeholder: "Enter destination address...",
+                                                        value: destination,
+                                                        onChange: setDestination,
+                                                        required: true,
+                                                        autoFocus: true
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                        lineNumber: 356,
+                                                        columnNumber: 17
+                                                    }, this)
+                                                ]
+                                            }, void 0, true, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 267,
+                                                lineNumber: 352,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -334,7 +487,7 @@ function ClientDashboard() {
                                                         children: "Shipment Category"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 276,
+                                                        lineNumber: 367,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -346,18 +499,18 @@ function ClientDashboard() {
                                                                 children: cat
                                                             }, cat, false, {
                                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                                lineNumber: 283,
+                                                                lineNumber: 374,
                                                                 columnNumber: 21
                                                             }, this))
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 277,
+                                                        lineNumber: 368,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 275,
+                                                lineNumber: 366,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -367,7 +520,7 @@ function ClientDashboard() {
                                                         children: "Weight (kg) - Optional"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 288,
+                                                        lineNumber: 379,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -379,42 +532,40 @@ function ClientDashboard() {
                                                         min: "0"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 289,
+                                                        lineNumber: 380,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 287,
+                                                lineNumber: 378,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                 children: [
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                                         className: "block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1",
-                                                        children: "Cargo Volume (m³) - Optional"
+                                                        children: "Description / Special Instructions - Optional"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 299,
+                                                        lineNumber: 390,
                                                         columnNumber: 17
                                                     }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
-                                                        type: "number",
-                                                        placeholder: "e.g. 1.5",
-                                                        value: volumeM3,
-                                                        onChange: (e)=>setVolumeM3(e.target.value),
-                                                        className: "w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none",
-                                                        min: "0",
-                                                        step: "0.1"
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
+                                                        placeholder: "e.g. Fragile items, handle with care. Ring bell on arrival.",
+                                                        value: description,
+                                                        onChange: (e)=>setDescription(e.target.value),
+                                                        rows: 2,
+                                                        className: "w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 300,
+                                                        lineNumber: 391,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 298,
+                                                lineNumber: 389,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -427,47 +578,47 @@ function ClientDashboard() {
                                                         children: "Cancel"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 311,
+                                                        lineNumber: 400,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                                         type: "submit",
                                                         disabled: submitting,
                                                         className: "bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition-colors disabled:opacity-50",
-                                                        children: submitting ? 'Creating...' : 'Create Shipment'
+                                                        children: submitting ? 'Submitting...' : 'Submit Delivery Request'
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 318,
+                                                        lineNumber: 407,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 310,
+                                                lineNumber: 399,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                        lineNumber: 258,
+                                        lineNumber: 322,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 254,
+                                lineNumber: 318,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 247,
+                        lineNumber: 311,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                lineNumber: 245,
+                lineNumber: 309,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -521,12 +672,12 @@ function ClientDashboard() {
                                     className: `w-6 h-6 ${stat.color}`
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                    lineNumber: 347,
+                                    lineNumber: 436,
                                     columnNumber: 15
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 346,
+                                lineNumber: 435,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -536,7 +687,7 @@ function ClientDashboard() {
                                         children: stat.value
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                        lineNumber: 350,
+                                        lineNumber: 439,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -544,24 +695,24 @@ function ClientDashboard() {
                                         children: stat.label
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                        lineNumber: 351,
+                                        lineNumber: 440,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 349,
+                                lineNumber: 438,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, i, true, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 339,
+                        lineNumber: 428,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                lineNumber: 332,
+                lineNumber: 421,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -574,7 +725,7 @@ function ClientDashboard() {
                                 className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                             }, void 0, false, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 360,
+                                lineNumber: 449,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -585,13 +736,13 @@ function ClientDashboard() {
                                 className: "w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                             }, void 0, false, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 361,
+                                lineNumber: 450,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 359,
+                        lineNumber: 448,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -606,18 +757,18 @@ function ClientDashboard() {
                                 children: f.charAt(0) + f.slice(1).toLowerCase()
                             }, f, false, {
                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                lineNumber: 371,
+                                lineNumber: 460,
                                 columnNumber: 13
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 369,
+                        lineNumber: 458,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                lineNumber: 358,
+                lineNumber: 447,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -637,7 +788,7 @@ function ClientDashboard() {
                                                 children: "Status"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 390,
+                                                lineNumber: 479,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -645,7 +796,7 @@ function ClientDashboard() {
                                                 children: "Shipment ID"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 391,
+                                                lineNumber: 480,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -653,7 +804,7 @@ function ClientDashboard() {
                                                 children: "Route"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 392,
+                                                lineNumber: 481,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -661,7 +812,7 @@ function ClientDashboard() {
                                                 children: "ETA"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 393,
+                                                lineNumber: 482,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -669,18 +820,18 @@ function ClientDashboard() {
                                                 children: "Actions"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                lineNumber: 394,
+                                                lineNumber: 483,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                        lineNumber: 389,
+                                        lineNumber: 478,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                    lineNumber: 388,
+                                    lineNumber: 477,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -695,12 +846,12 @@ function ClientDashboard() {
                                                         className: "h-6 w-24 rounded-full"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 401,
+                                                        lineNumber: 490,
                                                         columnNumber: 47
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 401,
+                                                    lineNumber: 490,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -709,12 +860,12 @@ function ClientDashboard() {
                                                         className: "h-4 w-20"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 402,
+                                                        lineNumber: 491,
                                                         columnNumber: 47
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 402,
+                                                    lineNumber: 491,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -723,12 +874,12 @@ function ClientDashboard() {
                                                         className: "h-4 w-48"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 403,
+                                                        lineNumber: 492,
                                                         columnNumber: 47
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 403,
+                                                    lineNumber: 492,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -737,12 +888,12 @@ function ClientDashboard() {
                                                         className: "h-4 w-24"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 404,
+                                                        lineNumber: 493,
                                                         columnNumber: 47
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 404,
+                                                    lineNumber: 493,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -751,18 +902,18 @@ function ClientDashboard() {
                                                         className: "h-8 w-16 ml-auto rounded-lg"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 405,
+                                                        lineNumber: 494,
                                                         columnNumber: 58
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 405,
+                                                    lineNumber: 494,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, i, true, {
                                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                            lineNumber: 400,
+                                            lineNumber: 489,
                                             columnNumber: 19
                                         }, this)) : paginatedShipments.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
                                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -771,12 +922,12 @@ function ClientDashboard() {
                                             children: "No shipments found."
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                            lineNumber: 410,
+                                            lineNumber: 499,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                        lineNumber: 409,
+                                        lineNumber: 498,
                                         columnNumber: 17
                                     }, this) : paginatedShipments.map((shipment)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
                                             className: "even:bg-slate-50/50 dark:even:bg-slate-800/20 hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer",
@@ -791,19 +942,19 @@ function ClientDashboard() {
                                                                 className: `w-1.5 h-1.5 rounded-full ${statusDotColor[shipment.status]}`
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                                lineNumber: 423,
+                                                                lineNumber: 512,
                                                                 columnNumber: 25
                                                             }, this),
                                                             formatStatus(shipment.status)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 422,
+                                                        lineNumber: 511,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 421,
+                                                    lineNumber: 510,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -811,7 +962,7 @@ function ClientDashboard() {
                                                     children: String(shipment.id).slice(0, 8).toUpperCase()
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 427,
+                                                    lineNumber: 516,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -824,7 +975,7 @@ function ClientDashboard() {
                                                                 children: shipment.originAddress
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                                lineNumber: 432,
+                                                                lineNumber: 521,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -832,7 +983,7 @@ function ClientDashboard() {
                                                                 children: "→"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                                lineNumber: 433,
+                                                                lineNumber: 522,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -840,18 +991,18 @@ function ClientDashboard() {
                                                                 children: shipment.destinationAddress
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                                lineNumber: 434,
+                                                                lineNumber: 523,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                        lineNumber: 431,
+                                                        lineNumber: 520,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 430,
+                                                    lineNumber: 519,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -859,64 +1010,95 @@ function ClientDashboard() {
                                                     children: shipment.eta ? new Date(shipment.eta).toLocaleDateString() : '—'
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 437,
+                                                    lineNumber: 526,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
-                                                    className: "px-6 py-4 text-right flex justify-end gap-2",
-                                                    children: [
-                                                        shipment.status === 'REQUESTED' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                            onClick: (e)=>{
-                                                                e.stopPropagation();
-                                                                cancelShipment(shipment.id);
-                                                            },
-                                                            className: "bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                                                            children: "Cancel"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                            lineNumber: 442,
-                                                            columnNumber: 25
-                                                        }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                            onClick: (e)=>{
-                                                                e.stopPropagation();
-                                                                navigate('/client/track', {
-                                                                    id: shipment.id
-                                                                });
-                                                            },
-                                                            className: "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
-                                                            children: "Track"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                            lineNumber: 452,
-                                                            columnNumber: 23
-                                                        }, this)
-                                                    ]
-                                                }, void 0, true, {
+                                                    className: "px-6 py-4 text-right",
+                                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "flex justify-end items-center gap-2",
+                                                        children: [
+                                                            shipment.qrToken && [
+                                                                'ASSIGNED',
+                                                                'EN_ROUTE_TO_PICKUP',
+                                                                'AT_PICKUP',
+                                                                'IN_TRANSIT'
+                                                            ].includes(shipment.status) && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                onClick: (e)=>{
+                                                                    e.stopPropagation();
+                                                                    setSelectedShipment(shipment);
+                                                                },
+                                                                title: "View QR Code for pickup verification",
+                                                                className: "bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-lg p-1.5 transition-colors",
+                                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$qr$2d$code$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__QrCode$3e$__["QrCode"], {
+                                                                    className: "w-4 h-4"
+                                                                }, void 0, false, {
+                                                                    fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                    lineNumber: 541,
+                                                                    columnNumber: 29
+                                                                }, this)
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                lineNumber: 533,
+                                                                columnNumber: 27
+                                                            }, this),
+                                                            shipment.status === 'REQUESTED' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                onClick: (e)=>{
+                                                                    e.stopPropagation();
+                                                                    cancelShipment(shipment.id);
+                                                                },
+                                                                className: "bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                                                                children: "Cancel"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                lineNumber: 545,
+                                                                columnNumber: 27
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                                                onClick: (e)=>{
+                                                                    e.stopPropagation();
+                                                                    navigate('/client/track', {
+                                                                        id: shipment.id
+                                                                    });
+                                                                },
+                                                                className: "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                                                                children: "Track"
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                                lineNumber: 555,
+                                                                columnNumber: 25
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/views/client/ClientDashboard.tsx",
+                                                        lineNumber: 530,
+                                                        columnNumber: 23
+                                                    }, this)
+                                                }, void 0, false, {
                                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                                    lineNumber: 440,
+                                                    lineNumber: 529,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, shipment.id, true, {
                                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                            lineNumber: 416,
+                                            lineNumber: 505,
                                             columnNumber: 19
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                                    lineNumber: 397,
+                                    lineNumber: 486,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                            lineNumber: 387,
+                            lineNumber: 476,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 386,
+                        lineNumber: 475,
                         columnNumber: 9
                     }, this),
                     paginatedShipments.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -927,18 +1109,18 @@ function ClientDashboard() {
                             onPageChange: setCurrentPage
                         }, void 0, false, {
                             fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                            lineNumber: 470,
+                            lineNumber: 574,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                        lineNumber: 469,
+                        lineNumber: 573,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                lineNumber: 385,
+                lineNumber: 474,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$ShipmentDetailDrawer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -948,17 +1130,17 @@ function ClientDashboard() {
                 readOnly: true
             }, void 0, false, {
                 fileName: "[project]/src/views/client/ClientDashboard.tsx",
-                lineNumber: 479,
+                lineNumber: 583,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/views/client/ClientDashboard.tsx",
-        lineNumber: 243,
+        lineNumber: 307,
         columnNumber: 5
     }, this);
 }
-_s(ClientDashboard, "1fAwefsKYUw2zlqcpzOLrTptrrQ=", false, function() {
+_s(ClientDashboard, "68xJpo7FPFPo/gp/ewUPQlAznuI=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"],
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$RouterContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"],

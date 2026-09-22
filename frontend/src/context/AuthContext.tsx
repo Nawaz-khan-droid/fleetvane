@@ -25,6 +25,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'LOGIN_SUCCESS':
+      setAuthToken(action.payload.token); // Fix race condition by setting it synchronously
       return {
         ...state,
         user: action.payload.user,
@@ -33,6 +34,7 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         error: null,
       };
     case 'LOGOUT':
+      setAuthToken(null);
       return { user: null, token: null, isLoading: false, error: null };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
@@ -49,6 +51,7 @@ function normalizeUser(rawUser: any): UserPayload {
     ...rawUser,
     userId: id,
     id: id,
+    companyId: rawUser.companyId ? Number(rawUser.companyId) : undefined,
   };
 }
 
@@ -95,10 +98,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  // Sync the token from React State over to the fetch wrapper
-  useEffect(() => {
-    setAuthToken(state.token);
-  }, [state.token]);
+  // We no longer rely on useEffect to sync the token to prevent race conditions during route transitions.
+  // The token is now set synchronously in the reducer.
 
   // Register session-expired handler so fetchWithAuth can trigger logout on 401
   useEffect(() => {

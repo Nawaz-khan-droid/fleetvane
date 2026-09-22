@@ -8,6 +8,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.FetchType;
 import com.fleetvane.auth.entity.User;
+import com.fleetvane.shared.entity.Company;
 import java.time.Instant;
 
 @Entity
@@ -20,6 +21,13 @@ public class Shipment extends BaseEntity {
     @JoinColumn(name = "client_id", insertable = false, updatable = false)
     private User client;
     
+    @Column(name = "transport_company_id")
+    private Long transportCompanyId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transport_company_id", insertable = false, updatable = false)
+    private Company transportCompany;
+
     private String status;
     private String originAddress;
     private Double pickupLatitude;
@@ -51,6 +59,13 @@ public class Shipment extends BaseEntity {
     private Long driverId;
     private String category;
 
+    @Column(name = "description", columnDefinition="TEXT")
+    private String description;
+
+    /** Secure one-time token for QR verification at pickup. Generated when shipment is ASSIGNED. */
+    @Column(name = "qr_token", length = 128)
+    private String qrToken;
+
     public Shipment() {}
 
     public Long getClientId() { return clientId; }
@@ -58,6 +73,12 @@ public class Shipment extends BaseEntity {
 
     public User getClient() { return client; }
     public void setClient(User client) { this.client = client; }
+
+    public Long getTransportCompanyId() { return transportCompanyId; }
+    public void setTransportCompanyId(Long transportCompanyId) { this.transportCompanyId = transportCompanyId; }
+
+    public Company getTransportCompany() { return transportCompany; }
+    public void setTransportCompany(Company transportCompany) { this.transportCompany = transportCompany; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -124,6 +145,12 @@ public class Shipment extends BaseEntity {
 
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public String getQrToken() { return qrToken; }
+    public void setQrToken(String qrToken) { this.qrToken = qrToken; }
 }
 
 

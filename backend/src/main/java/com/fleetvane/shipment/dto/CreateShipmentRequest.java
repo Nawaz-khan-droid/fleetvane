@@ -5,6 +5,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 public record CreateShipmentRequest(
+    @NotNull(message = "Transport company is required")
+    Long transportCompanyId,
+
     @NotBlank(message = "Origin address is required")
     String originAddress,
 
@@ -33,7 +36,8 @@ public record CreateShipmentRequest(
     @Positive(message = "Volume must be positive")
     Double volumeM3,
 
-    String category
+    String category,
+    String description
 ) {
     /** Calculated volume in m³ from dimensions in cm. */
     public Double calculatedVolumeM3() {

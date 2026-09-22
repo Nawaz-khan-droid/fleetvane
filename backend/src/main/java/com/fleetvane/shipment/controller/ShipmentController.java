@@ -68,4 +68,17 @@ public class ShipmentController {
         Long userId = Long.parseLong(auth.getName());
         return shipmentService.updateStatus(id, request.status(), request.pod(), role, userId);
     }
+
+    /**
+     * Verifies the QR token for a shipment pickup.
+     * Used by the driver (at pickup location) and can be scanned by client to verify driver identity.
+     */
+    @PostMapping("/{id}/qr/verify")
+    public ShipmentDto verifyQrToken(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String token = body.get("token");
+        if (token == null || token.isBlank()) {
+            throw new com.fleetvane.shared.exception.BusinessException("QR token is required", org.springframework.http.HttpStatus.BAD_REQUEST);
+        }
+        return shipmentService.verifyQrToken(id, token);
+    }
 }

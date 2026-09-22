@@ -42,6 +42,11 @@ public class VehicleService {
     
     @Transactional
     public VehicleDto createVehicle(Long companyId, CreateVehicleRequest request) {
+        long vehicleCount = vehicleRepository.countByCompanyId(companyId);
+        if (vehicleCount >= 10) {
+            throw new BusinessException("You have reached the maximum limit of 10 vehicles per account.", HttpStatus.BAD_REQUEST);
+        }
+
         // NO hardcoded geographic defaults in production: the initial position must come
         // from real data — an explicit coordinate pair or a configured Depot.
         if (request.lat() == null || request.lng() == null) {

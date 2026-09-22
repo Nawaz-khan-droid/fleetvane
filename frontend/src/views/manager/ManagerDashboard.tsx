@@ -186,6 +186,8 @@ export default function ManagerDashboard() {
 
   const sortedShipments = [...shipments].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
 
+  const isDemoMode = authState.user?.companyId === 1;
+
   const stats = [
     { label: 'Active Trucks', value: activeTrucks, icon: Truck, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50' },
     { label: 'In Transit', value: inTransit, icon: Navigation, iconColor: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/50' },
@@ -202,12 +204,14 @@ export default function ManagerDashboard() {
         </div>
         <div className="flex items-center gap-3 flex-wrap justify-end">
           {/* Simulation Toggle */}
-          <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
-            <Label htmlFor="sim-toggle" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
-              {simulating ? 'Simulation Active' : 'Start Simulation'}
-            </Label>
-            <Switch id="sim-toggle" checked={simulating} onCheckedChange={handleSimToggle} />
-          </div>
+          {isDemoMode && (
+            <div className="flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+              <Label htmlFor="sim-toggle" className="text-sm font-medium text-slate-700 dark:text-slate-300 cursor-pointer">
+                {simulating ? 'Simulation Active' : 'Start Simulation'}
+              </Label>
+              <Switch id="sim-toggle" checked={simulating} onCheckedChange={handleSimToggle} />
+            </div>
+          )}
 
           {/* Quick Actions */}
           <motion.button

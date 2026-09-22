@@ -27,9 +27,17 @@ export function DemoModal({ isOpen, onClose }: { isOpen: boolean; onClose: () =>
     }
     
     try {
-      await login(email, password);
+      const user = await login(email, password);
       onClose();
-      // Auth context handles routing after login
+      
+      // Route based on role
+      if (user?.role === 'MANAGER' || user?.role === 'ADMIN') {
+        navigate('/manager/dashboard');
+      } else if (user?.role === 'DRIVER') {
+        navigate('/driver/dashboard');
+      } else {
+        navigate('/client/dashboard');
+      }
     } catch (err) {
       console.error('Demo login failed', err);
     }

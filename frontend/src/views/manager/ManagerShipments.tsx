@@ -38,7 +38,7 @@ import ShipmentDetailDrawer from '@/components/shared/ShipmentDetailDrawer';
 import SortableHeader, { type SortDir, useSort } from '@/components/shared/SortableHeader';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const statusBadgeClasses: Record<ShipmentStatus, string> = {
+const statusBadgeClasses: Record<string, string> = {
   REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800',
   ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
   DISPATCHED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800',
@@ -48,7 +48,7 @@ const statusBadgeClasses: Record<ShipmentStatus, string> = {
   CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400 dark:border-red-800',
 };
 
-const statusBorderClasses: Record<ShipmentStatus, string> = {
+const statusBorderClasses: Record<string, string> = {
   REQUESTED: 'border-l-4 border-l-amber-500',
   ASSIGNED: 'border-l-4 border-l-blue-500',
   DISPATCHED: 'border-l-4 border-l-blue-500',
@@ -58,7 +58,7 @@ const statusBorderClasses: Record<ShipmentStatus, string> = {
   CANCELLED: 'border-l-4 border-l-red-500',
 };
 
-const statusDotClasses: Record<ShipmentStatus, string> = {
+const statusDotClasses: Record<string, string> = {
   REQUESTED: 'bg-amber-500',
   ASSIGNED: 'bg-blue-500',
   DISPATCHED: 'bg-blue-500',
@@ -201,24 +201,33 @@ export default function ManagerShipments() {
     if (!assigningShipment || !selectedVehicleId || !selectedDriverId) return;
     setAssigning(true);
     try {
-      const res = await fetchWithAuth(`/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`, {
+      const res = await fetchWithAuth(`/api/shipments/${assigningShipment.id}/assign`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${authState.token}` },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authState.token}` 
+        },
+        body: JSON.stringify({ vehicleId: Number(selectedVehicleId), driverId: Number(selectedDriverId) }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error('Assign failed:', res.status, errText);
+        throw new Error(errText);
+      }
       
       const updatedShipment = await res.json();
       updateShipment(updatedShipment.id, updatedShipment);
 
-      toast.success(t.manager.vehicleAssigned);
+      toast.success('Shipment assigned successfully!');
       addNotification({
         title: 'Shipment Assigned',
         message: 'Vehicle and driver assigned successfully.',
         type: 'success',
       });
       setAssignDialogOpen(false);
-    } catch {
-      toast.error(t.common.error);
+    } catch (err: any) {
+      console.error('Error assigning shipment:', err);
+      toast.error(err.message || t.common.error);
     } finally {
       setAssigning(false);
     }
@@ -226,9 +235,13 @@ export default function ManagerShipments() {
 
   const handleStatusUpdate = async (shipmentId: string, status: ShipmentStatus) => {
     try {
-      const res = await fetchWithAuth(`/api/shipments/${shipmentId}/status?status=${status}`, {
+      const res = await fetchWithAuth(`/api/shipments/${shipmentId}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${authState.token}` },
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authState.token}` 
+        },
+        body: JSON.stringify({ status }),
       });
       if (!res.ok) throw new Error();
       
@@ -271,8 +284,8 @@ export default function ManagerShipments() {
             variant="outline"
             className="rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
             onClick={() => {
-              const headers = ['ID','Origin','Destination','Status','Driver'];
-              const rows = filteredShipments.map(s => [s.id, s.originAddress, s.destinationAddress, formatStatus(s.status), s.driver?.name || '']);
+              const headers = ['ID', 'Client', 'Client Phone', 'Origin', 'Destination', 'Status', 'Driver'];
+              const rows = filteredShipments.map(s => [s.id, s.clientName || 'Unknown', s.clientPhone || '', s.originAddress, s.destinationAddress, formatStatus(s.status), s.driver?.name || '']);
               const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
               const blob = new Blob([csv], { type: 'text/csv' });
               const url = URL.createObjectURL(blob);
@@ -320,6 +333,7 @@ export default function ManagerShipments() {
                   />
                 </th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="ID" sortDir={sortKey==='id'?sortDir:null} onSort={()=>handleSort('id')} /></th>
+                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Client</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Route</th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="Status" sortDir={sortKey==='status'?sortDir:null} onSort={()=>handleSort('status')} /></th>
                 <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide"><SortableHeader label="Driver" sortDir={sortKey==='driverId'?sortDir:null} onSort={()=>handleSort('driverId')} /></th>
@@ -330,7 +344,7 @@ export default function ManagerShipments() {
             <tbody>
               {paginatedShipments.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-500">No shipments found.</td>
+                  <td colSpan={8} className="px-4 py-12 text-center text-slate-500">No shipments found.</td>
                 </tr>
               ) : (
                 paginatedShipments.map((shipment) => (
@@ -354,6 +368,12 @@ export default function ManagerShipments() {
                     </td>
                     <td className="px-4 py-3 align-top">
                       <span className="font-mono text-sm font-medium text-slate-900 dark:text-slate-100">{String(shipment.id).slice(0, 8)}</span>
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <div className="flex flex-col gap-1 text-sm text-slate-900 dark:text-slate-100 font-medium">
+                        {shipment.clientName || <span className="text-slate-400 italic font-normal">Unknown</span>}
+                        {shipment.clientPhone && <span className="text-xs text-slate-500 font-normal">{shipment.clientPhone}</span>}
+                      </div>
                     </td>
                     <td className="px-4 py-3 align-top">
                       <div className="flex flex-col gap-1 text-sm text-slate-600 dark:text-slate-400">
@@ -436,7 +456,7 @@ export default function ManagerShipments() {
                 toCancel.forEach(s => handleStatusUpdate(s.id, 'CANCELLED'));
                 setSelectedIds(new Set());
               }}>
-                Cancel Shipments
+                Reject Shipments
               </Button>
             </div>
             <button onClick={() => setSelectedIds(new Set())} className="p-1 hover:bg-slate-800 rounded-lg ml-2">
@@ -464,7 +484,7 @@ export default function ManagerShipments() {
                 </SelectTrigger>
                 <SelectContent>
                   {availableVehicles.map(v => (
-                    <SelectItem key={v.id} value={v.id}>{v.plateNumber} ({v.type})</SelectItem>
+                    <SelectItem key={v.id} value={String(v.id)}>{v.plateNumber} ({v.type})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -477,7 +497,7 @@ export default function ManagerShipments() {
                 </SelectTrigger>
                 <SelectContent>
                   {availableDrivers.map(d => (
-                    <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -486,7 +506,7 @@ export default function ManagerShipments() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAssignDialogOpen(false)} className="rounded-xl">Cancel</Button>
             <Button disabled={assigning || !selectedVehicleId || !selectedDriverId} onClick={handleAssign} className="rounded-xl bg-blue-600 hover:bg-blue-700 text-white">
-              {assigning ? 'Assigning...' : 'Assign Resources'}
+              {assigning ? 'Assigning...' : 'Assign Shipment'}
             </Button>
           </DialogFooter>
         </DialogContent>

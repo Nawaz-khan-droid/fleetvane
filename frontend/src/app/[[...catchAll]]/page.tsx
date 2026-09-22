@@ -36,6 +36,7 @@ import ManagerShipments from '@/views/manager/ManagerShipments';
 import ManagerDrivers from '@/views/manager/ManagerDrivers';
 import ManagerSettings from '@/views/manager/ManagerSettings';
 import ManagerProfile from '@/views/manager/ManagerProfile';
+import ManagerDirectory from '@/views/manager/ManagerDirectory';
 import CommandPalette from '@/components/shared/CommandPalette';
 
 import t from '@/locales/en.json';
@@ -121,6 +122,7 @@ function AppRouter() {
             {activeRoute === '/manager/drivers' && <ManagerDrivers />}
             {activeRoute === '/manager/settings' && <ManagerSettings />}
             {activeRoute === '/manager/profile' && <ManagerProfile />}
+            {activeRoute === '/manager/directory' && <ManagerDirectory />}
           </ManagerLayout>
         </ProtectedRoute>
       );

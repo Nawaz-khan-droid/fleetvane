@@ -205,6 +205,7 @@ function ManagerDashboard() {
     const sortedShipments = [
         ...shipments
     ].sort((a, b)=>new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5);
+    const isDemoMode = authState.user?.companyId === 1;
     const stats = [
         {
             label: 'Active Trucks',
@@ -245,13 +246,13 @@ function ManagerDashboard() {
                         className: "hidden sm:block"
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                        lineNumber: 200,
+                        lineNumber: 202,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: "flex items-center gap-3 flex-wrap justify-end",
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            isDemoMode && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                 className: "flex items-center gap-3 bg-white dark:bg-slate-900 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md",
                                 children: [
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
@@ -260,8 +261,8 @@ function ManagerDashboard() {
                                         children: simulating ? 'Simulation Active' : 'Start Simulation'
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 206,
-                                        columnNumber: 13
+                                        lineNumber: 209,
+                                        columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$switch$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Switch"], {
                                         id: "sim-toggle",
@@ -269,14 +270,14 @@ function ManagerDashboard() {
                                         onCheckedChange: handleSimToggle
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 209,
-                                        columnNumber: 13
+                                        lineNumber: 212,
+                                        columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 205,
-                                columnNumber: 11
+                                lineNumber: 208,
+                                columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].button, {
                                 whileHover: {
@@ -292,14 +293,14 @@ function ManagerDashboard() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 219,
+                                        lineNumber: 223,
                                         columnNumber: 13
                                     }, this),
                                     "Create Driver"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 213,
+                                lineNumber: 217,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].button, {
@@ -316,26 +317,26 @@ function ManagerDashboard() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 229,
+                                        lineNumber: 233,
                                         columnNumber: 13
                                     }, this),
                                     "View Fleet Map"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 223,
+                                lineNumber: 227,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                        lineNumber: 203,
+                        lineNumber: 205,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                lineNumber: 199,
+                lineNumber: 201,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -346,7 +347,7 @@ function ManagerDashboard() {
                         className: "h-24 rounded-2xl"
                     }, i, false, {
                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                        lineNumber: 238,
+                        lineNumber: 242,
                         columnNumber: 51
                     }, this)) : stats.map((stat, i)=>{
                     const Icon = stat.icon;
@@ -370,12 +371,12 @@ function ManagerDashboard() {
                                     className: `w-5 h-5 ${stat.iconColor}`
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                    lineNumber: 251,
+                                    lineNumber: 255,
                                     columnNumber: 19
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 250,
+                                lineNumber: 254,
                                 columnNumber: 17
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -385,7 +386,7 @@ function ManagerDashboard() {
                                         children: stat.label
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 254,
+                                        lineNumber: 258,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -393,7 +394,7 @@ function ManagerDashboard() {
                                         children: stat.value
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 255,
+                                        lineNumber: 259,
                                         columnNumber: 19
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -401,25 +402,25 @@ function ManagerDashboard() {
                                         children: "Live"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 256,
+                                        lineNumber: 260,
                                         columnNumber: 19
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 253,
+                                lineNumber: 257,
                                 columnNumber: 17
                             }, this)
                         ]
                     }, stat.label, true, {
                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                        lineNumber: 243,
+                        lineNumber: 247,
                         columnNumber: 15
                     }, this);
                 })
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                lineNumber: 236,
+                lineNumber: 240,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -436,14 +437,14 @@ function ManagerDashboard() {
                                         children: "Shipments by Status"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 270,
+                                        lineNumber: 274,
                                         columnNumber: 13
                                     }, this),
                                     loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                                         className: "h-64 w-full rounded-xl"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 272,
+                                        lineNumber: 276,
                                         columnNumber: 15
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$DonutChart$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
                                         data: [
@@ -477,13 +478,13 @@ function ManagerDashboard() {
                                         centerValue: String(shipments.length)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 274,
+                                        lineNumber: 278,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 269,
+                                lineNumber: 273,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -497,7 +498,7 @@ function ManagerDashboard() {
                                                 children: "Recent Shipments"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                lineNumber: 291,
+                                                lineNumber: 295,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -509,19 +510,19 @@ function ManagerDashboard() {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                        lineNumber: 296,
+                                                        lineNumber: 300,
                                                         columnNumber: 26
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                lineNumber: 292,
+                                                lineNumber: 296,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 290,
+                                        lineNumber: 294,
                                         columnNumber: 13
                                     }, this),
                                     loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -532,12 +533,12 @@ function ManagerDashboard() {
                                                 className: "h-10 w-full"
                                             }, i, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                lineNumber: 302,
+                                                lineNumber: 306,
                                                 columnNumber: 58
                                             }, this))
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 301,
+                                        lineNumber: 305,
                                         columnNumber: 15
                                     }, this) : sortedShipments.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "p-8 text-center",
@@ -546,7 +547,7 @@ function ManagerDashboard() {
                                                 className: "w-8 h-8 text-slate-400 mx-auto mb-3"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                lineNumber: 306,
+                                                lineNumber: 310,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -554,13 +555,13 @@ function ManagerDashboard() {
                                                 children: "No recent shipments"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                lineNumber: 307,
+                                                lineNumber: 311,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 305,
+                                        lineNumber: 309,
                                         columnNumber: 15
                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                         className: "overflow-x-auto",
@@ -576,7 +577,7 @@ function ManagerDashboard() {
                                                                 children: "ID"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                lineNumber: 314,
+                                                                lineNumber: 318,
                                                                 columnNumber: 23
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -584,7 +585,7 @@ function ManagerDashboard() {
                                                                 children: "Route"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                lineNumber: 315,
+                                                                lineNumber: 319,
                                                                 columnNumber: 23
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -592,7 +593,7 @@ function ManagerDashboard() {
                                                                 children: "Status"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                lineNumber: 316,
+                                                                lineNumber: 320,
                                                                 columnNumber: 23
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -600,18 +601,18 @@ function ManagerDashboard() {
                                                                 children: "Driver"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                lineNumber: 317,
+                                                                lineNumber: 321,
                                                                 columnNumber: 23
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                        lineNumber: 313,
+                                                        lineNumber: 317,
                                                         columnNumber: 21
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                    lineNumber: 312,
+                                                    lineNumber: 316,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -626,12 +627,12 @@ function ManagerDashboard() {
                                                                         children: String(shipment.id).slice(0, 8)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                        lineNumber: 328,
+                                                                        lineNumber: 332,
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                    lineNumber: 327,
+                                                                    lineNumber: 331,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -646,7 +647,7 @@ function ManagerDashboard() {
                                                                                         className: "w-3.5 h-3.5 text-slate-400 shrink-0"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                        lineNumber: 332,
+                                                                                        lineNumber: 336,
                                                                                         columnNumber: 72
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -655,13 +656,13 @@ function ManagerDashboard() {
                                                                                         children: shipment.originAddress
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                        lineNumber: 332,
+                                                                                        lineNumber: 336,
                                                                                         columnNumber: 130
                                                                                     }, this)
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                lineNumber: 332,
+                                                                                lineNumber: 336,
                                                                                 columnNumber: 29
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -671,7 +672,7 @@ function ManagerDashboard() {
                                                                                         className: "w-3.5 h-3.5 text-slate-400 shrink-0"
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                        lineNumber: 333,
+                                                                                        lineNumber: 337,
                                                                                         columnNumber: 72
                                                                                     }, this),
                                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -680,24 +681,24 @@ function ManagerDashboard() {
                                                                                         children: shipment.destinationAddress
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                        lineNumber: 333,
+                                                                                        lineNumber: 337,
                                                                                         columnNumber: 130
                                                                                     }, this)
                                                                                 ]
                                                                             }, void 0, true, {
                                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                lineNumber: 333,
+                                                                                lineNumber: 337,
                                                                                 columnNumber: 29
                                                                             }, this)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                        lineNumber: 331,
+                                                                        lineNumber: 335,
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                    lineNumber: 330,
+                                                                    lineNumber: 334,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -709,19 +710,19 @@ function ManagerDashboard() {
                                                                                 className: `w-1.5 h-1.5 rounded-full ${statusDotClasses[shipment.status] || 'bg-slate-500'}`
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                lineNumber: 338,
+                                                                                lineNumber: 342,
                                                                                 columnNumber: 29
                                                                             }, this),
                                                                             formatStatus(shipment.status)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                        lineNumber: 337,
+                                                                        lineNumber: 341,
                                                                         columnNumber: 27
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                    lineNumber: 336,
+                                                                    lineNumber: 340,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -735,12 +736,12 @@ function ManagerDashboard() {
                                                                                     className: "w-3.5 h-3.5"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                    lineNumber: 346,
+                                                                                    lineNumber: 350,
                                                                                     columnNumber: 33
                                                                                 }, this)
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                lineNumber: 345,
+                                                                                lineNumber: 349,
                                                                                 columnNumber: 31
                                                                             }, this),
                                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -748,59 +749,59 @@ function ManagerDashboard() {
                                                                                 children: "Driver Assigned"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                                lineNumber: 348,
+                                                                                lineNumber: 352,
                                                                                 columnNumber: 31
                                                                             }, this)
                                                                         ]
                                                                     }, void 0, true, {
                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                        lineNumber: 344,
+                                                                        lineNumber: 348,
                                                                         columnNumber: 29
                                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                         className: "text-sm text-slate-400 italic",
                                                                         children: "Unassigned"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                        lineNumber: 351,
+                                                                        lineNumber: 355,
                                                                         columnNumber: 29
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                    lineNumber: 342,
+                                                                    lineNumber: 346,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, shipment.id, true, {
                                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                            lineNumber: 322,
+                                                            lineNumber: 326,
                                                             columnNumber: 23
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                    lineNumber: 320,
+                                                    lineNumber: 324,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                            lineNumber: 311,
+                                            lineNumber: 315,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 310,
+                                        lineNumber: 314,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                lineNumber: 289,
+                                lineNumber: 293,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                        lineNumber: 267,
+                        lineNumber: 271,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -817,19 +818,19 @@ function ManagerDashboard() {
                                                 className: "w-5 h-5 text-blue-600"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                lineNumber: 368,
+                                                lineNumber: 372,
                                                 columnNumber: 17
                                             }, this),
                                             " Activity Feed"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                        lineNumber: 367,
+                                        lineNumber: 371,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                    lineNumber: 366,
+                                    lineNumber: 370,
                                     columnNumber: 13
                                 }, this),
                                 loading ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -843,7 +844,7 @@ function ManagerDashboard() {
                                                     className: "w-10 h-10 rounded-full shrink-0"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                    lineNumber: 376,
+                                                    lineNumber: 380,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -853,31 +854,31 @@ function ManagerDashboard() {
                                                             className: "h-4 w-3/4"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                            lineNumber: 378,
+                                                            lineNumber: 382,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                                                             className: "h-3 w-1/2"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                            lineNumber: 379,
+                                                            lineNumber: 383,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                    lineNumber: 377,
+                                                    lineNumber: 381,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, i, true, {
                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                            lineNumber: 375,
+                                            lineNumber: 379,
                                             columnNumber: 19
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                    lineNumber: 373,
+                                    lineNumber: 377,
                                     columnNumber: 15
                                 }, this) : activities.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "flex-1 flex flex-col items-center justify-center text-center",
@@ -886,7 +887,7 @@ function ManagerDashboard() {
                                             className: "w-10 h-10 text-slate-300 dark:text-slate-700 mb-3"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                            lineNumber: 386,
+                                            lineNumber: 390,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -894,13 +895,13 @@ function ManagerDashboard() {
                                             children: "No recent activity"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                            lineNumber: 387,
+                                            lineNumber: 391,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                    lineNumber: 385,
+                                    lineNumber: 389,
                                     columnNumber: 15
                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                     className: "relative space-y-6 before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-slate-800 before:to-transparent",
@@ -916,12 +917,12 @@ function ManagerDashboard() {
                                                         className: "w-4 h-4"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                        lineNumber: 397,
+                                                        lineNumber: 401,
                                                         columnNumber: 25
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                    lineNumber: 396,
+                                                    lineNumber: 400,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -932,7 +933,7 @@ function ManagerDashboard() {
                                                             children: act.message
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                            lineNumber: 400,
+                                                            lineNumber: 404,
                                                             columnNumber: 25
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("time", {
@@ -942,7 +943,7 @@ function ManagerDashboard() {
                                                                     className: "w-3 h-3"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                                    lineNumber: 401,
+                                                                    lineNumber: 405,
                                                                     columnNumber: 97
                                                                 }, this),
                                                                 " ",
@@ -950,48 +951,48 @@ function ManagerDashboard() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                            lineNumber: 401,
+                                                            lineNumber: 405,
                                                             columnNumber: 25
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                                    lineNumber: 399,
+                                                    lineNumber: 403,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, act.id, true, {
                                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                            lineNumber: 395,
+                                            lineNumber: 399,
                                             columnNumber: 21
                                         }, this);
                                     })
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                                    lineNumber: 390,
+                                    lineNumber: 394,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                            lineNumber: 365,
+                            lineNumber: 369,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                        lineNumber: 364,
+                        lineNumber: 368,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-                lineNumber: 265,
+                lineNumber: 269,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/views/manager/ManagerDashboard.tsx",
-        lineNumber: 197,
+        lineNumber: 199,
         columnNumber: 5
     }, this);
 }
@@ -1158,6 +1159,7 @@ function ManagerDrivers() {
         if (!driverName.trim() || !licenseNumber.trim() || !email.trim() || !phoneNumber.trim()) return;
         setCreating(true);
         try {
+            const isDemoMode = authState.user?.companyId === 1;
             const body = {
                 name: driverName.trim(),
                 email: email.trim(),
@@ -1165,7 +1167,8 @@ function ManagerDrivers() {
                 licenseNumber: licenseNumber.trim(),
                 vehicleId: selectedVehicleId || null
             };
-            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])('/api/auth/invite-driver', {
+            const endpoint = isDemoMode ? '/api/auth/invite-driver/demo' : '/api/auth/invite-driver';
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1177,7 +1180,11 @@ function ManagerDrivers() {
                 const errData = await res.json().catch(()=>null);
                 throw new Error(errData?.message || 'Failed to create driver');
             }
-            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$locales$2f$en$2e$json$2e5b$json$5d2e$cjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].manager.driverCreated || 'Driver provisioned successfully. Verification link deployed.');
+            if (isDemoMode) {
+                __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Driver account created! Default password: Driver123!');
+            } else {
+                __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success("Invitation sent to driver's email");
+            }
             setCreateDialogOpen(false);
             setDriverName('');
             setEmail('');
@@ -1209,7 +1216,7 @@ function ManagerDrivers() {
                     className: "h-8 w-64"
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                    lineNumber: 172,
+                    lineNumber: 179,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1220,18 +1227,18 @@ function ManagerDrivers() {
                             className: "h-48 w-full rounded-2xl"
                         }, i, false, {
                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                            lineNumber: 174,
+                            lineNumber: 181,
                             columnNumber: 52
                         }, this))
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                    lineNumber: 173,
+                    lineNumber: 180,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-            lineNumber: 171,
+            lineNumber: 178,
             columnNumber: 7
         }, this);
     }
@@ -1249,12 +1256,12 @@ function ManagerDrivers() {
                             children: "Manage fleet drivers and assignments."
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                            lineNumber: 188,
+                            lineNumber: 195,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 186,
+                        lineNumber: 193,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1267,7 +1274,7 @@ function ManagerDrivers() {
                                         className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 192,
+                                        lineNumber: 199,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -1280,13 +1287,13 @@ function ManagerDrivers() {
                                         className: "pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl h-10"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 193,
+                                        lineNumber: 200,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                lineNumber: 191,
+                                lineNumber: 198,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -1303,19 +1310,19 @@ function ManagerDrivers() {
                                                     className: "w-4 h-4"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                    lineNumber: 206,
+                                                    lineNumber: 213,
                                                     columnNumber: 17
                                                 }, this),
                                                 "Add Driver"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                            lineNumber: 202,
+                                            lineNumber: 209,
                                             columnNumber: 15
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 201,
+                                        lineNumber: 208,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogContent"], {
@@ -1327,12 +1334,12 @@ function ManagerDrivers() {
                                                     children: "Add New Driver"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                    lineNumber: 212,
+                                                    lineNumber: 219,
                                                     columnNumber: 17
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 211,
+                                                lineNumber: 218,
                                                 columnNumber: 15
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("form", {
@@ -1342,6 +1349,14 @@ function ManagerDrivers() {
                                                 },
                                                 className: "space-y-4 pt-4",
                                                 children: [
+                                                    authState.user?.companyId === 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 p-3 rounded-lg text-sm mb-4",
+                                                        children: "Demo Mode — Driver will be instantly activated with password Driver123!"
+                                                    }, void 0, false, {
+                                                        fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
+                                                        lineNumber: 224,
+                                                        columnNumber: 19
+                                                    }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                         className: "space-y-1.5",
                                                         children: [
@@ -1349,7 +1364,7 @@ function ManagerDrivers() {
                                                                 children: "Full Name"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 217,
+                                                                lineNumber: 229,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -1360,13 +1375,13 @@ function ManagerDrivers() {
                                                                 required: true
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 218,
+                                                                lineNumber: 230,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 216,
+                                                        lineNumber: 228,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1376,7 +1391,7 @@ function ManagerDrivers() {
                                                                 children: "Corporate / Personal Email"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 228,
+                                                                lineNumber: 240,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -1384,43 +1399,6 @@ function ManagerDrivers() {
                                                                 value: email,
                                                                 onChange: (e)=>setEmail(e.target.value),
                                                                 type: "email",
-                                                                className: "rounded-xl border-slate-200 dark:border-slate-700",
-                                                                required: true
-                                                            }, void 0, false, {
-                                                                fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 229,
-                                                                columnNumber: 19
-                                                            }, this)
-                                                        ]
-                                                    }, void 0, true, {
-                                                        fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 227,
-                                                        columnNumber: 17
-                                                    }, this),
-                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                                        className: "space-y-1.5",
-                                                        children: [
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
-                                                                children: [
-                                                                    "Mobile Number ",
-                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                                                                        className: "text-red-500",
-                                                                        children: "*"
-                                                                    }, void 0, false, {
-                                                                        fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                        lineNumber: 240,
-                                                                        columnNumber: 40
-                                                                    }, this)
-                                                                ]
-                                                            }, void 0, true, {
-                                                                fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 240,
-                                                                columnNumber: 19
-                                                            }, this),
-                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
-                                                                placeholder: "+1 234 567 8900",
-                                                                value: phoneNumber,
-                                                                onChange: (e)=>setPhoneNumber(e.target.value),
                                                                 className: "rounded-xl border-slate-200 dark:border-slate-700",
                                                                 required: true
                                                             }, void 0, false, {
@@ -1439,19 +1417,56 @@ function ManagerDrivers() {
                                                         children: [
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
                                                                 children: [
+                                                                    "Mobile Number ",
+                                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                                        className: "text-red-500",
+                                                                        children: "*"
+                                                                    }, void 0, false, {
+                                                                        fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
+                                                                        lineNumber: 252,
+                                                                        columnNumber: 40
+                                                                    }, this)
+                                                                ]
+                                                            }, void 0, true, {
+                                                                fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
+                                                                lineNumber: 252,
+                                                                columnNumber: 19
+                                                            }, this),
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
+                                                                placeholder: "+1 234 567 8900",
+                                                                value: phoneNumber,
+                                                                onChange: (e)=>setPhoneNumber(e.target.value),
+                                                                className: "rounded-xl border-slate-200 dark:border-slate-700",
+                                                                required: true
+                                                            }, void 0, false, {
+                                                                fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
+                                                                lineNumber: 253,
+                                                                columnNumber: 19
+                                                            }, this)
+                                                        ]
+                                                    }, void 0, true, {
+                                                        fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
+                                                        lineNumber: 251,
+                                                        columnNumber: 17
+                                                    }, this),
+                                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                        className: "space-y-1.5",
+                                                        children: [
+                                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$label$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Label"], {
+                                                                children: [
                                                                     "License Number ",
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                         className: "text-red-500",
                                                                         children: "*"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                        lineNumber: 251,
+                                                                        lineNumber: 263,
                                                                         columnNumber: 41
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 251,
+                                                                lineNumber: 263,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -1462,13 +1477,13 @@ function ManagerDrivers() {
                                                                 required: true
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 252,
+                                                                lineNumber: 264,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 250,
+                                                        lineNumber: 262,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1478,7 +1493,7 @@ function ManagerDrivers() {
                                                                 children: "Assign Vehicle"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 262,
+                                                                lineNumber: 274,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Popover"], {
@@ -1501,18 +1516,18 @@ function ManagerDrivers() {
                                                                                     className: "ml-2 h-4 w-4 shrink-0 opacity-50"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                    lineNumber: 277,
+                                                                                    lineNumber: 289,
                                                                                     columnNumber: 25
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                            lineNumber: 265,
+                                                                            lineNumber: 277,
                                                                             columnNumber: 23
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                        lineNumber: 264,
+                                                                        lineNumber: 276,
                                                                         columnNumber: 21
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$popover$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["PopoverContent"], {
@@ -1528,7 +1543,7 @@ function ManagerDrivers() {
                                                                                     className: "border-none focus:ring-0"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                    lineNumber: 282,
+                                                                                    lineNumber: 294,
                                                                                     columnNumber: 25
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$command$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CommandList"], {
@@ -1538,7 +1553,7 @@ function ManagerDrivers() {
                                                                                             children: "No vehicle found."
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                            lineNumber: 284,
+                                                                                            lineNumber: 296,
                                                                                             columnNumber: 27
                                                                                         }, this),
                                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$command$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CommandGroup"], {
@@ -1553,7 +1568,7 @@ function ManagerDrivers() {
                                                                                                             className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("mr-2 h-4 w-4", selectedVehicleId === v.id ? "opacity-100" : "opacity-0")
                                                                                                         }, void 0, false, {
                                                                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                                            lineNumber: 295,
+                                                                                                            lineNumber: 307,
                                                                                                             columnNumber: 33
                                                                                                         }, this),
                                                                                                         v.plateNumber,
@@ -1562,41 +1577,41 @@ function ManagerDrivers() {
                                                                                                     ]
                                                                                                 }, v.id, true, {
                                                                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                                    lineNumber: 287,
+                                                                                                    lineNumber: 299,
                                                                                                     columnNumber: 31
                                                                                                 }, this))
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                            lineNumber: 285,
+                                                                                            lineNumber: 297,
                                                                                             columnNumber: 27
                                                                                         }, this)
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                                    lineNumber: 283,
+                                                                                    lineNumber: 295,
                                                                                     columnNumber: 25
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                            lineNumber: 281,
+                                                                            lineNumber: 293,
                                                                             columnNumber: 23
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                        lineNumber: 280,
+                                                                        lineNumber: 292,
                                                                         columnNumber: 21
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 263,
+                                                                lineNumber: 275,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 261,
+                                                        lineNumber: 273,
                                                         columnNumber: 17
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogFooter"], {
@@ -1611,12 +1626,12 @@ function ManagerDrivers() {
                                                                     children: "Cancel"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                    lineNumber: 313,
+                                                                    lineNumber: 325,
                                                                     columnNumber: 21
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 312,
+                                                                lineNumber: 324,
                                                                 columnNumber: 19
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1626,43 +1641,43 @@ function ManagerDrivers() {
                                                                 children: creating ? 'Creating...' : 'Create Driver Account'
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                                lineNumber: 315,
+                                                                lineNumber: 327,
                                                                 columnNumber: 19
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 311,
+                                                        lineNumber: 323,
                                                         columnNumber: 17
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 215,
+                                                lineNumber: 222,
                                                 columnNumber: 15
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 210,
+                                        lineNumber: 217,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                lineNumber: 200,
+                                lineNumber: 207,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 190,
+                        lineNumber: 197,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                lineNumber: 185,
+                lineNumber: 192,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1694,7 +1709,7 @@ function ManagerDrivers() {
                                 children: stat.label
                             }, void 0, false, {
                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                lineNumber: 333,
+                                lineNumber: 345,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1702,18 +1717,18 @@ function ManagerDrivers() {
                                 children: stat.value
                             }, void 0, false, {
                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                lineNumber: 334,
+                                lineNumber: 346,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, stat.label, true, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 332,
+                        lineNumber: 344,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                lineNumber: 326,
+                lineNumber: 338,
                 columnNumber: 7
             }, this),
             filteredDrivers.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1725,12 +1740,12 @@ function ManagerDrivers() {
                             className: "w-7 h-7 text-slate-400"
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                            lineNumber: 345,
+                            lineNumber: 357,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 344,
+                        lineNumber: 356,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -1738,7 +1753,7 @@ function ManagerDrivers() {
                         children: "No Drivers Found"
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 347,
+                        lineNumber: 359,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1746,13 +1761,13 @@ function ManagerDrivers() {
                         children: "There are no drivers matching your search."
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 348,
+                        lineNumber: 360,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                lineNumber: 343,
+                lineNumber: 355,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                 children: [
@@ -1780,7 +1795,7 @@ function ManagerDrivers() {
                                                 children: (driver.name || "D").charAt(0).toUpperCase()
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 363,
+                                                lineNumber: 375,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1791,7 +1806,7 @@ function ManagerDrivers() {
                                                         children: driver.name || "Unknown Driver"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 367,
+                                                        lineNumber: 379,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1799,26 +1814,32 @@ function ManagerDrivers() {
                                                         children: driver.email
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 368,
+                                                        lineNumber: 380,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 366,
+                                                lineNumber: 378,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                                                onClick: (e)=>{
+                                                onClick: async (e)=>{
                                                     e.stopPropagation();
                                                     if (window.confirm('Are you sure you want to delete this driver?')) {
-                                                        (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/drivers/${driver.id}`, {
-                                                            method: 'DELETE'
-                                                        }).then((res)=>{
-                                                            if (!res.ok) throw new Error();
+                                                        try {
+                                                            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/drivers/${driver.userId}`, {
+                                                                method: 'DELETE'
+                                                            });
+                                                            if (!res.ok) {
+                                                                const err = await res.json().catch(()=>null);
+                                                                throw new Error(err?.detail || err?.message || 'Failed to delete driver');
+                                                            }
                                                             setDrivers(drivers.filter((d)=>d.id !== driver.id));
                                                             __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Driver deleted');
-                                                        }).catch(()=>__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error('Cannot delete driver. They may be assigned to active shipments.'));
+                                                        } catch (err) {
+                                                            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error(err.message || 'Cannot delete driver.');
+                                                        }
                                                     }
                                                 },
                                                 className: "p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors",
@@ -1827,18 +1848,18 @@ function ManagerDrivers() {
                                                     className: "w-4 h-4"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                    lineNumber: 386,
+                                                    lineNumber: 402,
                                                     columnNumber: 21
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 370,
+                                                lineNumber: 382,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 362,
+                                        lineNumber: 374,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1852,12 +1873,12 @@ function ManagerDrivers() {
                                                     children: driver.driverProfile?.licenseNumber || 'NO LICENSE'
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                    lineNumber: 393,
+                                                    lineNumber: 409,
                                                     columnNumber: 21
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 392,
+                                                lineNumber: 408,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1869,7 +1890,7 @@ function ManagerDrivers() {
                                                             className: "w-2 h-2 rounded-full bg-blue-500"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                            lineNumber: 400,
+                                                            lineNumber: 416,
                                                             columnNumber: 25
                                                         }, this),
                                                         driver.driverProfile.vehicle.plateNumber,
@@ -1883,31 +1904,31 @@ function ManagerDrivers() {
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                            lineNumber: 401,
+                                                            lineNumber: 417,
                                                             columnNumber: 68
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                    lineNumber: 399,
+                                                    lineNumber: 415,
                                                     columnNumber: 23
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     className: "text-slate-400 italic",
                                                     children: "No vehicle assigned"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                    lineNumber: 404,
+                                                    lineNumber: 420,
                                                     columnNumber: 23
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 397,
+                                                lineNumber: 413,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 391,
+                                        lineNumber: 407,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1920,7 +1941,7 @@ function ManagerDrivers() {
                                                         className: `w-2.5 h-2.5 rounded-full ${driver.driverProfile?.isAvailable ? 'bg-emerald-500' : 'bg-slate-400'}`
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 412,
+                                                        lineNumber: 428,
                                                         columnNumber: 21
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1928,13 +1949,13 @@ function ManagerDrivers() {
                                                         children: driver.driverProfile?.isAvailable ? 'Available' : 'Unavailable'
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                        lineNumber: 413,
+                                                        lineNumber: 429,
                                                         columnNumber: 21
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 411,
+                                                lineNumber: 427,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$switch$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Switch"], {
@@ -1943,24 +1964,24 @@ function ManagerDrivers() {
                                                 title: "Driver sets availability via their portal"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                                lineNumber: 417,
+                                                lineNumber: 433,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                        lineNumber: 410,
+                                        lineNumber: 426,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, driver.id, true, {
                                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                                lineNumber: 354,
+                                lineNumber: 366,
                                 columnNumber: 15
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 352,
+                        lineNumber: 364,
                         columnNumber: 11
                     }, this),
                     totalPages > 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1971,24 +1992,24 @@ function ManagerDrivers() {
                             onPageChange: setCurrentPage
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                            lineNumber: 428,
+                            lineNumber: 444,
                             columnNumber: 15
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                        lineNumber: 427,
+                        lineNumber: 443,
                         columnNumber: 13
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-                lineNumber: 351,
+                lineNumber: 363,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/views/manager/ManagerDrivers.tsx",
-        lineNumber: 183,
+        lineNumber: 190,
         columnNumber: 5
     }, this);
 }
@@ -3257,13 +3278,18 @@ function ManagerFleet() {
                         (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/depots/${id}`, {
                             method: 'DELETE'
                         }).then({
-                            "ManagerFleet.useEffect": (res)=>{
-                                if (!res.ok) throw new Error();
+                            "ManagerFleet.useEffect": async (res)=>{
+                                if (!res.ok) {
+                                    const err = await res.json().catch({
+                                        "ManagerFleet.useEffect": ()=>null
+                                    }["ManagerFleet.useEffect"]);
+                                    throw new Error(err?.detail || err?.message || 'Failed to delete hub.');
+                                }
                                 __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Hub deleted successfully');
                                 fetchDepots();
                             }
                         }["ManagerFleet.useEffect"]).catch({
-                            "ManagerFleet.useEffect": ()=>__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error('Failed to delete hub.')
+                            "ManagerFleet.useEffect": (err)=>__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error(err.message || 'Failed to delete hub.')
                         }["ManagerFleet.useEffect"]);
                     }
                 }
@@ -3843,27 +3869,27 @@ function ManagerFleet() {
                     className: "h-10 w-full rounded-xl"
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1000,
+                    lineNumber: 1003,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                     className: "h-[500px] w-full rounded-xl"
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1001,
+                    lineNumber: 1004,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                     className: "h-20 w-full rounded-xl"
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1002,
+                    lineNumber: 1005,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-            lineNumber: 999,
+            lineNumber: 1002,
             columnNumber: 7
         }, this);
     }
@@ -3890,7 +3916,7 @@ function ManagerFleet() {
                             className: "w-14 h-14 animate-spin text-emerald-400"
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1022,
+                            lineNumber: 1025,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3898,7 +3924,7 @@ function ManagerFleet() {
                             children: "Dispatching & solving routes…"
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1023,
+                            lineNumber: 1026,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -3906,7 +3932,7 @@ function ManagerFleet() {
                             children: "Timefold VRP running synchronously (max 30s)"
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1024,
+                            lineNumber: 1027,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -3918,23 +3944,23 @@ function ManagerFleet() {
                                 }
                             }, void 0, false, {
                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                lineNumber: 1026,
+                                lineNumber: 1029,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1025,
+                            lineNumber: 1028,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1016,
+                    lineNumber: 1019,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                lineNumber: 1014,
+                lineNumber: 1017,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
@@ -3949,12 +3975,12 @@ function ManagerFleet() {
                     }
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1034,
+                    lineNumber: 1037,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                lineNumber: 1032,
+                lineNumber: 1035,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
@@ -3964,12 +3990,12 @@ function ManagerFleet() {
                     onSuccess: refetchVehicles
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1049,
+                    lineNumber: 1052,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                lineNumber: 1047,
+                lineNumber: 1050,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
@@ -4003,7 +4029,7 @@ function ManagerFleet() {
                                         children: "Optimize Routes"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1068,
+                                        lineNumber: 1071,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4013,18 +4039,18 @@ function ManagerFleet() {
                                             className: "w-4 h-4"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1070,
+                                            lineNumber: 1073,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1069,
+                                        lineNumber: 1072,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                lineNumber: 1067,
+                                lineNumber: 1070,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4037,7 +4063,7 @@ function ManagerFleet() {
                                                 children: "Available Vehicles"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1075,
+                                                lineNumber: 1078,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4057,7 +4083,7 @@ function ManagerFleet() {
                                                                     }
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1079,
+                                                                    lineNumber: 1082,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -4071,13 +4097,13 @@ function ManagerFleet() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1089,
+                                                                    lineNumber: 1092,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, v.id, true, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1078,
+                                                            lineNumber: 1081,
                                                             columnNumber: 23
                                                         }, this)),
                                                     vehicles.filter((v)=>v.status === 'AVAILABLE').length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -4085,19 +4111,19 @@ function ManagerFleet() {
                                                         children: "No available vehicles."
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1095,
+                                                        lineNumber: 1098,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1076,
+                                                lineNumber: 1079,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1074,
+                                        lineNumber: 1077,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4107,7 +4133,7 @@ function ManagerFleet() {
                                                 children: "Pending Shipments"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1101,
+                                                lineNumber: 1104,
                                                 columnNumber: 19
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4127,7 +4153,7 @@ function ManagerFleet() {
                                                                     }
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1105,
+                                                                    lineNumber: 1108,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -4142,13 +4168,13 @@ function ManagerFleet() {
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1115,
+                                                                    lineNumber: 1118,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, s.id, true, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1104,
+                                                            lineNumber: 1107,
                                                             columnNumber: 23
                                                         }, this)),
                                                     pendingShipments.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -4156,19 +4182,19 @@ function ManagerFleet() {
                                                         children: "No pending shipments found."
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1121,
+                                                        lineNumber: 1124,
                                                         columnNumber: 23
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1102,
+                                                lineNumber: 1105,
                                                 columnNumber: 19
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1100,
+                                        lineNumber: 1103,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4180,25 +4206,25 @@ function ManagerFleet() {
                                                     className: "w-4 h-4 shrink-0 mt-0.5"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1128,
+                                                    lineNumber: 1131,
                                                     columnNumber: 21
                                                 }, this),
                                                 "Batch dispatch auto-assigns all REQUESTED shipments to available vehicles via VRP solver."
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1127,
+                                            lineNumber: 1130,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1126,
+                                        lineNumber: 1129,
                                         columnNumber: 17
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                lineNumber: 1073,
+                                lineNumber: 1076,
                                 columnNumber: 15
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4213,40 +4239,40 @@ function ManagerFleet() {
                                                 className: "w-4 h-4 animate-spin mr-2 inline"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1139,
+                                                lineNumber: 1142,
                                                 columnNumber: 35
                                             }, this),
                                             "Solving..."
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1139,
+                                        lineNumber: 1142,
                                         columnNumber: 33
                                     }, this) : 'Dispatch & Optimize'
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1134,
+                                    lineNumber: 1137,
                                     columnNumber: 17
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                lineNumber: 1133,
+                                lineNumber: 1136,
                                 columnNumber: 15
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1060,
+                        lineNumber: 1063,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1059,
+                    lineNumber: 1062,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                lineNumber: 1057,
+                lineNumber: 1060,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
@@ -4282,7 +4308,7 @@ function ManagerFleet() {
                                             children: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$locales$2f$en$2e$json$2e5b$json$5d2e$cjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].manager.vehicleDetails
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1159,
+                                            lineNumber: 1162,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4292,18 +4318,18 @@ function ManagerFleet() {
                                                 className: "w-4 h-4"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1161,
+                                                lineNumber: 1164,
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1160,
+                                            lineNumber: 1163,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1158,
+                                    lineNumber: 1161,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4315,7 +4341,7 @@ function ManagerFleet() {
                                             value: selectedVehicle.plateNumber
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1166,
+                                            lineNumber: 1169,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4324,7 +4350,7 @@ function ManagerFleet() {
                                             value: selectedVehicle.type
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1167,
+                                            lineNumber: 1170,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4333,7 +4359,7 @@ function ManagerFleet() {
                                             value: selectedVehicle.model
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1168,
+                                            lineNumber: 1171,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4342,7 +4368,7 @@ function ManagerFleet() {
                                             value: `${selectedVehicle.capacity} kg`
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1169,
+                                            lineNumber: 1172,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4351,7 +4377,7 @@ function ManagerFleet() {
                                             value: selectedVehicle.fuelType
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1170,
+                                            lineNumber: 1173,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4362,12 +4388,12 @@ function ManagerFleet() {
                                                 children: formatVehicleStatus(selectedVehicle.status)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1172,
+                                                lineNumber: 1175,
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1171,
+                                            lineNumber: 1174,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4379,7 +4405,7 @@ function ManagerFleet() {
                                             })()
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1176,
+                                            lineNumber: 1179,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(DetailRow, {
@@ -4388,13 +4414,13 @@ function ManagerFleet() {
                                             value: formatCoords(selectedVehicle.lat, selectedVehicle.lng)
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1186,
+                                            lineNumber: 1189,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1165,
+                                    lineNumber: 1168,
                                     columnNumber: 17
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4405,19 +4431,22 @@ function ManagerFleet() {
                                                 if (window.confirm('Are you sure you want to delete this vehicle?')) {
                                                     (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/vehicles/${selectedVehicle.id}`, {
                                                         method: 'DELETE'
-                                                    }).then((res)=>{
-                                                        if (!res.ok) throw new Error();
+                                                    }).then(async (res)=>{
+                                                        if (!res.ok) {
+                                                            const err = await res.json().catch(()=>null);
+                                                            throw new Error(err?.detail || err?.message || 'Failed to delete vehicle.');
+                                                        }
                                                         setVehicles(vehicles.filter((v)=>v.id !== selectedVehicle.id));
                                                         setSelectedVehicle(null);
                                                         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Vehicle deleted');
-                                                    }).catch(()=>__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error('Cannot delete vehicle. It may be assigned to active drivers or shipments.'));
+                                                    }).catch((err)=>__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error(err.message || 'Cannot delete vehicle.'));
                                                 }
                                             },
                                             className: `${__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$theme$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["theme"].button.outline} w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200`,
                                             children: "Delete Vehicle"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1194,
+                                            lineNumber: 1197,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4426,34 +4455,34 @@ function ManagerFleet() {
                                             children: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$locales$2f$en$2e$json$2e5b$json$5d2e$cjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].manager.close
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1211,
+                                            lineNumber: 1217,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1193,
+                                    lineNumber: 1196,
                                     columnNumber: 17
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1157,
+                            lineNumber: 1160,
                             columnNumber: 15
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1150,
+                        lineNumber: 1153,
                         columnNumber: 13
                     }, this)
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                    lineNumber: 1149,
+                    lineNumber: 1152,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                lineNumber: 1147,
+                lineNumber: 1150,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4467,14 +4496,14 @@ function ManagerFleet() {
                         }
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1227,
+                        lineNumber: 1233,
                         columnNumber: 9
                     }, this),
                     showMapsErrorPanel && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(MapsUnavailablePanel, {
                         message: mapsError
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1233,
+                        lineNumber: 1239,
                         columnNumber: 32
                     }, this),
                     canManageFleet && sidebarPortal && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2d$dom$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createPortal"])(/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4489,12 +4518,12 @@ function ManagerFleet() {
                                         children: "Fleet Actions"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1240,
+                                        lineNumber: 1246,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1239,
+                                    lineNumber: 1245,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4508,14 +4537,14 @@ function ManagerFleet() {
                                                     className: "w-4 h-4 text-purple-600"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1247,
+                                                    lineNumber: 1253,
                                                     columnNumber: 19
                                                 }, this),
                                                 "Add Depot / HQ"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1243,
+                                            lineNumber: 1249,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4526,14 +4555,14 @@ function ManagerFleet() {
                                                     className: "w-4 h-4 text-blue-600"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1254,
+                                                    lineNumber: 1260,
                                                     columnNumber: 19
                                                 }, this),
                                                 "Add Vehicle"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1250,
+                                            lineNumber: 1256,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4545,37 +4574,37 @@ function ManagerFleet() {
                                                     className: "w-4 h-4 text-emerald-600 animate-spin"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1262,
+                                                    lineNumber: 1268,
                                                     columnNumber: 33
                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$route$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Route$3e$__["Route"], {
                                                     className: "w-4 h-4 text-emerald-600"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1262,
+                                                    lineNumber: 1268,
                                                     columnNumber: 97
                                                 }, this),
                                                 "Optimize Routes"
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1257,
+                                            lineNumber: 1263,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1242,
+                                    lineNumber: 1248,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1238,
+                            lineNumber: 1244,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1237,
+                        lineNumber: 1243,
                         columnNumber: 11
                     }, this), sidebarPortal),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4590,12 +4619,12 @@ function ManagerFleet() {
                                         children: "Map Controls"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1275,
+                                        lineNumber: 1281,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1274,
+                                    lineNumber: 1280,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4612,20 +4641,20 @@ function ManagerFleet() {
                                                             className: "w-3.5 h-3.5 text-emerald-600"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1280,
+                                                            lineNumber: 1286,
                                                             columnNumber: 34
                                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$eye$2d$off$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__EyeOff$3e$__["EyeOff"], {
                                                             className: "w-3.5 h-3.5"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1280,
+                                                            lineNumber: 1286,
                                                             columnNumber: 85
                                                         }, this),
                                                         "Traffic"
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1279,
+                                                    lineNumber: 1285,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$switch$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Switch"], {
@@ -4644,20 +4673,20 @@ function ManagerFleet() {
                                                     }
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1283,
+                                                    lineNumber: 1289,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1278,
+                                            lineNumber: 1284,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                             className: "h-px bg-slate-200/50 dark:bg-slate-700/50"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1300,
+                                            lineNumber: 1306,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4667,7 +4696,7 @@ function ManagerFleet() {
                                                     children: "Provider"
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1303,
+                                                    lineNumber: 1309,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4682,7 +4711,7 @@ function ManagerFleet() {
                                                             children: "Leaflet"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1305,
+                                                            lineNumber: 1311,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -4691,26 +4720,26 @@ function ManagerFleet() {
                                                             children: "Google"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1311,
+                                                            lineNumber: 1317,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1304,
+                                                    lineNumber: 1310,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1302,
+                                            lineNumber: 1308,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                             className: "h-px bg-slate-200/50 dark:bg-slate-700/50"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1320,
+                                            lineNumber: 1326,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4724,7 +4753,7 @@ function ManagerFleet() {
                                                             children: "Total"
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1325,
+                                                            lineNumber: 1331,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4732,13 +4761,13 @@ function ManagerFleet() {
                                                             children: totalCount
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1326,
+                                                            lineNumber: 1332,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1324,
+                                                    lineNumber: 1330,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4751,14 +4780,14 @@ function ManagerFleet() {
                                                                     className: "w-1.5 h-1.5 rounded-full bg-blue-500"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1330,
+                                                                    lineNumber: 1336,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 " Available"
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1329,
+                                                            lineNumber: 1335,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4766,13 +4795,13 @@ function ManagerFleet() {
                                                             children: availableCount
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1332,
+                                                            lineNumber: 1338,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1328,
+                                                    lineNumber: 1334,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4785,14 +4814,14 @@ function ManagerFleet() {
                                                                     className: "w-1.5 h-1.5 rounded-full bg-emerald-500"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1336,
+                                                                    lineNumber: 1342,
                                                                     columnNumber: 21
                                                                 }, this),
                                                                 " Active"
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1335,
+                                                            lineNumber: 1341,
                                                             columnNumber: 19
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4800,36 +4829,36 @@ function ManagerFleet() {
                                                             children: activeCount
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1338,
+                                                            lineNumber: 1344,
                                                             columnNumber: 19
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                    lineNumber: 1334,
+                                                    lineNumber: 1340,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1323,
+                                            lineNumber: 1329,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1277,
+                                    lineNumber: 1283,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1273,
+                            lineNumber: 1279,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1272,
+                        lineNumber: 1278,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
@@ -4852,7 +4881,7 @@ function ManagerFleet() {
                                     className: "w-4 h-4 shrink-0"
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1354,
+                                    lineNumber: 1360,
                                     columnNumber: 15
                                 }, this),
                                 "Click anywhere on the map to place Depot Pin",
@@ -4863,23 +4892,23 @@ function ManagerFleet() {
                                         className: "w-3.5 h-3.5"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1360,
+                                        lineNumber: 1366,
                                         columnNumber: 17
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1356,
+                                    lineNumber: 1362,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1348,
+                            lineNumber: 1354,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1346,
+                        lineNumber: 1352,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4903,20 +4932,20 @@ function ManagerFleet() {
                                                                 className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$theme$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["theme"].liveIndicator.pulseRing
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1373,
+                                                                lineNumber: 1379,
                                                                 columnNumber: 35
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                                 className: connected ? __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$theme$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["theme"].liveIndicator.dotLive : __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$constants$2f$theme$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["theme"].liveIndicator.dotOffline
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1374,
+                                                                lineNumber: 1380,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1372,
+                                                        lineNumber: 1378,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4924,13 +4953,13 @@ function ManagerFleet() {
                                                         children: connected ? 'Live' : 'Offline'
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1376,
+                                                        lineNumber: 1382,
                                                         columnNumber: 19
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1371,
+                                                lineNumber: 1377,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4938,7 +4967,7 @@ function ManagerFleet() {
                                                 children: "•"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1380,
+                                                lineNumber: 1386,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4951,18 +4980,18 @@ function ManagerFleet() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1381,
+                                                lineNumber: 1387,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                        lineNumber: 1370,
+                                        lineNumber: 1376,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1369,
+                                    lineNumber: 1375,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -4980,7 +5009,7 @@ function ManagerFleet() {
                                                                 children: v.plateNumber
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1394,
+                                                                lineNumber: 1400,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -4990,13 +5019,13 @@ function ManagerFleet() {
                                                                 }
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1395,
+                                                                lineNumber: 1401,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1393,
+                                                        lineNumber: 1399,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5006,7 +5035,7 @@ function ManagerFleet() {
                                                                 className: "w-3.5 h-3.5 text-slate-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1401,
+                                                                lineNumber: 1407,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5014,13 +5043,13 @@ function ManagerFleet() {
                                                                 children: v.model
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1402,
+                                                                lineNumber: 1408,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1400,
+                                                        lineNumber: 1406,
                                                         columnNumber: 19
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5030,7 +5059,7 @@ function ManagerFleet() {
                                                                 className: "w-3.5 h-3.5 text-slate-400"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1405,
+                                                                lineNumber: 1411,
                                                                 columnNumber: 21
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5041,13 +5070,13 @@ function ManagerFleet() {
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                lineNumber: 1406,
+                                                                lineNumber: 1412,
                                                                 columnNumber: 21
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                        lineNumber: 1404,
+                                                        lineNumber: 1410,
                                                         columnNumber: 19
                                                     }, this),
                                                     (()=>{
@@ -5059,7 +5088,7 @@ function ManagerFleet() {
                                                                     className: "w-3.5 h-3.5 text-slate-400"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1412,
+                                                                    lineNumber: 1418,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5067,13 +5096,13 @@ function ManagerFleet() {
                                                                     children: assignedDriver.name
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1413,
+                                                                    lineNumber: 1419,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1411,
+                                                            lineNumber: 1417,
                                                             columnNumber: 23
                                                         }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                             className: "flex items-center gap-2",
@@ -5082,7 +5111,7 @@ function ManagerFleet() {
                                                                     className: "w-3.5 h-3.5 text-slate-400"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1417,
+                                                                    lineNumber: 1423,
                                                                     columnNumber: 25
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -5090,20 +5119,20 @@ function ManagerFleet() {
                                                                     children: "Unassigned"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                                    lineNumber: 1418,
+                                                                    lineNumber: 1424,
                                                                     columnNumber: 25
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                            lineNumber: 1416,
+                                                            lineNumber: 1422,
                                                             columnNumber: 23
                                                         }, this);
                                                     })()
                                                 ]
                                             }, v.id, true, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1388,
+                                                lineNumber: 1394,
                                                 columnNumber: 17
                                             }, this)),
                                         vehicles.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -5113,41 +5142,41 @@ function ManagerFleet() {
                                                 children: "No vehicles in fleet"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                                lineNumber: 1426,
+                                                lineNumber: 1432,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                            lineNumber: 1425,
+                                            lineNumber: 1431,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                                    lineNumber: 1386,
+                                    lineNumber: 1392,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                            lineNumber: 1368,
+                            lineNumber: 1374,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                        lineNumber: 1367,
+                        lineNumber: 1373,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-                lineNumber: 1225,
+                lineNumber: 1231,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/views/manager/ManagerFleet.tsx",
-        lineNumber: 1013,
+        lineNumber: 1016,
         columnNumber: 5
     }, this);
 }
@@ -7402,16 +7431,21 @@ function ManagerShipments() {
         if (!assigningShipment || !selectedVehicleId || !selectedDriverId) return;
         setAssigning(true);
         try {
-            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/shipments/${assigningShipment.id}/assign?vehicleId=${selectedVehicleId}&driverId=${selectedDriverId}`, {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/shipments/${assigningShipment.id}/assign`, {
                 method: 'PUT',
                 headers: {
+                    'Content-Type': 'application/json',
                     Authorization: `Bearer ${authState.token}`
-                }
+                },
+                body: JSON.stringify({
+                    vehicleId: selectedVehicleId,
+                    driverId: selectedDriverId
+                })
             });
             if (!res.ok) throw new Error();
             const updatedShipment = await res.json();
             updateShipment(updatedShipment.id, updatedShipment);
-            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$locales$2f$en$2e$json$2e5b$json$5d2e$cjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].manager.vehicleAssigned);
+            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Shipment assigned successfully!');
             addNotification({
                 title: 'Shipment Assigned',
                 message: 'Vehicle and driver assigned successfully.',
@@ -7448,20 +7482,20 @@ function ManagerShipments() {
                     className: "h-10 w-full max-w-sm"
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                    lineNumber: 247,
+                    lineNumber: 251,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                     className: "h-[400px] w-full rounded-2xl"
                 }, void 0, false, {
                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                    lineNumber: 248,
+                    lineNumber: 252,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-            lineNumber: 246,
+            lineNumber: 250,
             columnNumber: 7
         }, this);
     }
@@ -7477,12 +7511,12 @@ function ManagerShipments() {
                             children: "Track and assign fleet shipments."
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 258,
+                            lineNumber: 262,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                        lineNumber: 257,
+                        lineNumber: 261,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7495,7 +7529,7 @@ function ManagerShipments() {
                                         className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                        lineNumber: 262,
+                                        lineNumber: 266,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -7508,13 +7542,13 @@ function ManagerShipments() {
                                         className: "pl-9 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                        lineNumber: 263,
+                                        lineNumber: 267,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                lineNumber: 261,
+                                lineNumber: 265,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -7556,26 +7590,26 @@ function ManagerShipments() {
                                         className: "w-4 h-4 mr-2"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                        lineNumber: 284,
+                                        lineNumber: 288,
                                         columnNumber: 13
                                     }, this),
                                     "Export CSV"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                lineNumber: 270,
+                                lineNumber: 274,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                        lineNumber: 260,
+                        lineNumber: 264,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                lineNumber: 256,
+                lineNumber: 260,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7594,12 +7628,12 @@ function ManagerShipments() {
                         children: tab === 'ALL' ? 'All Shipments' : formatStatus(tab)
                     }, tab, false, {
                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                        lineNumber: 293,
+                        lineNumber: 297,
                         columnNumber: 11
                     }, this))
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                lineNumber: 291,
+                lineNumber: 295,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7624,12 +7658,12 @@ function ManagerShipments() {
                                                     }
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 314,
+                                                    lineNumber: 318,
                                                     columnNumber: 19
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                lineNumber: 313,
+                                                lineNumber: 317,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -7638,62 +7672,6 @@ function ManagerShipments() {
                                                     label: "ID",
                                                     sortDir: sortKey === 'id' ? sortDir : null,
                                                     onSort: ()=>handleSort('id')
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 322,
-                                                    columnNumber: 104
-                                                }, this)
-                                            }, void 0, false, {
-                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                lineNumber: 322,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
-                                                children: "Route"
-                                            }, void 0, false, {
-                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                lineNumber: 323,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
-                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$SortableHeader$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
-                                                    label: "Status",
-                                                    sortDir: sortKey === 'status' ? sortDir : null,
-                                                    onSort: ()=>handleSort('status')
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 324,
-                                                    columnNumber: 104
-                                                }, this)
-                                            }, void 0, false, {
-                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                lineNumber: 324,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
-                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$SortableHeader$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
-                                                    label: "Driver",
-                                                    sortDir: sortKey === 'driverId' ? sortDir : null,
-                                                    onSort: ()=>handleSort('driverId')
-                                                }, void 0, false, {
-                                                    fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 325,
-                                                    columnNumber: 104
-                                                }, this)
-                                            }, void 0, false, {
-                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                lineNumber: 325,
-                                                columnNumber: 17
-                                            }, this),
-                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
-                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
-                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$SortableHeader$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
-                                                    label: "ETA / Created",
-                                                    sortDir: sortKey === 'createdAt' ? sortDir : null,
-                                                    onSort: ()=>handleSort('createdAt')
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
                                                     lineNumber: 326,
@@ -7705,22 +7683,78 @@ function ManagerShipments() {
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
+                                                children: "Route"
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                lineNumber: 327,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$SortableHeader$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                                    label: "Status",
+                                                    sortDir: sortKey === 'status' ? sortDir : null,
+                                                    onSort: ()=>handleSort('status')
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                    lineNumber: 328,
+                                                    columnNumber: 104
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                lineNumber: 328,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$SortableHeader$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                                    label: "Driver",
+                                                    sortDir: sortKey === 'driverId' ? sortDir : null,
+                                                    onSort: ()=>handleSort('driverId')
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                    lineNumber: 329,
+                                                    columnNumber: 104
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                lineNumber: 329,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
+                                                className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide",
+                                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$SortableHeader$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                                    label: "ETA / Created",
+                                                    sortDir: sortKey === 'createdAt' ? sortDir : null,
+                                                    onSort: ()=>handleSort('createdAt')
+                                                }, void 0, false, {
+                                                    fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                    lineNumber: 330,
+                                                    columnNumber: 104
+                                                }, this)
+                                            }, void 0, false, {
+                                                fileName: "[project]/src/views/manager/ManagerShipments.tsx",
+                                                lineNumber: 330,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
                                                 className: "px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right",
                                                 children: "Actions"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                lineNumber: 327,
+                                                lineNumber: 331,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                        lineNumber: 312,
+                                        lineNumber: 316,
                                         columnNumber: 15
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 311,
+                                    lineNumber: 315,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -7731,12 +7765,12 @@ function ManagerShipments() {
                                             children: "No shipments found."
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                            lineNumber: 333,
+                                            lineNumber: 337,
                                             columnNumber: 19
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                        lineNumber: 332,
+                                        lineNumber: 336,
                                         columnNumber: 17
                                     }, this) : paginatedShipments.map((shipment)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
                                             onClick: ()=>setSelectedShipment(shipment),
@@ -7757,12 +7791,12 @@ function ManagerShipments() {
                                                         }
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 343,
+                                                        lineNumber: 347,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 342,
+                                                    lineNumber: 346,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -7772,12 +7806,12 @@ function ManagerShipments() {
                                                         children: String(shipment.id).slice(0, 8)
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 356,
+                                                        lineNumber: 360,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 355,
+                                                    lineNumber: 359,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -7792,7 +7826,7 @@ function ManagerShipments() {
                                                                         className: "w-3.5 h-3.5 text-slate-400 shrink-0"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                        lineNumber: 360,
+                                                                        lineNumber: 364,
                                                                         columnNumber: 68
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -7801,13 +7835,13 @@ function ManagerShipments() {
                                                                         children: shipment.originAddress
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                        lineNumber: 360,
+                                                                        lineNumber: 364,
                                                                         columnNumber: 126
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                lineNumber: 360,
+                                                                lineNumber: 364,
                                                                 columnNumber: 25
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7817,7 +7851,7 @@ function ManagerShipments() {
                                                                         className: "w-3.5 h-3.5 text-slate-400 shrink-0"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                        lineNumber: 361,
+                                                                        lineNumber: 365,
                                                                         columnNumber: 68
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -7826,24 +7860,24 @@ function ManagerShipments() {
                                                                         children: shipment.destinationAddress
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                        lineNumber: 361,
+                                                                        lineNumber: 365,
                                                                         columnNumber: 126
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                lineNumber: 361,
+                                                                lineNumber: 365,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 359,
+                                                        lineNumber: 363,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 358,
+                                                    lineNumber: 362,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -7855,19 +7889,19 @@ function ManagerShipments() {
                                                                 className: `w-1.5 h-1.5 rounded-full ${statusDotClasses[shipment.status] || 'bg-slate-500'}`
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                lineNumber: 366,
+                                                                lineNumber: 370,
                                                                 columnNumber: 25
                                                             }, this),
                                                             formatStatus(shipment.status)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 365,
+                                                        lineNumber: 369,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 364,
+                                                    lineNumber: 368,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -7877,19 +7911,19 @@ function ManagerShipments() {
                                                         children: shipment.driver.name
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 372,
+                                                        lineNumber: 376,
                                                         columnNumber: 25
                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                         className: "text-sm text-slate-400 italic",
                                                         children: "Unassigned"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 374,
+                                                        lineNumber: 378,
                                                         columnNumber: 25
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 370,
+                                                    lineNumber: 374,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -7900,7 +7934,7 @@ function ManagerShipments() {
                                                             children: new Date(shipment.createdAt).toLocaleDateString()
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                            lineNumber: 378,
+                                                            lineNumber: 382,
                                                             columnNumber: 23
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7908,13 +7942,13 @@ function ManagerShipments() {
                                                             children: timeAgo(shipment.createdAt)
                                                         }, void 0, false, {
                                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                            lineNumber: 379,
+                                                            lineNumber: 383,
                                                             columnNumber: 23
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 377,
+                                                    lineNumber: 381,
                                                     columnNumber: 21
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -7930,7 +7964,7 @@ function ManagerShipments() {
                                                                 children: "Assign"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                lineNumber: 384,
+                                                                lineNumber: 388,
                                                                 columnNumber: 27
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -7942,45 +7976,45 @@ function ManagerShipments() {
                                                                     className: "w-4 h-4"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                    lineNumber: 398,
+                                                                    lineNumber: 402,
                                                                     columnNumber: 27
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                                lineNumber: 392,
+                                                                lineNumber: 396,
                                                                 columnNumber: 25
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 382,
+                                                        lineNumber: 386,
                                                         columnNumber: 23
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 381,
+                                                    lineNumber: 385,
                                                     columnNumber: 21
                                                 }, this)
                                             ]
                                         }, shipment.id, true, {
                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                            lineNumber: 337,
+                                            lineNumber: 341,
                                             columnNumber: 19
                                         }, this))
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 330,
+                                    lineNumber: 334,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 310,
+                            lineNumber: 314,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                        lineNumber: 309,
+                        lineNumber: 313,
                         columnNumber: 9
                     }, this),
                     totalPages > 1 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -7991,18 +8025,18 @@ function ManagerShipments() {
                             onPageChange: setCurrentPage
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 410,
+                            lineNumber: 414,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                        lineNumber: 409,
+                        lineNumber: 413,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                lineNumber: 308,
+                lineNumber: 312,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$components$2f$AnimatePresence$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AnimatePresence"], {
@@ -8029,14 +8063,14 @@ function ManagerShipments() {
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 424,
+                            lineNumber: 428,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: "w-px h-4 bg-slate-700"
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 425,
+                            lineNumber: 429,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8054,7 +8088,7 @@ function ManagerShipments() {
                                     children: "Mark Delivered"
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 427,
+                                    lineNumber: 431,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -8069,13 +8103,13 @@ function ManagerShipments() {
                                     children: "Cancel Shipments"
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 434,
+                                    lineNumber: 438,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 426,
+                            lineNumber: 430,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -8085,23 +8119,23 @@ function ManagerShipments() {
                                 className: "w-4 h-4 text-slate-400"
                             }, void 0, false, {
                                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                lineNumber: 443,
+                                lineNumber: 447,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 442,
+                            lineNumber: 446,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                    lineNumber: 418,
+                    lineNumber: 422,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                lineNumber: 416,
+                lineNumber: 420,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -8120,7 +8154,7 @@ function ManagerShipments() {
                                     children: "Assign Resources"
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 453,
+                                    lineNumber: 457,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
@@ -8130,13 +8164,13 @@ function ManagerShipments() {
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 454,
+                                    lineNumber: 458,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 452,
+                            lineNumber: 456,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8150,7 +8184,7 @@ function ManagerShipments() {
                                             children: "Vehicle"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                            lineNumber: 460,
+                                            lineNumber: 464,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -8163,12 +8197,12 @@ function ManagerShipments() {
                                                         placeholder: "Select vehicle"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 463,
+                                                        lineNumber: 467,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 462,
+                                                    lineNumber: 466,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -8182,24 +8216,24 @@ function ManagerShipments() {
                                                             ]
                                                         }, v.id, true, {
                                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                            lineNumber: 467,
+                                                            lineNumber: 471,
                                                             columnNumber: 21
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 465,
+                                                    lineNumber: 469,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                            lineNumber: 461,
+                                            lineNumber: 465,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 459,
+                                    lineNumber: 463,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -8210,7 +8244,7 @@ function ManagerShipments() {
                                             children: "Driver"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                            lineNumber: 473,
+                                            lineNumber: 477,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -8223,12 +8257,12 @@ function ManagerShipments() {
                                                         placeholder: "Select driver"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                        lineNumber: 476,
+                                                        lineNumber: 480,
                                                         columnNumber: 19
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 475,
+                                                    lineNumber: 479,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -8237,30 +8271,30 @@ function ManagerShipments() {
                                                             children: d.name
                                                         }, d.id, false, {
                                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                            lineNumber: 480,
+                                                            lineNumber: 484,
                                                             columnNumber: 21
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                                    lineNumber: 478,
+                                                    lineNumber: 482,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                            lineNumber: 474,
+                                            lineNumber: 478,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 472,
+                                    lineNumber: 476,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 458,
+                            lineNumber: 462,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogFooter"], {
@@ -8272,34 +8306,34 @@ function ManagerShipments() {
                                     children: "Cancel"
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 487,
+                                    lineNumber: 491,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
                                     disabled: assigning || !selectedVehicleId || !selectedDriverId,
                                     onClick: handleAssign,
                                     className: "rounded-xl bg-blue-600 hover:bg-blue-700 text-white",
-                                    children: assigning ? 'Assigning...' : 'Assign Resources'
+                                    children: assigning ? 'Assigning...' : 'Assign Shipment'
                                 }, void 0, false, {
                                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                                    lineNumber: 488,
+                                    lineNumber: 492,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                            lineNumber: 486,
+                            lineNumber: 490,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                    lineNumber: 451,
+                    lineNumber: 455,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                lineNumber: 450,
+                lineNumber: 454,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$ShipmentDetailDrawer$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -8313,13 +8347,13 @@ function ManagerShipments() {
                 }
             }, void 0, false, {
                 fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-                lineNumber: 495,
+                lineNumber: 499,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/views/manager/ManagerShipments.tsx",
-        lineNumber: 254,
+        lineNumber: 258,
         columnNumber: 5
     }, this);
 }

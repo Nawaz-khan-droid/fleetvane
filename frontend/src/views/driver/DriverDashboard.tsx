@@ -21,10 +21,12 @@ import { useRouter } from '@/context/RouterContext';
 import type { Shipment, Vehicle, DriverWithProfile, ShipmentStatus } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
-function formatStatus(status: ShipmentStatus): string {
+function formatStatus(status: string): string {
   const map: Record<string, string> = {
-    REQUESTED: 'Requested',
-    ASSIGNED: 'Assigned',
+    REQUESTED: 'Pending',
+    ASSIGNED: 'Accepted',
+    EN_ROUTE_TO_PICKUP: 'En Route',
+    AT_PICKUP: 'At Pickup',
     IN_TRANSIT: 'In Transit',
     DELIVERED: 'Delivered',
     CANCELLED: 'Cancelled'
@@ -87,7 +89,8 @@ const getGreeting = () => {
   return 'Good evening';
 };
 
-const STEPS = ['REQUESTED', 'ASSIGNED', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED', 'DELIVERED'];
+const STEPS = ['ASSIGNED', 'EN_ROUTE_TO_PICKUP', 'AT_PICKUP', 'IN_TRANSIT', 'DELIVERED'];
+const STEP_LABELS = ['Accepted', 'En Route to Pickup', 'At Pickup', 'In Transit', 'Delivered'];
 
 export default function DriverDashboard() {
   const { state: authState } = useAuth();
@@ -117,7 +120,7 @@ export default function DriverDashboard() {
         // Fetch all vehicles and shipments
         const [vehiclesRes, shipmentsRes] = await Promise.all([
           fetchWithAuth('/api/vehicles', { headers }),
-          fetchWithAuth('/api/shipments?clientId=all', { headers }),
+          fetchWithAuth('/api/shipments?size=50', { headers }),
         ]);
 
         if (!vehiclesRes.ok || !shipmentsRes.ok) {
@@ -139,11 +142,13 @@ export default function DriverDashboard() {
           const assignedVehicle = vehiclesData.find((v) => v.id === assignedVehicleId);
           setVehicle(assignedVehicle || null);
 
-          // Find active shipment for this vehicle (any in-flight status)
+          // Find active shipment for this driver
           const activeShipment = shipmentsData.find(
             (s) =>
-              s.vehicleId === assignedVehicleId &&
+              s.driverId === String(myUserId) &&
               (s.status === 'ASSIGNED' ||
+               s.status === 'EN_ROUTE_TO_PICKUP' ||
+               s.status === 'AT_PICKUP' ||
                s.status === 'DISPATCHED' ||
                s.status === 'IN_TRANSIT' ||
                s.status === 'ARRIVED')
@@ -173,6 +178,26 @@ export default function DriverDashboard() {
   const userName = authState.user?.name?.split(' ')[0] || 'Driver';
 
   const currentStepIndex = shipment ? STEPS.indexOf(shipment.status) : -1;
+
+  const acceptShipment = async () => {
+    if (!shipment) return;
+    try {
+      const res = await fetchWithAuth(`/api/shipments/${shipment.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'EN_ROUTE_TO_PICKUP' }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || 'Failed to accept shipment');
+      }
+      const updated = await res.json();
+      setShipment((prev) => prev ? { ...prev, status: updated.status as any } : prev);
+      toast.success('Shipment accepted! Navigate to pickup location.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to accept shipment');
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -289,7 +314,6 @@ export default function DriverDashboard() {
                 {STEPS.map((step, index) => {
                   const isCompleted = index < currentStepIndex;
                   const isCurrent = index === currentStepIndex;
-                  const isPending = index > currentStepIndex;
                   
                   return (
                     <div key={step} className="relative z-10 flex flex-col items-center gap-3">
@@ -313,7 +337,7 @@ export default function DriverDashboard() {
                             ? 'text-slate-700 dark:text-slate-300' 
                             : 'text-slate-400 dark:text-slate-500'
                       }`}>
-                        {formatStatus(step as ShipmentStatus)}
+                        {STEP_LABELS[index]}
                       </span>
                     </div>
                   );
@@ -329,12 +353,22 @@ export default function DriverDashboard() {
             transition={{ delay: 0.2 }}
             className="flex flex-col sm:flex-row gap-4"
           >
+            {/* Accept button when shipment is newly ASSIGNED */}
+            {shipment?.status === 'ASSIGNED' && (
+              <button
+                onClick={acceptShipment}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-5 py-3.5 text-sm inline-flex justify-center items-center gap-2 transition-colors shadow-lg"
+              >
+                <Check className="w-5 h-5" />
+                Accept Delivery
+              </button>
+            )}
             <button
               onClick={() => navigate('/driver/route')}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 py-3.5 text-sm inline-flex justify-center items-center gap-2 transition-colors"
             >
               <Navigation className="w-4 h-4" />
-              Start Route
+              {shipment?.status === 'ASSIGNED' ? 'View Route' : 'Continue Route'}
             </button>
             <button
               onClick={() => navigate('/driver/report')}

@@ -187,9 +187,7 @@ export default function LandingPage() {
               onClick={() => navigate('/')}
               className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-                <Truck className="w-5 h-5" />
-              </div>
+              <img src="/logo.png" alt="FleetVane" className="w-8 h-8 object-contain shadow-sm rounded-xl" />
               <span className="font-serif tracking-tight">{t.brand.name}</span>
             </button>
 
@@ -435,7 +433,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
             <div className="col-span-2 md:col-span-1 space-y-6">
               <div className="flex items-center gap-2 text-slate-900 dark:text-white font-bold text-xl">
-                <Truck className="w-6 h-6 text-blue-600" />
+                <img src="/logo.png" alt="FleetVane" className="w-6 h-6 object-contain" />
                 <span className="font-serif">{t.brand.name}</span>
               </div>
               <p className="text-sm text-slate-500 dark:text-slate-400 font-sans leading-relaxed">

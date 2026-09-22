@@ -568,12 +568,15 @@ export default function ManagerFleet() {
     (window as any).deleteDepot = (id: number) => {
       if (window.confirm('Are you sure you want to delete this hub?')) {
         fetchWithAuth(`/api/depots/${id}`, { method: 'DELETE' })
-          .then((res) => {
-            if (!res.ok) throw new Error();
+          .then(async (res) => {
+            if (!res.ok) {
+              const err = await res.json().catch(() => null);
+              throw new Error(err?.detail || err?.message || 'Failed to delete hub.');
+            }
             toast.success('Hub deleted successfully');
             fetchDepots();
           })
-          .catch(() => toast.error('Failed to delete hub.'));
+          .catch((err) => toast.error(err.message || 'Failed to delete hub.'));
       }
     };
     return () => {
@@ -943,9 +946,9 @@ export default function ManagerFleet() {
           polylineGroupRef.current?.clearLayers();
           polylineGroupRef.current = L.layerGroup().addTo(map);
 
-          optimizedRoutes.routes.forEach((route) => {
+          (optimizedRoutes.routes || []).forEach((route) => {
             const coords: [number, number][] = [[route.startLat, route.startLng]];
-            route.stops.forEach((stop) => coords.push([stop.lat, stop.lng]));
+            (route.stops || []).forEach((stop) => coords.push([stop.lat, stop.lng]));
             if (coords.length > 1) {
               L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.8 })
                 .addTo(polylineGroupRef.current);
@@ -960,10 +963,10 @@ export default function ManagerFleet() {
       googlePolylinesRef.current.forEach(p => p.setMap(null));
       googlePolylinesRef.current = [];
 
-      optimizedRoutes.routes.forEach((route) => {
+      (optimizedRoutes.routes || []).forEach((route) => {
         const path: google.maps.LatLngLiteral[] = [
           { lat: route.startLat, lng: route.startLng },
-          ...route.stops.map((stop) => ({ lat: stop.lat, lng: stop.lng })),
+          ...(route.stops || []).map((stop) => ({ lat: stop.lat, lng: stop.lng })),
         ];
         if (path.length > 1) {
           const polyline = new google.maps.Polyline({
@@ -1195,13 +1198,16 @@ export default function ManagerFleet() {
                     onClick={() => {
                       if (window.confirm('Are you sure you want to delete this vehicle?')) {
                         fetchWithAuth(`/api/vehicles/${selectedVehicle.id}`, { method: 'DELETE' })
-                          .then((res) => {
-                            if (!res.ok) throw new Error();
+                          .then(async (res) => {
+                            if (!res.ok) {
+                              const err = await res.json().catch(() => null);
+                              throw new Error(err?.detail || err?.message || 'Failed to delete vehicle.');
+                            }
                             setVehicles(vehicles.filter(v => v.id !== selectedVehicle.id));
                             setSelectedVehicle(null);
                             toast.success('Vehicle deleted');
                           })
-                          .catch(() => toast.error('Cannot delete vehicle. It may be assigned to active drivers or shipments.'));
+                          .catch((err) => toast.error(err.message || 'Cannot delete vehicle.'));
                       }
                     }}
                     className={`${theme.button.outline} w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200`}

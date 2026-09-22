@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Package,
   MapPin,
@@ -15,7 +15,12 @@ import {
   CheckCircle,
   Play,
   Loader2,
+  ScanQrCode,
+  X,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,7 +46,7 @@ import { useAuth } from '@/context/AuthContext';
 import type { Shipment, ShipmentStatus } from '@/types';
 
 // ── Status badge mapping ──────────────────────────────────
-const statusBadgeClass: Record<ShipmentStatus, string> = {
+const statusBadgeClass: Record<string, string> = {
   REQUESTED: theme.status.requested,
   ASSIGNED: theme.status.assigned,
   DISPATCHED: theme.status.inTransit,
@@ -207,6 +212,8 @@ export default function ShipmentDetailDrawer({
   const { state: authState } = useAuth();
   const updateShipmentStore = useStore((state) => state.updateShipment);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
+  const isManager = authState.user?.role === 'MANAGER' || authState.user?.role === 'ADMIN';
 
   if (!shipment) return null;
 
@@ -232,7 +239,8 @@ export default function ShipmentDetailDrawer({
     setActionLoading(true);
     try {
       const res = await fetchWithAuth(`/api/shipments/${shipment.id}`, {
-        method: 'PATCH',
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, ...body }),
       });
       if (!res.ok) throw new Error();
@@ -304,11 +312,19 @@ export default function ShipmentDetailDrawer({
               <TruncatedId id={shipment.id} />
             </div>
           </div>
-          <Badge
-            className={`${theme.status.badge} ${statusBadgeClass[shipment.status]} flex-shrink-0`}
-          >
-            {formatStatus(shipment.status)}
-          </Badge>
+          <div className="flex items-center gap-3">
+            <Badge
+              className={`${theme.status.badge} ${statusBadgeClass[shipment.status]} flex-shrink-0`}
+            >
+              {formatStatus(shipment.status)}
+            </Badge>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-300 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         <DialogDescription className="sr-only">
@@ -328,6 +344,13 @@ export default function ShipmentDetailDrawer({
             animate="visible"
             transition={{ duration: 0.3, delay: 0.1 }}
           >
+            {shipment.clientName && (
+              <InfoItem
+                icon={User}
+                label="Client"
+                value={`${shipment.clientName} ${shipment.clientPhone ? `(${shipment.clientPhone})` : ''}`}
+              />
+            )}
             <InfoItem
               icon={MapPin}
               label={t.client.origin}
@@ -415,6 +438,130 @@ export default function ShipmentDetailDrawer({
               </div>
             </motion.div>
           )}
+
+          {/* QR Code for Pickup Verification (Client side) */}
+          {shipment.qrToken && (shipment.status === 'ASSIGNED' || shipment.status === 'EN_ROUTE_TO_PICKUP') && readOnly && (
+            <motion.div
+              className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-6 flex flex-col items-center justify-center text-center shadow-sm"
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              transition={{ duration: 0.3, delay: 0.3 }}
+            >
+              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center mb-4">
+                <ScanQrCode className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                Pickup Verification QR
+              </h4>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm">
+                Show this QR code to the driver when they arrive to pick up your shipment.
+              </p>
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm inline-block">
+                <QRCode value={shipment.qrToken} size={160} />
+              </div>
+              <p className="text-xs font-mono text-slate-400 mt-4 break-all">
+                {shipment.qrToken}
+              </p>
+            </motion.div>
+          )}
+        </div>
+
+        {/* ── Extended Details (Client & Package) ────────── */}
+        <div className="px-6 pb-4">
+          <button
+            onClick={() => setShowMoreDetails(!showMoreDetails)}
+            className="flex items-center justify-between w-full p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-700"
+          >
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              Shipment & Client Details
+            </span>
+            {showMoreDetails ? (
+              <ChevronUp className="w-5 h-5 text-slate-500" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-500" />
+            )}
+          </button>
+          
+          <AnimatePresence>
+            {showMoreDetails && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="p-4 mt-2 rounded-xl border border-slate-200 dark:border-slate-700 space-y-6 bg-white dark:bg-slate-900">
+                  {/* Client Details */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Client Contact</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Name</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{shipment.clientName || 'Unknown'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Phone</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{shipment.clientPhone || '—'}</p>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">Email</p>
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{shipment.clientEmail || '—'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Weight & Dimensions Table */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Package Details</h4>
+                    <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                      <table className="w-full text-left text-sm border-collapse">
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+                            <th className="px-3 py-2 font-medium text-slate-500">Metric</th>
+                            <th className="px-3 py-2 font-medium text-slate-500">Value</th>
+                            <th className="px-3 py-2 font-medium text-slate-500">Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                          <tr>
+                            <td className="px-3 py-2 text-slate-700 dark:text-slate-300">Actual Weight</td>
+                            <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">{shipment.weight ? `${shipment.weight.toFixed(2)} kg` : '—'}</td>
+                            <td className="px-3 py-2 text-slate-500 text-xs">Physical scale weight</td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-2 text-slate-700 dark:text-slate-300">Dimensions (L×W×H)</td>
+                            <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
+                              {(shipment.lengthCm && shipment.widthCm && shipment.heightCm) ? `${shipment.lengthCm} × ${shipment.widthCm} × ${shipment.heightCm} cm` : '—'}
+                            </td>
+                            <td className="px-3 py-2 text-slate-500 text-xs">
+                              {shipment.volumeM3 ? `Total volume: ${shipment.volumeM3.toFixed(2)} m³` : '—'}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="px-3 py-2 text-slate-700 dark:text-slate-300">Volumetric Weight</td>
+                            <td className="px-3 py-2 font-medium text-slate-900 dark:text-slate-100">
+                              {shipment.volumeM3 ? `${(shipment.volumeM3 * 200).toFixed(2)} kg` : '—'}
+                            </td>
+                            <td className="px-3 py-2 text-slate-500 text-xs">Calculated at DIM factor 5000</td>
+                          </tr>
+                          <tr className="bg-blue-50/50 dark:bg-blue-900/10">
+                            <td className="px-3 py-2 font-semibold text-blue-900 dark:text-blue-300">Chargeable Weight</td>
+                            <td className="px-3 py-2 font-bold text-blue-900 dark:text-blue-300">
+                              {(shipment.volumeM3 && shipment.weight) 
+                                ? `${Math.max(shipment.weight, shipment.volumeM3 * 200).toFixed(2)} kg` 
+                                : shipment.weight ? `${shipment.weight.toFixed(2)} kg` : shipment.volumeM3 ? `${(shipment.volumeM3 * 200).toFixed(2)} kg` : '—'}
+                            </td>
+                            <td className="px-3 py-2 text-blue-700/70 dark:text-blue-400/70 text-xs">Higher of actual vs. volumetric</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── Footer Actions ───────────────────────────── */}
@@ -473,7 +620,7 @@ export default function ShipmentDetailDrawer({
                       onClick={handleCancel}
                       disabled={actionLoading}
                     >
-                      {t.common.cancel}
+                      {isManager ? 'Reject' : t.common.cancel}
                     </Button>
                   )}
                 </>

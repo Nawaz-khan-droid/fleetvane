@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Navigation, FileText, UserCircle, Truck, Bell } from 'lucide-react';
+import { LayoutDashboard, Navigation, FileText, UserCircle, Truck, Bell, LogOut } from 'lucide-react';
 import LiveGreeting from '@/components/shared/LiveGreeting';
 import ThemeToggle from '@/components/shared/ThemeToggle';
 import NotificationBell from '@/components/shared/NotificationBell';
@@ -23,7 +23,7 @@ const navItems = [
 ];
 
 export default function DriverLayout({ children, title }: DriverLayoutProps) {
-  const { state: authState } = useAuth();
+  const { state: authState, logout } = useAuth();
   const { route, navigate } = useRouter();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -34,9 +34,7 @@ export default function DriverLayout({ children, title }: DriverLayoutProps) {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex w-56 flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-50">
         <div className="h-14 flex items-center px-4 border-b border-slate-200 dark:border-slate-800">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center mr-2">
-            <Truck className="w-5 h-5 text-white" />
-          </div>
+          <img src="/logo.png" alt="FleetVane" className="w-8 h-8 object-contain mr-2" />
           <span className="font-bold text-lg text-slate-900 dark:text-white">FleetVane</span>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
@@ -71,6 +69,13 @@ export default function DriverLayout({ children, title }: DriverLayoutProps) {
             </p>
             <p className="text-xs text-slate-500 truncate">Driver</p>
           </div>
+          <button 
+            onClick={() => logout()}
+            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"
+            title="Sign Out"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </aside>
 
@@ -79,7 +84,7 @@ export default function DriverLayout({ children, title }: DriverLayoutProps) {
         {/* Topbar */}
         <header className="h-14 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-4 sticky top-0 z-40">
           <div className="flex items-center gap-2 lg:hidden">
-            <Truck className="w-6 h-6 text-blue-600" />
+            <img src="/logo.png" alt="FleetVane" className="w-6 h-6 object-contain" />
             <span className="font-bold text-lg text-slate-900 dark:text-white">FleetVane</span>
           </div>
           <div className="hidden lg:block">
@@ -120,6 +125,13 @@ export default function DriverLayout({ children, title }: DriverLayoutProps) {
             </button>
           );
         })}
+        <button
+          onClick={() => logout()}
+          className="flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors text-slate-400 dark:text-slate-500 hover:text-red-500"
+        >
+          <LogOut className="w-6 h-6" />
+          <span className="text-[10px] font-medium">Logout</span>
+        </button>
       </nav>
     </div>
   );

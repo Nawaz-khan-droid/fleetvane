@@ -37,8 +37,10 @@ var _s = __turbopack_context__.k.signature();
 ;
 function formatStatus(status) {
     const map = {
-        REQUESTED: 'Requested',
-        ASSIGNED: 'Assigned',
+        REQUESTED: 'Pending',
+        ASSIGNED: 'Accepted',
+        EN_ROUTE_TO_PICKUP: 'En Route',
+        AT_PICKUP: 'At Pickup',
         IN_TRANSIT: 'In Transit',
         DELIVERED: 'Delivered',
         CANCELLED: 'Cancelled'
@@ -85,12 +87,18 @@ const getGreeting = ()=>{
     return 'Good evening';
 };
 const STEPS = [
-    'REQUESTED',
     'ASSIGNED',
-    'DISPATCHED',
+    'EN_ROUTE_TO_PICKUP',
+    'AT_PICKUP',
     'IN_TRANSIT',
-    'ARRIVED',
     'DELIVERED'
+];
+const STEP_LABELS = [
+    'Accepted',
+    'En Route to Pickup',
+    'At Pickup',
+    'In Transit',
+    'Delivered'
 ];
 function DriverDashboard() {
     _s();
@@ -127,7 +135,7 @@ function DriverDashboard() {
                             (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])('/api/vehicles', {
                                 headers
                             }),
-                            (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])('/api/shipments?clientId=all', {
+                            (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])('/api/shipments?size=50', {
                                 headers
                             })
                         ]);
@@ -147,9 +155,9 @@ function DriverDashboard() {
                                 "DriverDashboard.useEffect.assignedVehicle": (v)=>v.id === assignedVehicleId
                             }["DriverDashboard.useEffect.assignedVehicle"]);
                             setVehicle(assignedVehicle || null);
-                            // Find active shipment for this vehicle (any in-flight status)
+                            // Find active shipment for this driver
                             const activeShipment = shipmentsData.find({
-                                "DriverDashboard.useEffect.activeShipment": (s)=>s.vehicleId === assignedVehicleId && (s.status === 'ASSIGNED' || s.status === 'DISPATCHED' || s.status === 'IN_TRANSIT' || s.status === 'ARRIVED')
+                                "DriverDashboard.useEffect.activeShipment": (s)=>s.driverId === String(myUserId) && (s.status === 'ASSIGNED' || s.status === 'EN_ROUTE_TO_PICKUP' || s.status === 'AT_PICKUP' || s.status === 'DISPATCHED' || s.status === 'IN_TRANSIT' || s.status === 'ARRIVED')
                             }["DriverDashboard.useEffect.activeShipment"]);
                             setShipment(activeShipment || null);
                         }
@@ -174,27 +182,27 @@ function DriverDashboard() {
                     className: "h-16 w-64"
                 }, void 0, false, {
                     fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                    lineNumber: 164,
+                    lineNumber: 169,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                     className: "h-64 w-full rounded-2xl"
                 }, void 0, false, {
                     fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                    lineNumber: 165,
+                    lineNumber: 170,
                     columnNumber: 9
                 }, this),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ui$2f$skeleton$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Skeleton"], {
                     className: "h-48 w-full rounded-2xl"
                 }, void 0, false, {
                     fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                    lineNumber: 166,
+                    lineNumber: 171,
                     columnNumber: 9
                 }, this)
             ]
         }, void 0, true, {
             fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-            lineNumber: 163,
+            lineNumber: 168,
             columnNumber: 7
         }, this);
     }
@@ -202,6 +210,32 @@ function DriverDashboard() {
     const greeting = getGreeting();
     const userName = authState.user?.name?.split(' ')[0] || 'Driver';
     const currentStepIndex = shipment ? STEPS.indexOf(shipment.status) : -1;
+    const acceptShipment = async ()=>{
+        if (!shipment) return;
+        try {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fetchWithAuth$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["fetchWithAuth"])(`/api/shipments/${shipment.id}/status`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: 'EN_ROUTE_TO_PICKUP'
+                })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(()=>null);
+                throw new Error(err?.detail || 'Failed to accept shipment');
+            }
+            const updated = await res.json();
+            setShipment((prev)=>prev ? {
+                    ...prev,
+                    status: updated.status
+                } : prev);
+            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].success('Shipment accepted! Navigate to pickup location.');
+        } catch (err) {
+            __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$sonner$2f$dist$2f$index$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["toast"].error(err.message || 'Failed to accept shipment');
+        }
+    };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "space-y-6 max-w-4xl mx-auto",
         children: [
@@ -216,7 +250,7 @@ function DriverDashboard() {
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 180,
+                        lineNumber: 205,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -224,13 +258,13 @@ function DriverDashboard() {
                         children: hasAssignment ? 'Here is your assignment for today' : 'No active assignments for now'
                     }, void 0, false, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 183,
+                        lineNumber: 208,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                lineNumber: 179,
+                lineNumber: 204,
                 columnNumber: 7
             }, this),
             !hasAssignment ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
@@ -253,12 +287,12 @@ function DriverDashboard() {
                             className: "w-12 h-12 text-blue-600 dark:text-blue-400"
                         }, void 0, false, {
                             fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                            lineNumber: 196,
+                            lineNumber: 221,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 195,
+                        lineNumber: 220,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h3", {
@@ -266,7 +300,7 @@ function DriverDashboard() {
                         children: "No Assignment Today"
                     }, void 0, false, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 198,
+                        lineNumber: 223,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -274,13 +308,13 @@ function DriverDashboard() {
                         children: "Check back later or contact your manager if you believe you should have an assignment."
                     }, void 0, false, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 199,
+                        lineNumber: 224,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                lineNumber: 189,
+                lineNumber: 214,
                 columnNumber: 9
             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
                 children: [
@@ -306,7 +340,7 @@ function DriverDashboard() {
                                         children: "Today's Shipment"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 213,
+                                        lineNumber: 238,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -317,13 +351,13 @@ function DriverDashboard() {
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 214,
+                                        lineNumber: 239,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                lineNumber: 212,
+                                lineNumber: 237,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -337,7 +371,7 @@ function DriverDashboard() {
                                                 children: "FROM"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 221,
+                                                lineNumber: 246,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -345,13 +379,13 @@ function DriverDashboard() {
                                                 children: shipment.originAddress
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 222,
+                                                lineNumber: 247,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 220,
+                                        lineNumber: 245,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -360,12 +394,12 @@ function DriverDashboard() {
                                             className: "w-8 h-8 text-white/50"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                            lineNumber: 225,
+                                            lineNumber: 250,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 224,
+                                        lineNumber: 249,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -374,12 +408,12 @@ function DriverDashboard() {
                                             className: "w-6 h-6 text-white/50 rotate-90"
                                         }, void 0, false, {
                                             fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                            lineNumber: 228,
+                                            lineNumber: 253,
                                             columnNumber: 17
                                         }, this)
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 227,
+                                        lineNumber: 252,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -390,7 +424,7 @@ function DriverDashboard() {
                                                 children: "TO"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 231,
+                                                lineNumber: 256,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -398,19 +432,19 @@ function DriverDashboard() {
                                                 children: shipment.destinationAddress
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 232,
+                                                lineNumber: 257,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 230,
+                                        lineNumber: 255,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                lineNumber: 219,
+                                lineNumber: 244,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -423,7 +457,7 @@ function DriverDashboard() {
                                                 className: "w-4 h-4 text-white/70"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 238,
+                                                lineNumber: 263,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -431,13 +465,13 @@ function DriverDashboard() {
                                                 children: shipment.weight ? `${shipment.weight} kg` : 'N/A'
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 239,
+                                                lineNumber: 264,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 237,
+                                        lineNumber: 262,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -447,7 +481,7 @@ function DriverDashboard() {
                                                 className: "w-4 h-4 text-white/70"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 242,
+                                                lineNumber: 267,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -455,13 +489,13 @@ function DriverDashboard() {
                                                 children: calculateDistance(shipment.originLat, shipment.originLng, shipment.destinationLat, shipment.destinationLng)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 243,
+                                                lineNumber: 268,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 241,
+                                        lineNumber: 266,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -471,7 +505,7 @@ function DriverDashboard() {
                                                 className: "w-4 h-4 text-white/70"
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 253,
+                                                lineNumber: 278,
                                                 columnNumber: 17
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -479,25 +513,25 @@ function DriverDashboard() {
                                                 children: calculateDuration(shipment.originLat, shipment.originLng, shipment.destinationLat, shipment.destinationLng, shipment.eta)
                                             }, void 0, false, {
                                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                lineNumber: 254,
+                                                lineNumber: 279,
                                                 columnNumber: 17
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 252,
+                                        lineNumber: 277,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                lineNumber: 236,
+                                lineNumber: 261,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 206,
+                        lineNumber: 231,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
@@ -522,7 +556,7 @@ function DriverDashboard() {
                                         className: "absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-slate-100 dark:bg-slate-800 rounded-full"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 277,
+                                        lineNumber: 302,
                                         columnNumber: 17
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -532,13 +566,12 @@ function DriverDashboard() {
                                         }
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 280,
+                                        lineNumber: 305,
                                         columnNumber: 17
                                     }, this),
                                     STEPS.map((step, index)=>{
                                         const isCompleted = index < currentStepIndex;
                                         const isCurrent = index === currentStepIndex;
-                                        const isPending = index > currentStepIndex;
                                         return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                             className: "relative z-10 flex flex-col items-center gap-3",
                                             children: [
@@ -548,49 +581,49 @@ function DriverDashboard() {
                                                         className: "w-4 h-4 stroke-[3]"
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                        lineNumber: 304,
+                                                        lineNumber: 328,
                                                         columnNumber: 27
                                                     }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                                         className: `w-2.5 h-2.5 rounded-full ${isCurrent ? 'bg-blue-600' : 'bg-transparent'}`
                                                     }, void 0, false, {
                                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                        lineNumber: 306,
+                                                        lineNumber: 330,
                                                         columnNumber: 27
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                    lineNumber: 296,
+                                                    lineNumber: 320,
                                                     columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                                     className: `text-xs font-semibold ${isCurrent ? 'text-blue-600 dark:text-blue-400' : isCompleted ? 'text-slate-700 dark:text-slate-300' : 'text-slate-400 dark:text-slate-500'}`,
-                                                    children: formatStatus(step)
+                                                    children: STEP_LABELS[index]
                                                 }, void 0, false, {
                                                     fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                                    lineNumber: 309,
+                                                    lineNumber: 333,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
                                         }, step, true, {
                                             fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                            lineNumber: 295,
+                                            lineNumber: 319,
                                             columnNumber: 21
                                         }, this);
                                     })
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                lineNumber: 275,
+                                lineNumber: 300,
                                 columnNumber: 15
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                            lineNumber: 274,
+                            lineNumber: 299,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 268,
+                        lineNumber: 293,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$framer$2d$motion$2f$dist$2f$es$2f$render$2f$components$2f$motion$2f$proxy$2e$mjs__$5b$app$2d$client$5d$__$28$ecmascript$29$__["motion"].div, {
@@ -607,6 +640,24 @@ function DriverDashboard() {
                         },
                         className: "flex flex-col sm:flex-row gap-4",
                         children: [
+                            shipment?.status === 'ASSIGNED' && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                onClick: acceptShipment,
+                                className: "flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl px-5 py-3.5 text-sm inline-flex justify-center items-center gap-2 transition-colors shadow-lg",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Check$3e$__["Check"], {
+                                        className: "w-5 h-5"
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/views/driver/DriverDashboard.tsx",
+                                        lineNumber: 362,
+                                        columnNumber: 17
+                                    }, this),
+                                    "Accept Delivery"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/views/driver/DriverDashboard.tsx",
+                                lineNumber: 358,
+                                columnNumber: 15
+                            }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
                                 onClick: ()=>navigate('/driver/route'),
                                 className: "flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 py-3.5 text-sm inline-flex justify-center items-center gap-2 transition-colors",
@@ -615,14 +666,14 @@ function DriverDashboard() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 336,
+                                        lineNumber: 370,
                                         columnNumber: 15
                                     }, this),
-                                    "Start Route"
+                                    shipment?.status === 'ASSIGNED' ? 'View Route' : 'Continue Route'
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                lineNumber: 332,
+                                lineNumber: 366,
                                 columnNumber: 13
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -633,32 +684,32 @@ function DriverDashboard() {
                                         className: "w-4 h-4"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                        lineNumber: 343,
+                                        lineNumber: 377,
                                         columnNumber: 15
                                     }, this),
                                     "Submit Report"
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                                lineNumber: 339,
+                                lineNumber: 373,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                        lineNumber: 326,
+                        lineNumber: 350,
                         columnNumber: 11
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-                lineNumber: 204,
+                lineNumber: 229,
                 columnNumber: 9
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/src/views/driver/DriverDashboard.tsx",
-        lineNumber: 178,
+        lineNumber: 203,
         columnNumber: 5
     }, this);
 }
@@ -690,6 +741,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$re
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$file$2d$text$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__FileText$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/file-text.js [app-client] (ecmascript) <export default as FileText>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$user$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__UserCircle$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/circle-user.js [app-client] (ecmascript) <export default as UserCircle>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$truck$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Truck$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/truck.js [app-client] (ecmascript) <export default as Truck>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$out$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__LogOut$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/log-out.js [app-client] (ecmascript) <export default as LogOut>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$ThemeToggle$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/shared/ThemeToggle.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$NotificationBell$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/shared/NotificationBell.tsx [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/context/AuthContext.tsx [app-client] (ecmascript)");
@@ -728,7 +780,7 @@ const navItems = [
 ];
 function DriverLayout({ children, title }) {
     _s();
-    const { state: authState } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"])();
+    const { state: authState, logout } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"])();
     const { route, navigate } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$RouterContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
     const [hoveredItem, setHoveredItem] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const isActive = (path)=>route === path;
@@ -835,6 +887,22 @@ function DriverLayout({ children, title }) {
                                 fileName: "[project]/src/views/driver/DriverLayout.tsx",
                                 lineNumber: 68,
                                 columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                onClick: ()=>logout(),
+                                className: "p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors",
+                                title: "Sign Out",
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$out$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__LogOut$3e$__["LogOut"], {
+                                    className: "w-4 h-4"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                    lineNumber: 79,
+                                    columnNumber: 13
+                                }, this)
+                            }, void 0, false, {
+                                fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                lineNumber: 74,
+                                columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
@@ -861,47 +929,13 @@ function DriverLayout({ children, title }) {
                                         className: "w-6 h-6 text-blue-600"
                                     }, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                        lineNumber: 82,
+                                        lineNumber: 89,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                         className: "font-bold text-lg text-slate-900 dark:text-white",
                                         children: "FleetVane"
                                     }, void 0, false, {
-                                        fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                        lineNumber: 83,
-                                        columnNumber: 13
-                                    }, this)
-                                ]
-                            }, void 0, true, {
-                                fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                lineNumber: 81,
-                                columnNumber: 11
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "hidden lg:block",
-                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
-                                    className: "text-lg font-semibold text-slate-900 dark:text-slate-100",
-                                    children: title
-                                }, void 0, false, {
-                                    fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                    lineNumber: 86,
-                                    columnNumber: 13
-                                }, this)
-                            }, void 0, false, {
-                                fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                lineNumber: 85,
-                                columnNumber: 11
-                            }, this),
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                className: "flex items-center gap-3 ml-auto",
-                                children: [
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$ThemeToggle$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
-                                        fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                        lineNumber: 89,
-                                        columnNumber: 13
-                                    }, this),
-                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$NotificationBell$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                                         fileName: "[project]/src/views/driver/DriverLayout.tsx",
                                         lineNumber: 90,
                                         columnNumber: 13
@@ -911,11 +945,45 @@ function DriverLayout({ children, title }) {
                                 fileName: "[project]/src/views/driver/DriverLayout.tsx",
                                 lineNumber: 88,
                                 columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "hidden lg:block",
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
+                                    className: "text-lg font-semibold text-slate-900 dark:text-slate-100",
+                                    children: title
+                                }, void 0, false, {
+                                    fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                    lineNumber: 93,
+                                    columnNumber: 13
+                                }, this)
+                            }, void 0, false, {
+                                fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                lineNumber: 92,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center gap-3 ml-auto",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$ThemeToggle$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                                        fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                        lineNumber: 96,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$shared$2f$NotificationBell$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                                        fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                        lineNumber: 97,
+                                        columnNumber: 13
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                lineNumber: 95,
+                                columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                        lineNumber: 80,
+                        lineNumber: 87,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -935,54 +1003,81 @@ function DriverLayout({ children, title }) {
                             children: children
                         }, void 0, false, {
                             fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                            lineNumber: 95,
+                            lineNumber: 102,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                        lineNumber: 94,
+                        lineNumber: 101,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                lineNumber: 78,
+                lineNumber: 85,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
                 className: "lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center justify-around px-4 z-40",
-                children: navItems.map((item)=>{
-                    const Icon = item.icon;
-                    const active = isActive(item.path);
-                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
-                        onClick: ()=>navigate(item.path),
-                        className: `flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors ${active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`,
+                children: [
+                    navItems.map((item)=>{
+                        const Icon = item.icon;
+                        const active = isActive(item.path);
+                        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                            onClick: ()=>navigate(item.path),
+                            className: `flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors ${active ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'}`,
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Icon, {
+                                    className: "w-6 h-6"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                    lineNumber: 125,
+                                    columnNumber: 15
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "text-[10px] font-medium",
+                                    children: item.label
+                                }, void 0, false, {
+                                    fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                                    lineNumber: 126,
+                                    columnNumber: 15
+                                }, this)
+                            ]
+                        }, item.path, true, {
+                            fileName: "[project]/src/views/driver/DriverLayout.tsx",
+                            lineNumber: 118,
+                            columnNumber: 13
+                        }, this);
+                    }),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                        onClick: ()=>logout(),
+                        className: "flex flex-col items-center justify-center gap-1 w-16 h-full transition-colors text-slate-400 dark:text-slate-500 hover:text-red-500",
                         children: [
-                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Icon, {
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$log$2d$out$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__LogOut$3e$__["LogOut"], {
                                 className: "w-6 h-6"
                             }, void 0, false, {
                                 fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                lineNumber: 118,
-                                columnNumber: 15
+                                lineNumber: 134,
+                                columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 className: "text-[10px] font-medium",
-                                children: item.label
+                                children: "Logout"
                             }, void 0, false, {
                                 fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                                lineNumber: 119,
-                                columnNumber: 15
+                                lineNumber: 135,
+                                columnNumber: 11
                             }, this)
                         ]
-                    }, item.path, true, {
+                    }, void 0, true, {
                         fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                        lineNumber: 111,
-                        columnNumber: 13
-                    }, this);
-                })
-            }, void 0, false, {
+                        lineNumber: 130,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
                 fileName: "[project]/src/views/driver/DriverLayout.tsx",
-                lineNumber: 106,
+                lineNumber: 113,
                 columnNumber: 7
             }, this)
         ]
@@ -992,7 +1087,7 @@ function DriverLayout({ children, title }) {
         columnNumber: 5
     }, this);
 }
-_s(DriverLayout, "KtOc6a7gLhKcxjAO8emIPfd7zZI=", false, function() {
+_s(DriverLayout, "HjkUVqgCH4oVbrEgQDdmgXDjQQg=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuth"],
         __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$RouterContext$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"]
