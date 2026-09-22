@@ -12,7 +12,8 @@ import {
   Menu,
   UserCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  BookOpen
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import ThemeToggle from '@/components/shared/ThemeToggle';
@@ -37,6 +38,10 @@ const navItems = [
 
 export default function ManagerLayout({ children, title }: ManagerLayoutProps) {
   const { state: authState, logout } = useAuth();
+  
+  const navItemsFiltered = authState.user?.role === 'ADMIN' 
+    ? [...navItems, { label: 'Directory', icon: BookOpen, path: '/manager/directory' }]
+    : navItems;
   const { route, navigate } = useRouter();
   const isMapPage = route === '/manager/fleet';
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -66,9 +71,7 @@ export default function ManagerLayout({ children, title }: ManagerLayoutProps) {
           {/* Logo area */}
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                <Truck className="w-5 h-5" />
-              </div>
+              <img src="/logo.png" alt="FleetVane" className="w-8 h-8 object-contain mr-2" />
               <div>
                 <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none mb-1">FleetVane</h1>
                 <p className="text-xs text-slate-500">{t.brand.tagline}</p>
@@ -78,7 +81,7 @@ export default function ManagerLayout({ children, title }: ManagerLayoutProps) {
 
           {/* Nav items */}
           <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => {
+            {navItemsFiltered.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.path);
               return (
@@ -136,9 +139,7 @@ export default function ManagerLayout({ children, title }: ManagerLayoutProps) {
         {/* Logo area */}
         <div className="h-[55px] px-4 border-b border-slate-200 dark:border-slate-800 flex items-center overflow-hidden shrink-0">
           <div className="flex items-center gap-3 w-full">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-              <Truck className="w-5 h-5" />
-            </div>
+            <img src="/logo.png" alt="FleetVane" className="w-8 h-8 object-contain shrink-0" />
             {!sidebarCollapsed && (
               <div className="flex-1 whitespace-nowrap overflow-hidden opacity-100 transition-opacity duration-300">
                 <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-none mb-1">FleetVane</h1>
@@ -150,7 +151,7 @@ export default function ManagerLayout({ children, title }: ManagerLayoutProps) {
 
         {/* Nav items */}
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto overflow-x-hidden">
-          {navItems.map((item) => {
+          {navItemsFiltered.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
             return (

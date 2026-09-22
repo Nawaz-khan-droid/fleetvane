@@ -8,6 +8,8 @@ export type UserRole = 'CLIENT' | 'DRIVER' | 'MANAGER' | 'ADMIN';
 export type ShipmentStatus =
   | 'REQUESTED'
   | 'ASSIGNED'
+  | 'EN_ROUTE_TO_PICKUP'
+  | 'AT_PICKUP'
   | 'DISPATCHED'
   | 'IN_TRANSIT'
   | 'ARRIVED'
@@ -40,10 +42,21 @@ export interface UserPayload {
   companyId?: string | number;
 }
 
+export interface Company {
+  id: number;
+  name: string;
+  type: string;
+}
+
 /** Mirrors Shipment.java (the legacy transactional entity). */
 export interface Shipment {
   id: string;
   clientId: string;
+  clientName?: string | null;
+  clientEmail?: string | null;
+  clientPhone?: string | null;
+  transportCompanyId?: string | number | null;
+  transportCompanyName?: string | null;
   status: ShipmentStatus;
   originAddress: string;
   originLat: number | null;
@@ -52,6 +65,10 @@ export interface Shipment {
   destinationLat: number | null;
   destinationLng: number | null;
   weight: number | null;
+  lengthCm?: number | null;
+  widthCm?: number | null;
+  heightCm?: number | null;
+  volumeM3?: number | null;
   eta: string | null;
   assignedAt?: string | null;
   pickedUpAt?: string | null;
@@ -63,6 +80,11 @@ export interface Shipment {
   driverId: string | null;
   vehicle?: Vehicle | null;
   driver?: { id: string; name: string; email: string } | null;
+  qrToken?: string | null;
+  description?: string | null;
+  category?: string | null;
+  podPhotoBase64?: string | null;
+  podSignatureBase64?: string | null;
 }
 
 /**

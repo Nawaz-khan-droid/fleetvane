@@ -5,6 +5,11 @@ import java.time.Instant;
 public record ShipmentDto(
     Long id,
     Long clientId,
+    String clientName,
+    String clientEmail,
+    String clientPhone,
+    Long transportCompanyId,
+    String transportCompanyName,
     String status,
     String originAddress,
     Double pickupLatitude,
@@ -26,5 +31,10 @@ public record ShipmentDto(
     Long driverId,
     Instant createdAt,
     Instant updatedAt,
-    String category
+    String category,
+    String description,
+    String qrToken,
+    String podPhotoBase64,
+    String podSignatureBase64
 ) {}
+

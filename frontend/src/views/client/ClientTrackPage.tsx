@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -43,7 +43,7 @@ function formatStatus(status: ShipmentStatus): string {
   return map[status] || status;
 }
 
-const statusBadgeColor: Record<ShipmentStatus, string> = {
+const statusBadgeColor: Record<string, string> = {
   REQUESTED:  'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400',
   ASSIGNED:   'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
   DISPATCHED: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400',
@@ -53,7 +53,7 @@ const statusBadgeColor: Record<ShipmentStatus, string> = {
   CANCELLED:  'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400',
 };
 
-const statusDotColor: Record<ShipmentStatus, string> = {
+const statusDotColor: Record<string, string> = {
   REQUESTED:  'bg-amber-500',
   ASSIGNED:   'bg-blue-500',
   DISPATCHED: 'bg-indigo-500',
@@ -67,6 +67,9 @@ export default function ClientTrackPage() {
   const { state: authState } = useAuth();
   const { params, navigate } = useRouter();
   const { resolvedTheme } = useTheme();
+
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,7 +171,7 @@ export default function ClientTrackPage() {
         delete (container as any)._leaflet_id;
         container.innerHTML = '';
       }
-      map = L.map(container, {
+      mapRef.current = map = L.map(container, {
         minZoom: 3,
         maxBounds: [[-90, -180], [90, 180]],
         maxBoundsViscosity: 1.0,
@@ -178,18 +181,27 @@ export default function ClientTrackPage() {
         maxZoom: 19,
         noWrap: true,
       }).addTo(map);
-      L.marker([vehiclePos.lat, vehiclePos.lng])
+      markerRef.current = L.marker([vehiclePos.lat, vehiclePos.lng])
         .addTo(map)
         .bindPopup('Vehicle Location');
     })();
 
     return () => {
       isCancelled = true;
-      if (map) {
-        map.remove();
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
       }
     };
-  }, [status, shipment?.vehicle?.lat, shipment?.vehicle?.lng, resolvedTheme]);
+  }, [status, resolvedTheme]);
+
+  // Update marker position without recreating map
+  useEffect(() => {
+    if (markerRef.current && shipment?.vehicle?.lat != null && shipment?.vehicle?.lng != null) {
+      markerRef.current.setLatLng([shipment.vehicle.lat, shipment.vehicle.lng]);
+    }
+  }, [shipment?.vehicle?.lat, shipment?.vehicle?.lng]);
 
   const currentStepIndex = STEPS.indexOf(status);
 

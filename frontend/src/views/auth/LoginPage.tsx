@@ -88,9 +88,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center">
-              <Truck className="w-6 h-6 text-white" />
-            </div>
+            <img src="/logo.png" alt="FleetVane" className="w-10 h-10 object-contain" />
             <span className="text-2xl font-bold tracking-tight">{t.brand.name}</span>
           </div>
           <p className="text-blue-200/70 text-sm">{t.brand.tagline}</p>

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class ShipmentService {
@@ -37,14 +38,14 @@ public class ShipmentService {
             shipments = shipmentRepository.findByDriverId(userId, pageable);
         } else {
             if (status != null && !status.isBlank()) {
-                shipments = shipmentRepository.findByClient_CompanyIdAndStatus(companyId, status.toUpperCase(), pageable);
+                shipments = shipmentRepository.findByTransportCompanyIdAndStatus(companyId, status.toUpperCase(), pageable);
             } else if (clientId != null) {
                 shipments = shipmentRepository.findByClientId(clientId, pageable);
             } else if (driverId != null) {
                 shipments = shipmentRepository.findByDriverId(driverId, pageable);
             } else {
                 if (companyId != null) {
-                    shipments = shipmentRepository.findByClient_CompanyId(companyId, pageable);
+                    shipments = shipmentRepository.findByTransportCompanyId(companyId, pageable);
                 } else {
                     shipments = shipmentRepository.findAll(pageable);
                 }
@@ -67,7 +68,6 @@ public class ShipmentService {
         } else {
             shipment = shipmentRepository.findById(id)
                     .orElseThrow(() -> new ResourceNotFoundException("Shipment", "id", id));
-            // Open marketplace: Managers can view any shipment details
         }
         
         return mapToDto(shipment);
@@ -77,6 +77,7 @@ public class ShipmentService {
     public ShipmentDto createShipment(CreateShipmentRequest request, Long clientId) {
         Shipment shipment = new Shipment();
         shipment.setClientId(clientId);
+        shipment.setTransportCompanyId(request.transportCompanyId());
         shipment.setStatus("REQUESTED");
         shipment.setOriginAddress(request.originAddress());
         shipment.setPickupLatitude(request.pickupLatitude());
@@ -90,6 +91,7 @@ public class ShipmentService {
         shipment.setHeightCm(request.heightCm());
         shipment.setVolumeM3(request.calculatedVolumeM3());
         shipment.setCategory(request.category());
+        shipment.setDescription(request.description());
 
         return mapToDto(shipmentRepository.save(shipment));
     }
@@ -108,9 +110,35 @@ public class ShipmentService {
         shipment.setStatus("ASSIGNED");
         shipment.setAssignedAt(Instant.now());
         
+        // Generate a secure one-time QR token for pickup verification
+        String qrToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+        shipment.setQrToken(qrToken);
+        
         Shipment saved = shipmentRepository.save(shipment);
         broadcastStatusChange(saved, "order.assigned");
         return mapToDto(saved);
+    }
+
+    /**
+     * Verifies a QR token scanned at pickup. Returns the shipment DTO if valid.
+     * This is used by the driver to confirm they are at the correct pickup location
+     * and by the client to verify the driver is genuine.
+     */
+    @Transactional
+    public ShipmentDto verifyQrToken(Long shipmentId, String token) {
+        Shipment shipment = shipmentRepository.findById(shipmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment", "id", shipmentId));
+        
+        if (shipment.getQrToken() == null || !shipment.getQrToken().equals(token)) {
+            throw new BusinessException("Invalid or expired QR token", HttpStatus.FORBIDDEN);
+        }
+        
+        // QR has been verified - transition to AT_PICKUP status
+        if (!"EN_ROUTE_TO_PICKUP".equals(shipment.getStatus()) && !"ASSIGNED".equals(shipment.getStatus())) {
+            throw new BusinessException("Shipment is not in a state that can be verified via QR", HttpStatus.BAD_REQUEST);
+        }
+        
+        return mapToDto(shipment);
     }
 
     @Transactional
@@ -132,43 +160,76 @@ public class ShipmentService {
         String currentStatus = shipment.getStatus();
         String eventName = null;
         
-        if ("CANCELLED".equals(newStatus)) {
-            if ("DELIVERED".equals(currentStatus) || "COMPLETED".equals(currentStatus)) {
-                throw new BusinessException("Cannot cancel a completed shipment", HttpStatus.BAD_REQUEST);
+        switch (newStatus) {
+            case "CANCELLED" -> {
+                if ("DELIVERED".equals(currentStatus) || "COMPLETED".equals(currentStatus)) {
+                    throw new BusinessException("Cannot cancel a completed shipment", HttpStatus.BAD_REQUEST);
+                }
+                if ("CLIENT".equals(role) && !"REQUESTED".equals(currentStatus)) {
+                    throw new BusinessException("Clients can only cancel requested shipments", HttpStatus.BAD_REQUEST);
+                }
+                shipment.setCancelledAt(Instant.now());
+                eventName = "order.cancelled";
             }
-            if ("CLIENT".equals(role) && !"REQUESTED".equals(currentStatus)) {
-                throw new BusinessException("Clients can only cancel requested shipments", HttpStatus.BAD_REQUEST);
-            }
-            shipment.setCancelledAt(Instant.now());
-            eventName = "order.cancelled";
             
-        } else if ("IN_TRANSIT".equals(newStatus)) {
-            if (!"ASSIGNED".equals(currentStatus)) {
-                throw new BusinessException("Shipment must be ASSIGNED before it can be IN_TRANSIT", HttpStatus.BAD_REQUEST);
+            // Driver accepts: ASSIGNED → EN_ROUTE_TO_PICKUP
+            case "EN_ROUTE_TO_PICKUP" -> {
+                if (!"ASSIGNED".equals(currentStatus)) {
+                    throw new BusinessException("Shipment must be ASSIGNED before driver can go en route", HttpStatus.BAD_REQUEST);
+                }
+                if (!"DRIVER".equals(role) && !"MANAGER".equals(role)) {
+                    throw new BusinessException("Only Driver/Manager can set this status", HttpStatus.FORBIDDEN);
+                }
+                eventName = "order.en_route_to_pickup";
             }
-            if (!"DRIVER".equals(role) && !"MANAGER".equals(role)) {
-                throw new BusinessException("Only Driver/Manager can transit a shipment", HttpStatus.FORBIDDEN);
-            }
-            shipment.setPickedUpAt(Instant.now());
-            eventName = "order.started";
             
-        } else if ("DELIVERED".equals(newStatus) || "COMPLETED".equals(newStatus)) {
-            if (!"IN_TRANSIT".equals(currentStatus)) {
-                throw new BusinessException("Shipment must be IN_TRANSIT before it can be DELIVERED", HttpStatus.BAD_REQUEST);
+            // Driver arrives at pickup: EN_ROUTE_TO_PICKUP → AT_PICKUP (after QR scan)
+            case "AT_PICKUP" -> {
+                if (!"EN_ROUTE_TO_PICKUP".equals(currentStatus)) {
+                    throw new BusinessException("Driver must be EN_ROUTE_TO_PICKUP first", HttpStatus.BAD_REQUEST);
+                }
+                if (!"DRIVER".equals(role) && !"MANAGER".equals(role)) {
+                    throw new BusinessException("Only Driver/Manager can set this status", HttpStatus.FORBIDDEN);
+                }
+                // Verify QR token if provided
+                if (pod != null && pod.qrToken() != null) {
+                    if (shipment.getQrToken() == null || !shipment.getQrToken().equals(pod.qrToken())) {
+                        throw new BusinessException("Invalid QR token - cannot confirm pickup", HttpStatus.FORBIDDEN);
+                    }
+                }
+                eventName = "order.at_pickup";
             }
-            if (!"DRIVER".equals(role) && !"MANAGER".equals(role)) {
-                throw new BusinessException("Only Driver/Manager can deliver a shipment", HttpStatus.FORBIDDEN);
-            }
-            shipment.setDeliveredAt(Instant.now());
-            if (pod != null) {
-                shipment.setPodPhotoBase64(pod.photoBase64());
-                shipment.setPodSignatureBase64(pod.signatureBase64());
-            }
-            newStatus = "DELIVERED"; // Standardize
-            eventName = "order.completed";
             
-        } else {
-            throw new BusinessException("Invalid status transition from " + currentStatus + " to " + newStatus, HttpStatus.BAD_REQUEST);
+            // Pickup confirmed: AT_PICKUP → IN_TRANSIT
+            case "IN_TRANSIT" -> {
+                if (!"AT_PICKUP".equals(currentStatus) && !"ASSIGNED".equals(currentStatus)) {
+                    throw new BusinessException("Shipment must be AT_PICKUP or ASSIGNED before it can be IN_TRANSIT", HttpStatus.BAD_REQUEST);
+                }
+                if (!"DRIVER".equals(role) && !"MANAGER".equals(role)) {
+                    throw new BusinessException("Only Driver/Manager can transit a shipment", HttpStatus.FORBIDDEN);
+                }
+                shipment.setPickedUpAt(Instant.now());
+                eventName = "order.started";
+            }
+            
+            // Delivery completed: IN_TRANSIT → DELIVERED (requires geofence + PoD)
+            case "DELIVERED", "COMPLETED" -> {
+                if (!"IN_TRANSIT".equals(currentStatus)) {
+                    throw new BusinessException("Shipment must be IN_TRANSIT before it can be DELIVERED", HttpStatus.BAD_REQUEST);
+                }
+                if (!"DRIVER".equals(role) && !"MANAGER".equals(role)) {
+                    throw new BusinessException("Only Driver/Manager can deliver a shipment", HttpStatus.FORBIDDEN);
+                }
+                shipment.setDeliveredAt(Instant.now());
+                if (pod != null) {
+                    shipment.setPodPhotoBase64(pod.photoBase64());
+                    shipment.setPodSignatureBase64(pod.signatureBase64());
+                }
+                newStatus = "DELIVERED";
+                eventName = "order.completed";
+            }
+            
+            default -> throw new BusinessException("Invalid status transition from " + currentStatus + " to " + newStatus, HttpStatus.BAD_REQUEST);
         }
         
         shipment.setStatus(newStatus);
@@ -192,14 +253,24 @@ public class ShipmentService {
                 shipment.getDestinationAddress()
         );
         ws.convertAndSend("/topic/shipment." + shipment.getId() + ".tracking", event);
-        
-        // Also broadcast to company.1.drivers if needed (omitted for now to keep it scoped)
     }
 
     private ShipmentDto mapToDto(Shipment shipment) {
+        String clientName = shipment.getClient() != null ? shipment.getClient().getName() : null;
+        String clientEmail = shipment.getClient() != null ? shipment.getClient().getEmail() : null;
+        String clientPhone = shipment.getClient() != null ? shipment.getClient().getPhoneNumber() : null;
+        
+        Long transportCompanyId = shipment.getTransportCompanyId();
+        String transportCompanyName = shipment.getTransportCompany() != null ? shipment.getTransportCompany().getName() : null;
+
         return new ShipmentDto(
                 shipment.getId(),
                 shipment.getClientId(),
+                clientName,
+                clientEmail,
+                clientPhone,
+                transportCompanyId,
+                transportCompanyName,
                 shipment.getStatus(),
                 shipment.getOriginAddress(),
                 shipment.getPickupLatitude(),
@@ -221,7 +292,11 @@ public class ShipmentService {
                 shipment.getDriverId(),
                 shipment.getCreatedAt(),
                 shipment.getUpdatedAt(),
-                shipment.getCategory()
+                shipment.getCategory(),
+                shipment.getDescription(),
+                shipment.getQrToken(),
+                shipment.getPodPhotoBase64(),
+                shipment.getPodSignatureBase64()
         );
     }
 }

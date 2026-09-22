@@ -115,6 +115,7 @@ export default function ManagerDrivers() {
     if (!driverName.trim() || !licenseNumber.trim() || !email.trim() || !phoneNumber.trim()) return;
     setCreating(true);
     try {
+      const isDemoMode = authState.user?.companyId === 1;
       const body: Record<string, string | null> = {
         name: driverName.trim(),
         email: email.trim(),
@@ -122,7 +123,8 @@ export default function ManagerDrivers() {
         licenseNumber: licenseNumber.trim(),
         vehicleId: selectedVehicleId || null,
       };
-      const res = await fetchWithAuth('/api/auth/invite-driver', {
+      const endpoint = '/api/auth/invite-driver';
+      const res = await fetchWithAuth(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +136,12 @@ export default function ManagerDrivers() {
         const errData = await res.json().catch(() => null);
         throw new Error(errData?.message || 'Failed to create driver');
       }
-      toast.success(t.manager.driverCreated || 'Driver provisioned successfully. Verification link deployed.');
+      
+      if (isDemoMode) {
+        toast.success('Driver account created! Default password: Driver123!');
+      } else {
+        toast.success("Invitation sent to driver's email");
+      }
       setCreateDialogOpen(false);
       setDriverName('');
       setEmail('');
@@ -213,6 +220,11 @@ export default function ManagerDrivers() {
               </DialogHeader>
 
               <form onSubmit={(e) => { e.preventDefault(); handleCreateDriver(); }} className="space-y-4 pt-4">
+                {authState.user?.companyId === 1 && (
+                  <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 p-3 rounded-lg text-sm mb-4">
+                    Demo Mode — Driver will be instantly activated with password Driver123!
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label>Full Name</Label>
                   <Input
@@ -368,16 +380,20 @@ export default function ManagerDrivers() {
                     <p className="text-sm text-slate-500 truncate">{driver.email}</p>
                   </div>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       if (window.confirm('Are you sure you want to delete this driver?')) {
-                        fetchWithAuth(`/api/drivers/${driver.id}`, { method: 'DELETE' })
-                          .then((res) => {
-                            if (!res.ok) throw new Error();
-                            setDrivers(drivers.filter(d => d.id !== driver.id));
-                            toast.success('Driver deleted');
-                          })
-                          .catch(() => toast.error('Cannot delete driver. They may be assigned to active shipments.'));
+                        try {
+                          const res = await fetchWithAuth(`/api/drivers/${driver.id}`, { method: 'DELETE' });
+                          if (!res.ok) {
+                            const err = await res.json().catch(() => null);
+                            throw new Error(err?.detail || err?.message || 'Failed to delete driver');
+                          }
+                          setDrivers(drivers.filter(d => d.id !== driver.id));
+                          toast.success('Driver deleted');
+                        } catch (err: any) {
+                          toast.error(err.message || 'Cannot delete driver.');
+                        }
                       }
                     }}
                     className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors"

@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Package, PackageCheck, Clock, Navigation, Plus, MapPin, Search } from 'lucide-react';
+import { Package, PackageCheck, Clock, Navigation, Plus, MapPin, Search, QrCode, Locate } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { fetchWithAuth } from '@/lib/fetchWithAuth';
 import { useNotifications } from '@/context/NotificationContext';
 import { useRouter } from '@/context/RouterContext';
-import type { Shipment, ShipmentStatus } from '@/types';
+import type { Shipment, ShipmentStatus, Company } from '@/types';
 import { useStore } from '@/store/useStore';
 import {
   Dialog,
@@ -34,32 +34,41 @@ const SHIPMENT_CATEGORIES = [
 ];
 
 function formatStatus(status: ShipmentStatus): string {
+  // Client-friendly human-readable labels
   const map: Record<string, string> = {
-    REQUESTED: 'Requested',
-    ASSIGNED: 'Assigned',
-    IN_TRANSIT: 'In Transit',
-    DELIVERED: 'Delivered',
-    CANCELLED: 'Cancelled'
+    REQUESTED: 'Pending Review',
+    ASSIGNED: 'Confirmed ✓',
+    EN_ROUTE_TO_PICKUP: 'Driver On The Way',
+    AT_PICKUP: 'Driver At Pickup',
+    IN_TRANSIT: 'Out for Delivery',
+    DELIVERED: 'Delivered ✓',
+    CANCELLED: 'Cancelled',
+    DISPATCHED: 'Out for Delivery',
+    ARRIVED: 'Arrived',
   };
   return map[status] || status;
 }
 
-const statusBadgeColor: Record<ShipmentStatus, string> = {
+const statusBadgeColor: Record<string, string> = {
   REQUESTED: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400',
   ASSIGNED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+  EN_ROUTE_TO_PICKUP: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-violet-950/40 dark:text-violet-400',
+  AT_PICKUP: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950/40 dark:text-orange-400',
   DISPATCHED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
-  IN_TRANSIT: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
-  ARRIVED: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400',
+  IN_TRANSIT: 'bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/40 dark:text-teal-400',
+  ARRIVED: 'bg-green-50 text-green-700 border-green-200 dark:bg-green-950/40 dark:text-green-400',
   DELIVERED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400',
   CANCELLED: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-400',
 };
 
-const statusDotColor: Record<ShipmentStatus, string> = {
+const statusDotColor: Record<string, string> = {
   REQUESTED: 'bg-amber-500',
   ASSIGNED: 'bg-blue-500',
+  EN_ROUTE_TO_PICKUP: 'bg-violet-500',
+  AT_PICKUP: 'bg-orange-500',
   DISPATCHED: 'bg-blue-500',
-  IN_TRANSIT: 'bg-blue-500',
-  ARRIVED: 'bg-blue-500',
+  IN_TRANSIT: 'bg-teal-500',
+  ARRIVED: 'bg-green-500',
   DELIVERED: 'bg-emerald-500',
   CANCELLED: 'bg-red-500',
 };
@@ -74,23 +83,87 @@ export default function ClientDashboard() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'ALL' | 'ACTIVE' | 'DELIVERED'>('ALL');
+  const [transportCompanies, setTransportCompanies] = useState<Company[]>([]);
 
   // Form state
   const [origin, setOrigin] = useState('');
+  const [originCoords, setOriginCoords] = useState<{lat: number; lon: number} | null>(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
   const [destination, setDestination] = useState('');
+  const [destinationCoords, setDestinationCoords] = useState<{lat: number; lon: number} | null>(null);
   const [weight, setWeight] = useState('');
-  const [volumeM3, setVolumeM3] = useState('');
+  const [lengthCm, setLengthCm] = useState('');
+  const [widthCm, setWidthCm] = useState('');
+  const [heightCm, setHeightCm] = useState('');
   const [category, setCategory] = useState('General Goods');
+  const [description, setDescription] = useState('');
+  const [transportCompanyId, setTransportCompanyId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
 
+  // GPS pre-fill for pickup location on dialog open
+  const prefillGPS = useCallback(async () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setOriginCoords({ lat: latitude, lon: longitude });
+        // Reverse-geocode to get a human-readable address
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            { headers: { 'Accept-Language': 'en', 'User-Agent': 'FleetVane/1.0' } }
+          );
+          const data = await res.json();
+          if (data?.display_name) {
+            setOrigin(data.display_name);
+          }
+        } catch {
+          setOrigin(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+        } finally {
+          setGpsLoading(false);
+        }
+      },
+      () => {
+        setGpsLoading(false);
+        toast('Could not access GPS. Please enter your pickup address manually.', { icon: '📍' });
+      },
+      { timeout: 8000 }
+    );
+  }, []);
+
+  // Trigger GPS pre-fill when the dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      prefillGPS();
+    } else {
+      // Reset form on close
+      setOrigin('');
+      setOriginCoords(null);
+      setDestination('');
+      setDestinationCoords(null);
+      setWeight('');
+      setLengthCm('');
+      setWidthCm('');
+      setHeightCm('');
+      setDescription('');
+      setCategory('General Goods');
+      if (transportCompanies.length > 0) {
+        setTransportCompanyId(String(transportCompanies[0].id));
+      } else {
+        setTransportCompanyId('');
+      }
+    }
+  }, [dialogOpen, prefillGPS, transportCompanies]);
+
   const geocodeAddress = async (address: string): Promise<{ lat: number; lon: number } | null> => {
     try {
       const res = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-        { headers: { 'Accept-Language': 'en' } }
+        { headers: { 'Accept-Language': 'en', 'User-Agent': 'FleetVane/1.0' } }
       );
       const data = await res.json();
       if (!data || data.length === 0) return null;
@@ -102,9 +175,16 @@ export default function ClientDashboard() {
 
   const fetchShipments = useCallback(async () => {
     try {
-      const res = await fetchWithAuth(
-        `/api/shipments?clientId=${authState.user?.userId}`
-      );
+      const [res, compRes] = await Promise.all([
+        fetchWithAuth(`/api/shipments?clientId=${authState.user?.userId}`),
+        fetchWithAuth(`/api/companies?type=TRANSPORT`)
+      ]);
+      
+      if (compRes.ok) {
+        const companies = await compRes.json();
+        setTransportCompanies(companies);
+      }
+
       if (!res.ok) throw new Error('Failed to fetch shipments');
       const data = await res.json();
       // Spring Boot returns a Page<> object; normalise to array
@@ -155,14 +235,14 @@ export default function ClientDashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!origin.trim() || !destination.trim()) return;
+    if (!origin.trim() || !destination.trim() || !transportCompanyId) return;
 
     setSubmitting(true);
     try {
-      // Geocode both addresses in parallel via OSM Nominatim
+      // Use selected coordinates if available, otherwise geocode
       const [originGeo, destGeo] = await Promise.all([
-        geocodeAddress(origin.trim()),
-        geocodeAddress(destination.trim()),
+        originCoords ? Promise.resolve(originCoords) : geocodeAddress(origin.trim()),
+        destinationCoords ? Promise.resolve(destinationCoords) : geocodeAddress(destination.trim()),
       ]);
 
       if (!originGeo) {
@@ -182,18 +262,25 @@ export default function ClientDashboard() {
         },
         body: JSON.stringify({
           clientId: authState.user?.userId,
+          transportCompanyId: Number(transportCompanyId),
           originAddress: origin.trim(),
           destinationAddress: destination.trim(),
           pickupLatitude: originGeo.lat,
           pickupLongitude: originGeo.lon,
           deliveryLatitude: destGeo.lat,
           deliveryLongitude: destGeo.lon,
-          weight: weight ? parseFloat(weight) : 100, // fallback for required weight
-          volumeM3: volumeM3 ? parseFloat(volumeM3) : null,
+          weight: weight ? parseFloat(weight) : 100,
+          lengthCm: lengthCm ? parseFloat(lengthCm) : null,
+          widthCm: widthCm ? parseFloat(widthCm) : null,
+          heightCm: heightCm ? parseFloat(heightCm) : null,
           category: category,
+          description: description.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.detail || errData?.message || 'Failed to create shipment');
+      }
       
       const newShipment = await res.json();
 
@@ -205,14 +292,18 @@ export default function ClientDashboard() {
       });
       setDialogOpen(false);
       setOrigin('');
+      setOriginCoords(null);
       setDestination('');
+      setDestinationCoords(null);
       setWeight('');
-      setVolumeM3('');
+      setLengthCm('');
+      setWidthCm('');
+      setHeightCm('');
       
       // Dispatch action to push the new record directly into the global state
       addShipment(newShipment);
-    } catch {
-      toast.error('Failed to create shipment');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to create shipment');
     } finally {
       setSubmitting(false);
     }
@@ -221,21 +312,21 @@ export default function ClientDashboard() {
     if (!window.confirm('Are you sure you want to cancel this shipment request?')) return;
     
     try {
-      const res = await fetchWithAuth(`/api/shipments/${id}`, {
+      const res = await fetchWithAuth(`/api/shipments/${id}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authState.token}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'CANCELLED' })
       });
       
-      if (!res.ok) throw new Error('Failed to cancel shipment');
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.detail || 'Failed to cancel shipment');
+      }
       
       toast.success('Shipment cancelled');
       setShipments(shipments.map(s => s.id === id ? { ...s, status: 'CANCELLED' as ShipmentStatus } : s));
-    } catch {
-      toast.error('Failed to cancel shipment');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to cancel shipment');
     }
   };
 
@@ -256,21 +347,67 @@ export default function ClientDashboard() {
               <DialogTitle>Create New Shipment</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-              <AddressAutocomplete
-                label="Origin Address"
-                placeholder="Enter pickup location"
-                value={origin}
-                onChange={setOrigin}
-                required
-              />
+              {/* 📍 Pickup Location - GPS Pre-filled */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  📍 Pickup Location
+                  <span className="ml-2 text-xs text-blue-500 font-normal">(Pre-filled from your GPS — editable)</span>
+                </label>
+                <div className="relative">
+                  <AddressAutocomplete
+                    label=""
+                    placeholder={gpsLoading ? 'Detecting your location...' : 'Your current location or enter pickup address'}
+                    value={origin}
+                    onChange={(val) => {
+                      setOrigin(val);
+                      setOriginCoords(null); // clear GPS coords if manually edited
+                    }}
+                    onSelect={(s) => setOriginCoords({ lat: parseFloat(s.lat), lon: parseFloat(s.lon) })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={prefillGPS}
+                    title="Use my current GPS location"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-500 hover:text-blue-600 transition-colors"
+                  >
+                    <Locate className={`w-4 h-4 ${gpsLoading ? 'animate-pulse' : ''}`} />
+                  </button>
+                </div>
+              </div>
               
-              <AddressAutocomplete
-                label="Destination Address"
-                placeholder="Enter delivery location"
-                value={destination}
-                onChange={setDestination}
-                required
-              />
+              {/* 🏁 Drop-off Location */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  🏁 Drop-off Location
+                </label>
+                <AddressAutocomplete
+                  label=""
+                  placeholder="Enter destination address..."
+                  value={destination}
+                  onChange={(val) => {
+                    setDestination(val);
+                    setDestinationCoords(null);
+                  }}
+                  onSelect={(s) => setDestinationCoords({ lat: parseFloat(s.lat), lon: parseFloat(s.lon) })}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Transport Provider *</label>
+                <select
+                  value={transportCompanyId}
+                  onChange={(e) => setTransportCompanyId(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  required
+                >
+                  <option value="" disabled>Select a provider</option>
+                  {transportCompanies.map(comp => (
+                    <option key={comp.id} value={comp.id}>{comp.name}</option>
+                  ))}
+                </select>
+              </div>
               
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Shipment Category</label>
@@ -284,27 +421,57 @@ export default function ClientDashboard() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Weight (kg) - Optional</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 50"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  min="0"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Weight (kg) *</label>
+                  <input
+                    type="number"
+                    placeholder="e.g. 50"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dimensions (L×W×H cm)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      placeholder="L"
+                      value={lengthCm}
+                      onChange={(e) => setLengthCm(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2.5 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none"
+                      min="0"
+                    />
+                    <input
+                      type="number"
+                      placeholder="W"
+                      value={widthCm}
+                      onChange={(e) => setWidthCm(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2.5 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none"
+                      min="0"
+                    />
+                    <input
+                      type="number"
+                      placeholder="H"
+                      value={heightCm}
+                      onChange={(e) => setHeightCm(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2.5 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none"
+                      min="0"
+                    />
+                  </div>
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Cargo Volume (m³) - Optional</label>
-                <input
-                  type="number"
-                  placeholder="e.g. 1.5"
-                  value={volumeM3}
-                  onChange={(e) => setVolumeM3(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  min="0"
-                  step="0.1"
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description / Special Instructions - Optional</label>
+                <textarea
+                  placeholder="e.g. Fragile items, handle with care. Ring bell on arrival."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4">
@@ -320,7 +487,7 @@ export default function ClientDashboard() {
                   disabled={submitting}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl px-5 py-2.5 text-sm transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Creating...' : 'Create Shipment'}
+                  {submitting ? 'Submitting...' : 'Submit Delivery Request'}
                 </button>
               </div>
             </form>
@@ -437,27 +604,42 @@ export default function ClientDashboard() {
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                       {shipment.eta ? new Date(shipment.eta).toLocaleDateString() : '—'}
                     </td>
-                    <td className="px-6 py-4 text-right flex justify-end gap-2">
-                      {shipment.status === 'REQUESTED' && (
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end items-center gap-2">
+                        {/* QR Code visible when assigned+ */}
+                        {shipment.qrToken && ['ASSIGNED','EN_ROUTE_TO_PICKUP','AT_PICKUP','IN_TRANSIT'].includes(shipment.status) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedShipment(shipment);
+                            }}
+                            title="View QR Code for pickup verification"
+                            className="bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 rounded-lg p-1.5 transition-colors"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                        )}
+                        {shipment.status === 'REQUESTED' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelShipment(shipment.id);
+                            }}
+                            className="bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            cancelShipment(shipment.id);
+                            navigate('/client/track', { id: shipment.id });
                           }}
-                          className="bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-600 dark:text-red-400 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
+                          className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
                         >
-                          Cancel
+                          Track
                         </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/client/track', { id: shipment.id });
-                        }}
-                        className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
-                      >
-                        Track
-                      </button>
+                      </div>
                     </td>
                   </tr>
                 ))

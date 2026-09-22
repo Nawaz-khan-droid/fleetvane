@@ -4,9 +4,11 @@ import com.fleetvane.shared.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Table;
 import com.fleetvane.shipment.entity.Shipment;
+import com.fleetvane.shared.entity.Company;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -28,6 +30,10 @@ public class User extends BaseEntity {
 
     @Column(name = "company_id")
     private Long companyId;
+
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "company_id", insertable = false, updatable = false)
+    private Company company;
 
     @Column(name = "phone_number", length = 20)
     private String phoneNumber;
@@ -61,6 +67,9 @@ public class User extends BaseEntity {
 
     public Long getCompanyId() { return companyId; }
     public void setCompanyId(Long companyId) { this.companyId = companyId; }
+
+    public Company getCompany() { return company; }
+    public void setCompany(Company company) { this.company = company; }
 
     public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
