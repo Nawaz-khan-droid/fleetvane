@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="frontend/public/logo.png" alt="FleetVane Logo" width="300" style="background: transparent;"/>
+  <img src="frontend/public/logo.png" alt="FleetVane Logo" width="180" style="background: transparent;"/>
   <h1>FleetVane - Intelligent Fleet Management & Route Optimization</h1>
 </div>
 
