@@ -183,15 +183,21 @@ The vehicle-movement animation seen in the dashboards is powered by `simulation/
 
 ---
 
-## Performance notes
+## Map and traffic notes
 
-### 1. High-Performance Non-Rendering Map Layers
-To avoid React re-render cascades that freeze the UI when 50+ vehicles are moving simultaneously.
-- **The Fix:** The map layer will bypass React's standard `setState` lifecycle. Instead, it will use mutable references (`useRef`) to hold Leaflet Polylines, updating the paths and marker coordinates imperatively (`setLatLng` and `setPath`) at 60FPS.
+- Leaflet is the default map renderer and uses the configured tile provider. Google Maps
+  can be enabled for the manager traffic layer when a Google Maps key is supplied.
+- Vehicle markers and route polylines are updated from the tracking stream without
+  reloading the page. The current implementation does not provide turn-by-turn
+  navigation or route-level traffic-color segmentation.
+- OSRM supplies road geometry and duration for planned routes. Public OSRM and tile
+  endpoints are rate-limited and should be replaced with managed or self-hosted
+  services before sustained production traffic.
 
-### 2. Isolated Route-Level Traffic Visualization
-Instead of mapping Google Traffic data globally (which clutters the entire map with irrelevant congestion).
-- **The Fix:** By orchestrating Google Maps Routes API on the backend and caching it, the frontend will paint isolated, colored lane slices (Red, Amber, Green) strictly onto the assigned vehicle's path.
+## Contributors
+
+- [**Nawaz-khan-droid**](https://github.com/Nawaz-khan-droid) —
+  nawazkhanofficialac@gmail.com
 
 ---
 
