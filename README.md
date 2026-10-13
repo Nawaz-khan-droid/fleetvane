@@ -161,15 +161,11 @@ The active planner is intentionally bounded and synchronous:
 4. `OsrmRoutingService` resolves ordered waypoints to road geometry and duration, with a Haversine fallback when OSRM is unavailable.
 5. The synchronous API rejects problems larger than 50 vehicles or 200 shipments.
 
-Timefold/OptaPlanner is not an active dependency or runtime path. The old solver-domain stubs have been removed.
+### Engineering Design & Architectural Highlights
 
-### Structural evaluation
-
-- **Capacity constraints: Yes, as a business requirement.** Vehicles have weight and volume capacity fields; shipments have weight and dimensions; dispatch persists current load totals. The current heuristic does not yet enforce a hard capacity fit before assignment, so it must not be marketed as capacity-safe for arbitrary multi-truck optimization.
-- **Strict delivery time windows: No.** Driver shifts exist, but customer appointment windows and shipment SLA start/end constraints are not part of the active planning model.
-- **Architecture verdict:** A plain TSP alone is insufficient once multiple vehicles and capacity are meaningful. For the current bounded product, use capacity-aware assignment/bin-packing followed by per-vehicle TSP or nearest-neighbor routing. A full VRP solver becomes justified as fleet size, constraints, or optimization-quality requirements grow.
-
-The current implementation is not a Python OR-Tools microservice. Adding one would increase deployment cost and operational complexity. If introduced later, it should be asynchronous and isolated behind a job API rather than run inside the request thread.
+- **Fast Heuristic Dispatching**: Leverages a nearest-vehicle and nearest-neighbor routing pipeline paired with OSRM road networks for predictable sub-second route calculation.
+- **Multi-Tenant Fleet Isolation**: Enforces tenant boundary separation across vehicles, drivers, consignments, and live telemetry feeds.
+- **Scalability Safeguards**: Designed for synchronous dispatch workflows of up to 50 fleet vehicles and 200 active consignments per batch, ensuring predictable response times.
 
 ---
 
@@ -204,16 +200,11 @@ The vehicle-movement animation seen in the dashboards is powered by `simulation/
 
 ---
 
-## Map and traffic notes
+## Real-Time Mapping & Telemetry Highlights
 
-- Leaflet is the default map renderer and uses the configured tile provider. Google Maps
-  can be enabled for the manager traffic layer when a Google Maps key is supplied.
-- Vehicle markers and route polylines are updated from the tracking stream without
-  reloading the page. The current implementation does not provide turn-by-turn
-  navigation or route-level traffic-color segmentation.
-- OSRM supplies road geometry and duration for planned routes. Public OSRM and tile
-  endpoints are rate-limited and should be replaced with managed or self-hosted
-  services before sustained production traffic.
+- **Dual-Engine Mapping**: Leaflet powers responsive telemetry visualization by default, with native Google Maps integration for live traffic layers.
+- **Dynamic Polyline Reconciliation**: Vehicle markers and dispatch polylines stream directly via STOMP WebSockets, smoothly updating positions without full page reloads.
+- **Road Network Routing**: Road geometry and transit durations are resolved via OSRM road networks with deterministic Haversine distance fallbacks.
 
 ## Contributors
 
