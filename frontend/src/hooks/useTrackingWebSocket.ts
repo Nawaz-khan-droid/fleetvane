@@ -57,11 +57,14 @@ interface UseTrackingWebSocketOptions {
    * Defaults to the local dev backend — override via NEXT_PUBLIC_WS_URL env var.
    */
   wsUrl?: string;
+
+  /** Fleet-wide telemetry is restricted to managers and administrators. */
+  subscribeFleet?: boolean;
 }
 
 const DEFAULT_WS_URL =
   (typeof process !== 'undefined' && (process.env as any).NEXT_PUBLIC_WS_URL) ||
-  'http://localhost:8080/ws-fleetvane';
+  `${(typeof process !== 'undefined' && process.env.NEXT_PUBLIC_SPRING_BOOT_URL) || 'http://localhost:8080'}/ws-fleetvane`;
 
 export function useTrackingWebSocket({
   token,
@@ -69,6 +72,7 @@ export function useTrackingWebSocket({
   shipmentId,
   onMilestone,
   wsUrl = DEFAULT_WS_URL,
+  subscribeFleet = false,
 }: UseTrackingWebSocketOptions): void {
   const clientRef = useRef<Client | null>(null);
   const vehicleSubRef = useRef<StompSubscription | null>(null);
@@ -115,10 +119,12 @@ export function useTrackingWebSocket({
 
       onConnect: () => {
         // ── Fleet-wide live vehicle position stream ─────────────────────
-        vehicleSubRef.current = stompClient.subscribe(
-          '/topic/fleet.vehicles',
-          handleVehicleFrame,
-        );
+        if (subscribeFleet) {
+          vehicleSubRef.current = stompClient.subscribe(
+            '/topic/fleet.vehicles',
+            handleVehicleFrame,
+          );
+        }
 
         // ── Per-shipment milestone channel (if caller provides an ID) ───
         if (shipmentId != null) {
@@ -153,5 +159,5 @@ export function useTrackingWebSocket({
     };
   // Re-connects only when token, shipmentId, or wsUrl changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, shipmentId, wsUrl]);
+  }, [token, shipmentId, wsUrl, subscribeFleet]);
 }

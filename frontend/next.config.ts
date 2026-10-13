@@ -13,8 +13,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: false,
-  // Silence Next.js turbopack experimental warning
-  turbopack: {},
+  turbopack: {
+    root: __dirname,
+  },
   async headers() {
     return [
       {

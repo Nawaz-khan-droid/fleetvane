@@ -1,14 +1,7 @@
 package com.fleetvane.routing.service;
 
-import ai.timefold.solver.core.api.solver.SolverManager;
 import com.fleetvane.routing.application.FleetQueryPort;
 import com.fleetvane.routing.application.ShipmentQueryPort;
-import com.fleetvane.routing.domain.DeliveryStop;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import com.fleetvane.routing.domain.RouteVehicle;
-import com.fleetvane.routing.domain.VehicleRoutePlan;
 import com.fleetvane.routing.dto.CreateOptimizationJobRequest;
 import com.fleetvane.routing.dto.OptimizationJobDto;
 import com.fleetvane.routing.dto.RouteSolutionResponse;
@@ -16,15 +9,14 @@ import com.fleetvane.routing.entity.OptimizationJob;
 import com.fleetvane.routing.repository.OptimizationJobRepository;
 import com.fleetvane.shared.exception.BusinessException;
 import com.fleetvane.shared.exception.ResourceNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,37 +24,27 @@ public class RouteSolverService {
 
     private static final Logger log = LoggerFactory.getLogger(RouteSolverService.class);
 
-    private final SolverManager<VehicleRoutePlan, UUID> solverManager;
+    private final OsrmRoutingService osrmRoutingService;
     private final OptimizationJobRepository jobRepository;
     private final FleetQueryPort fleetQueryPort;
     private final ShipmentQueryPort shipmentQueryPort;
 
-    public RouteSolverService(SolverManager<VehicleRoutePlan, UUID> solverManager,
+    public RouteSolverService(OsrmRoutingService osrmRoutingService,
                               OptimizationJobRepository jobRepository,
                               FleetQueryPort fleetQueryPort,
                               ShipmentQueryPort shipmentQueryPort) {
-        this.solverManager = solverManager;
+        this.osrmRoutingService = osrmRoutingService;
         this.jobRepository = jobRepository;
         this.fleetQueryPort = fleetQueryPort;
         this.shipmentQueryPort = shipmentQueryPort;
     }
 
-    /**
-     * Track B synchronous lifecycle: blocks on the request thread until Timefold
-     * reaches its termination limit (application.yml -> timefold.solver.termination.spent-limit),
-     * persists the result, and returns solved COORDINATES directly in the response.
-     * No WebSocket, no broker, no publish/subscribe race.
-     */
     /** Synchronous contract ceiling — keeps the blocking window inside HTTP timeout territory. */
     static final int MAX_VEHICLES = 50;
     static final int MAX_SHIPMENTS = 200;
 
-    // No @Transactional here: the Timefold solver blocks for up to 30 seconds.
-    // Holding a DB connection that long would starve the pool (max 5 connections).
-    // Each jobRepository.save() call opens its own short-lived transaction instead.
     public RouteSolutionResponse solveSync(CreateOptimizationJobRequest request, Long userId) {
-        // Fail-fast FIRST: reject oversized problems before any database I/O,
-        // so a hostile/buggy request cannot force huge IN-clause queries.
+        // Fail-fast FIRST: reject oversized problems before any database I/O
         if (request.vehicleIds().size() > MAX_VEHICLES || request.shipmentIds().size() > MAX_SHIPMENTS) {
             throw new BusinessException(
                     "Problem size exceeds synchronous solve limit (max " + MAX_VEHICLES +
@@ -79,8 +61,6 @@ public class RouteSolverService {
             throw new BusinessException("Must provide valid vehicles and shipments", HttpStatus.BAD_REQUEST);
         }
 
-        // Solver-input integrity: coordinate-less shipments would silently zero-out
-        // distance scoring. Exclude them explicitly and surface the count.
         List<ShipmentQueryPort.ShipmentData> solvable = shipmentData.stream()
                 .filter(s -> s.deliveryLatitude() != null && s.deliveryLongitude() != null)
                 .toList();
@@ -94,14 +74,6 @@ public class RouteSolverService {
                 HttpStatus.BAD_REQUEST);
         }
 
-        List<RouteVehicle> routeVehicles = vehicleData.stream()
-                .map(v -> new RouteVehicle(v.id(), v.originalId(), v.lat(), v.lng(), v.capacityGrams(), v.volumeM3()))
-                .collect(Collectors.toList());
-
-        List<DeliveryStop> deliveryStops = solvable.stream()
-                .map(s -> new DeliveryStop(s.id(), s.id(), s.deliveryLatitude(), s.deliveryLongitude(), s.weightGrams(), s.volumeM3()))
-                .collect(Collectors.toList());
-
         OptimizationJob job = new OptimizationJob();
         job.setId(UUID.randomUUID());
         job.setStatus("SOLVING");
@@ -110,12 +82,21 @@ public class RouteSolverService {
         job.setStartedAt(Instant.now());
         jobRepository.save(job);
 
-        VehicleRoutePlan problem = new VehicleRoutePlan(job.getId(), deliveryStops, routeVehicles);
-
-        VehicleRoutePlan solution;
         try {
-            // BLOCKS on the request thread until the configured spent-limit termination fires.
-            solution = solverManager.solve(job.getId(), problem).getFinalBestSolution();
+            List<RouteSolutionResponse.VehicleRoute> routes = planRoutes(vehicleData, solvable);
+
+            double totalDistanceMeters = routes.stream()
+                    .mapToDouble(r -> r.distanceMeters() != null ? r.distanceMeters() : 0.0)
+                    .sum();
+            String scoreString = "0hard/-" + Math.round(totalDistanceMeters) + "soft";
+
+            job.setStatus("SOLVED");
+            job.setScore(scoreString);
+            job.setCompletedAt(Instant.now());
+            job.setResultJson(serializeResult(routes));
+            jobRepository.save(job);
+
+            return new RouteSolutionResponse(job.getId(), job.getStatus(), job.getScore(), routes);
         } catch (Exception ex) {
             job.setStatus("FAILED");
             job.setErrorMessage(ex.getMessage());
@@ -124,56 +105,106 @@ public class RouteSolverService {
             throw new BusinessException("Route solving failed: " + ex.getMessage(),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
-
-        job.setStatus("SOLVED");
-        job.setScore(solution.getScore() != null ? solution.getScore().toString() : null);
-        job.setCompletedAt(Instant.now());
-        job.setResultJson(serializeResult(solution));
-        jobRepository.save(job);
-
-        return buildResponse(solution, vehicleData, solvable, job);
     }
 
-    private RouteSolutionResponse buildResponse(VehicleRoutePlan solution,
-                                                List<FleetQueryPort.VehicleData> vehicleData,
-                                                List<ShipmentQueryPort.ShipmentData> shipmentData,
-                                                OptimizationJob job) {
-        Map<Long, FleetQueryPort.VehicleData> vehiclesById = vehicleData.stream()
-                .collect(Collectors.toMap(FleetQueryPort.VehicleData::id, Function.identity()));
-        Map<Long, ShipmentQueryPort.ShipmentData> shipmentsById = shipmentData.stream()
-                .collect(Collectors.toMap(ShipmentQueryPort.ShipmentData::id, Function.identity()));
+    /**
+     * Multi-Vehicle Nearest-Neighbor tour builder + OSRM road network geometry.
+     */
+    private List<RouteSolutionResponse.VehicleRoute> planRoutes(
+            List<FleetQueryPort.VehicleData> vehicles,
+            List<ShipmentQueryPort.ShipmentData> shipments) {
 
-        List<RouteSolutionResponse.VehicleRoute> routes = new ArrayList<>();
-        for (RouteVehicle v : solution.getVehicles()) {
-            FleetQueryPort.VehicleData vd = vehiclesById.get(v.getVehicleId());
-            if (vd == null) continue;
-
-            List<RouteSolutionResponse.Stop> stops = new ArrayList<>();
-            for (DeliveryStop s : v.getStops()) {
-                ShipmentQueryPort.ShipmentData sd = shipmentsById.get(s.getShipmentId());
-                if (sd != null) {
-                    stops.add(new RouteSolutionResponse.Stop(sd.id(), sd.deliveryLatitude(), sd.deliveryLongitude()));
-                }
-            }
-            routes.add(new RouteSolutionResponse.VehicleRoute(
-                    vd.id(), vd.originalId(), vd.lat(), vd.lng(), stops));
+        // 1. Group shipments to nearest vehicle based on vehicle depot location
+        Map<Long, List<ShipmentQueryPort.ShipmentData>> assignments = new LinkedHashMap<>();
+        for (FleetQueryPort.VehicleData v : vehicles) {
+            assignments.put(v.id(), new ArrayList<>());
         }
 
-        return new RouteSolutionResponse(job.getId(), job.getStatus(), job.getScore(), routes);
+        for (ShipmentQueryPort.ShipmentData shipment : shipments) {
+            FleetQueryPort.VehicleData closestVehicle = vehicles.get(0);
+            double minDistance = Double.MAX_VALUE;
+
+            for (FleetQueryPort.VehicleData v : vehicles) {
+                double dist = OsrmRoutingService.haversineMeters(
+                        v.lat(), v.lng(), shipment.deliveryLatitude(), shipment.deliveryLongitude());
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestVehicle = v;
+                }
+            }
+            assignments.get(closestVehicle.id()).add(shipment);
+        }
+
+        // 2. For each vehicle, order its assigned shipments using Nearest-Neighbor heuristic
+        List<RouteSolutionResponse.VehicleRoute> routes = new ArrayList<>();
+
+        for (FleetQueryPort.VehicleData v : vehicles) {
+            List<ShipmentQueryPort.ShipmentData> unvisited = new ArrayList<>(assignments.get(v.id()));
+            List<ShipmentQueryPort.ShipmentData> orderedStops = new ArrayList<>();
+
+            double currentLat = v.lat();
+            double currentLng = v.lng();
+
+            while (!unvisited.isEmpty()) {
+                ShipmentQueryPort.ShipmentData nextStop = null;
+                double bestDist = Double.MAX_VALUE;
+
+                for (ShipmentQueryPort.ShipmentData candidate : unvisited) {
+                    double dist = OsrmRoutingService.haversineMeters(
+                            currentLat, currentLng, candidate.deliveryLatitude(), candidate.deliveryLongitude());
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        nextStop = candidate;
+                    }
+                }
+
+                if (nextStop != null) {
+                    orderedStops.add(nextStop);
+                    unvisited.remove(nextStop);
+                    currentLat = nextStop.deliveryLatitude();
+                    currentLng = nextStop.deliveryLongitude();
+                }
+            }
+
+            // 3. Build waypoints for OSRM: [Vehicle Start] -> [Stop 1] -> [Stop 2] ...
+            List<double[]> waypoints = new ArrayList<>();
+            waypoints.add(new double[]{v.lat(), v.lng()});
+
+            List<RouteSolutionResponse.Stop> responseStops = new ArrayList<>();
+            for (ShipmentQueryPort.ShipmentData s : orderedStops) {
+                waypoints.add(new double[]{s.deliveryLatitude(), s.deliveryLongitude()});
+                responseStops.add(new RouteSolutionResponse.Stop(s.id(), s.deliveryLatitude(), s.deliveryLongitude()));
+            }
+
+            // 4. Fetch real road geometry from OSRM
+            OsrmRoutingService.RouteResult routeResult = osrmRoutingService.getRoute(waypoints);
+
+            routes.add(new RouteSolutionResponse.VehicleRoute(
+                    v.id(),
+                    v.originalId(),
+                    v.lat(),
+                    v.lng(),
+                    responseStops,
+                    routeResult.geometry(),
+                    routeResult.distanceMeters(),
+                    routeResult.durationSeconds()
+            ));
+        }
+
+        return routes;
     }
 
-    /** Audit/history persistence only — the HTTP response is now typed JSON. */
-    private String serializeResult(VehicleRoutePlan solution) {
+    private String serializeResult(List<RouteSolutionResponse.VehicleRoute> routes) {
         StringBuilder sb = new StringBuilder("{\"routes\":[");
-        for (int i = 0; i < solution.getVehicles().size(); i++) {
-            RouteVehicle v = solution.getVehicles().get(i);
-            sb.append("{\"vehicleId\":").append(v.getVehicleId()).append(",\"stops\":[");
-            for (int j = 0; j < v.getStops().size(); j++) {
+        for (int i = 0; i < routes.size(); i++) {
+            RouteSolutionResponse.VehicleRoute v = routes.get(i);
+            sb.append("{\"vehicleId\":").append(v.vehicleId()).append(",\"stops\":[");
+            for (int j = 0; j < v.stops().size(); j++) {
                 if (j > 0) sb.append(',');
-                sb.append(v.getStops().get(j).getShipmentId());
+                sb.append(v.stops().get(j).shipmentId());
             }
             sb.append("]}");
-            if (i < solution.getVehicles().size() - 1) sb.append(',');
+            if (i < routes.size() - 1) sb.append(',');
         }
         return sb.append("]}").toString();
     }

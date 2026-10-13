@@ -27,7 +27,7 @@ export function loadGoogleMaps(): Promise<typeof google.maps> {
     return Promise.reject(
       new Error(
         'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY is missing or is still a placeholder value. ' +
-        'Add the real key to fleetvane-project/.env and restart the dev server.'
+        'Add it as a deployment environment variable and restart the frontend.'
       )
     );
   }
@@ -71,8 +71,7 @@ export function isMapTilerKeyConfigured(): boolean {
 export function getMapTilerKey(): string {
   const envKey = process.env.NEXT_PUBLIC_MAPTILER_API_KEY;
   if (envKey && !envKey.startsWith('your_')) return envKey;
-  // Fallback verified key provided for Capstone
-  return 'ld6NyiWXzksCPU01e9Va';
+  return '';
 }
 
 export type MapTileStyle = 'auto' | 'streets' | 'satellite' | 'dark' | 'outdoor';
@@ -109,4 +108,3 @@ export function getLeafletAttribution(style: MapTileStyle = 'auto'): string {
   }
   return '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors';
 }
-

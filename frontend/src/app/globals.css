@@ -1,4 +1,25 @@
 @import "tailwindcss";
+
+.fleet-vehicle-marker {
+  background: transparent;
+  border: 0;
+}
+
+.fleet-vehicle-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  background: #2563eb;
+  border: 3px solid #ffffff;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 35%);
+  color: #ffffff;
+  font-size: 22px;
+  line-height: 1;
+  transform-origin: center;
+  transition: transform 250ms ease;
+}
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

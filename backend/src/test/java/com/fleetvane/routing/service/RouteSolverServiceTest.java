@@ -1,12 +1,7 @@
 package com.fleetvane.routing.service;
 
-import ai.timefold.solver.core.api.solver.SolverJob;
-import ai.timefold.solver.core.api.solver.SolverManager;
 import com.fleetvane.routing.application.FleetQueryPort;
 import com.fleetvane.routing.application.ShipmentQueryPort;
-import com.fleetvane.routing.domain.DeliveryStop;
-import com.fleetvane.routing.domain.RouteVehicle;
-import com.fleetvane.routing.domain.VehicleRoutePlan;
 import com.fleetvane.routing.dto.CreateOptimizationJobRequest;
 import com.fleetvane.routing.dto.RouteSolutionResponse;
 import com.fleetvane.routing.entity.OptimizationJob;
@@ -28,25 +23,22 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
  * Lifecycle tests for the SYNCHRONOUS routing job:
  *
- *   creation guards ──> SOLVING (persisted) ──> SOLVED (persisted w/ result)
+ *   creation guards ──> SOLVING (persisted) ──> SOLVED (persisted w/ road geometry)
  *                                        └───> FAILED (persisted w/ error)
  */
 @ExtendWith(MockitoExtension.class)
 class RouteSolverServiceTest {
 
-    @Mock private SolverManager<VehicleRoutePlan, UUID> solverManager;
-    @Mock private SolverJob<VehicleRoutePlan, UUID> solverJob;
+    @Mock private OsrmRoutingService osrmRoutingService;
     @Mock private OptimizationJobRepository jobRepository;
     @Mock private FleetQueryPort fleetQueryPort;
     @Mock private ShipmentQueryPort shipmentQueryPort;
@@ -56,8 +48,6 @@ class RouteSolverServiceTest {
 
     private CreateOptimizationJobRequest validRequest;
     private List<OptimizationJob> persistedJobs;
-    /** Status captured at save()-time — the entity is mutated afterwards, so the
-     *  object graph alone cannot prove the SOLVING->terminal ordering. */
     private List<String> statusTimeline;
 
     @BeforeEach
@@ -65,7 +55,6 @@ class RouteSolverServiceTest {
         validRequest = new CreateOptimizationJobRequest(List.of(10L), List.of(500L, 501L));
         persistedJobs = new ArrayList<>();
         statusTimeline = new ArrayList<>();
-        // lenient(): guard-path tests intentionally never reach persistence
         lenient().when(jobRepository.save(any(OptimizationJob.class))).thenAnswer(inv -> {
             OptimizationJob job = inv.getArgument(0);
             statusTimeline.add(job.getStatus());
@@ -73,8 +62,6 @@ class RouteSolverServiceTest {
             return job;
         });
     }
-
-    // ── Fixtures ─────────────────────────────────────────────────────────────
 
     private void givenPortData() {
         when(fleetQueryPort.findAllById(validRequest.vehicleIds())).thenReturn(List.of(
@@ -84,23 +71,12 @@ class RouteSolverServiceTest {
                 new ShipmentQueryPort.ShipmentData(501L, 18.60, 73.90, 3000L, 2.0)));
     }
 
-    /** Real planning-domain objects so mapping logic runs for real. */
-    private VehicleRoutePlan solvedPlan() {
-        RouteVehicle vehicle = new RouteVehicle(10L, 10L, 19.10, 72.90, 10000L, 30.0);
-        vehicle.getStops().add(new DeliveryStop(500L, 500L, 18.52, 73.85, 2000L, 1.5));
-        vehicle.getStops().add(new DeliveryStop(501L, 501L, 18.60, 73.90, 3000L, 2.0));
-
-        VehicleRoutePlan plan = new VehicleRoutePlan(
-                UUID.randomUUID(),
-                List.of(new DeliveryStop(500L, 500L, 18.52, 73.85, 2000L, 1.5),
-                        new DeliveryStop(501L, 501L, 18.60, 73.90, 3000L, 2.0)),
-                List.of(vehicle));
-        return plan;
-    }
-
-    private void givenSolverReturns(VehicleRoutePlan plan) throws ExecutionException, InterruptedException {
-        when(solverManager.solve(any(UUID.class), any(VehicleRoutePlan.class))).thenReturn(solverJob);
-        when(solverJob.getFinalBestSolution()).thenReturn(plan);
+    private void givenOsrmReturnsRoute() {
+        when(osrmRoutingService.getRoute(any())).thenReturn(new OsrmRoutingService.RouteResult(
+                List.of(new double[]{19.10, 72.90}, new double[]{18.52, 73.85}, new double[]{18.60, 73.90}),
+                150000.0,
+                7200.0
+        ));
     }
 
     // ── 1. Creation guards ───────────────────────────────────────────────────
@@ -113,7 +89,7 @@ class RouteSolverServiceTest {
         var ex = catchThrowableOfType(() -> service.solveSync(req, 7L), BusinessException.class);
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-        verifyNoInteractions(solverManager);
+        verifyNoInteractions(osrmRoutingService);
         verify(jobRepository, never()).save(any());
     }
 
@@ -125,11 +101,11 @@ class RouteSolverServiceTest {
         var ex = catchThrowableOfType(() -> service.solveSync(req, 7L), BusinessException.class);
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
-        verifyNoInteractions(solverManager);
+        verifyNoInteractions(osrmRoutingService);
         verify(jobRepository, never()).save(any());
     }
 
-    // ── 2. Size guardrail (thread-bound sync contract) ──────────────────────
+    // ── 2. Size guardrail ────────────────────────────────────────────────────
 
     @Test
     @DisplayName("Problem above synchronous size limit -> 400, solver NEVER invoked")
@@ -145,7 +121,7 @@ class RouteSolverServiceTest {
 
         assertThat(ex.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(ex.getMessage()).contains("synchronous");
-        verifyNoInteractions(solverManager);
+        verifyNoInteractions(osrmRoutingService);
         verifyNoInteractions(fleetQueryPort);
         verifyNoInteractions(shipmentQueryPort);
         verify(jobRepository, never()).save(any());
@@ -154,14 +130,13 @@ class RouteSolverServiceTest {
     // ── 3. SOLVING -> SOLVED lifecycle ───────────────────────────────────────
 
     @Test
-    @DisplayName("Happy path: persists SOLVING then SOLVED, maps coordinates into response")
-    void solvesPersistsAndMapsCoordinates() throws Exception {
+    @DisplayName("Happy path: persists SOLVING then SOLVED, maps coordinates and road geometry into response")
+    void solvesPersistsAndMapsCoordinates() {
         givenPortData();
-        givenSolverReturns(solvedPlan());
+        givenOsrmReturnsRoute();
 
         RouteSolutionResponse response = service.solveSync(validRequest, 42L);
 
-        // Lifecycle: exactly two persists — initial SOLVING, terminal SOLVED
         ArgumentCaptor<OptimizationJob> captor = ArgumentCaptor.forClass(OptimizationJob.class);
         verify(jobRepository, times(2)).save(captor.capture());
         assertThat(statusTimeline).containsExactly("SOLVING", "SOLVED");
@@ -171,7 +146,7 @@ class RouteSolverServiceTest {
         assertThat(finalJob.getCompletedAt()).isNotNull();
         assertThat(finalJob.getResultJson()).contains("\"vehicleId\":10").contains("500").contains("501");
 
-        // Response contract: same job identity + REAL coordinates from port data
+        // Response contract: same job identity + REAL coordinates + OSRM road geometry
         assertThat(response.jobId()).isEqualTo(finalJob.getId());
         assertThat(response.status()).isEqualTo("SOLVED");
         assertThat(response.routes()).hasSize(1);
@@ -181,23 +156,20 @@ class RouteSolverServiceTest {
         assertThat(route.startLat()).isEqualTo(19.10);
         assertThat(route.startLng()).isEqualTo(72.90);
         assertThat(route.stops()).hasSize(2);
-        assertThat(route.stops().get(0).shipmentId()).isEqualTo(500L);
-        assertThat(route.stops().get(0).lat()).isEqualTo(18.52);
-        assertThat(route.stops().get(0).lng()).isEqualTo(73.85);
-        assertThat(route.stops().get(1).lat()).isEqualTo(18.60);
+        assertThat(route.geometry()).hasSize(3);
+        assertThat(route.distanceMeters()).isEqualTo(150000.0);
+        assertThat(route.durationSeconds()).isEqualTo(7200.0);
 
-        // Solver received the SAME problem id as the persisted job
-        verify(solverManager).solve(eq(finalJob.getId()), any(VehicleRoutePlan.class));
+        verify(osrmRoutingService).getRoute(any());
     }
 
-    // ── 4. Solver failure -> FAILED ─────────────────────────────────────────
+    // ── 4. Routing failure -> FAILED ─────────────────────────────────────────
 
     @Test
-    @DisplayName("Solver crash: job persisted as FAILED with error message, 500 raised")
-    void marksFailedWhenSolverThrows() throws Exception {
+    @DisplayName("Routing exception: job persisted as FAILED with error message, 500 raised")
+    void marksFailedWhenSolverThrows() {
         givenPortData();
-        when(solverManager.solve(any(UUID.class), any(VehicleRoutePlan.class)))
-                .thenThrow(new IllegalStateException("engine exploded"));
+        when(osrmRoutingService.getRoute(any())).thenThrow(new IllegalStateException("engine exploded"));
 
         var ex = catchThrowableOfType(() -> service.solveSync(validRequest, 42L), BusinessException.class);
 

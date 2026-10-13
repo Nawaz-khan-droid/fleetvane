@@ -92,6 +92,7 @@ export default function ClientDashboard() {
   const [destination, setDestination] = useState('');
   const [destinationCoords, setDestinationCoords] = useState<{lat: number; lon: number} | null>(null);
   const [weight, setWeight] = useState('');
+  const [quantity, setQuantity] = useState('1');
   const [lengthCm, setLengthCm] = useState('');
   const [widthCm, setWidthCm] = useState('');
   const [heightCm, setHeightCm] = useState('');
@@ -254,6 +255,13 @@ export default function ClientDashboard() {
         return;
       }
 
+      const qty = Math.max(1, parseInt(quantity, 10) || 1);
+      const l = lengthCm ? parseFloat(lengthCm) : null;
+      const w = widthCm ? parseFloat(widthCm) : null;
+      const h = heightCm ? parseFloat(heightCm) : null;
+      const calculatedVolM3 = (l && w && h) ? (l * w * h * qty) / 1_000_000.0 : null;
+      const totalWeightKg = (weight ? parseFloat(weight) : 50) * qty;
+
       const res = await fetchWithAuth('/api/shipments', {
         method: 'POST',
         headers: {
@@ -269,12 +277,13 @@ export default function ClientDashboard() {
           pickupLongitude: originGeo.lon,
           deliveryLatitude: destGeo.lat,
           deliveryLongitude: destGeo.lon,
-          weight: weight ? parseFloat(weight) : 100,
-          lengthCm: lengthCm ? parseFloat(lengthCm) : null,
-          widthCm: widthCm ? parseFloat(widthCm) : null,
-          heightCm: heightCm ? parseFloat(heightCm) : null,
+          weight: totalWeightKg,
+          lengthCm: l,
+          widthCm: w,
+          heightCm: h,
+          volumeM3: calculatedVolM3,
           category: category,
-          description: description.trim() || null,
+          description: (description.trim() ? `${description.trim()} | ` : '') + `Qty: ${qty} carton(s)`,
         }),
       });
       if (!res.ok) {
@@ -351,7 +360,7 @@ export default function ClientDashboard() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                   📍 Pickup Location
-                  <span className="ml-2 text-xs text-blue-500 font-normal">(Pre-filled from your GPS — editable)</span>
+                  <span className="ml-2 text-xs text-blue-500 font-normal">(Pre-filled from your GPS - editable)</span>
                 </label>
                 <div className="relative">
                   <AddressAutocomplete
@@ -421,9 +430,21 @@ export default function ClientDashboard() {
                   ))}
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Weight (kg) *</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Quantity (Units) *</label>
+                  <input
+                    type="number"
+                    placeholder="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    min="1"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Unit Wt (kg) *</label>
                   <input
                     type="number"
                     placeholder="e.g. 50"
@@ -436,13 +457,13 @@ export default function ClientDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dimensions (L×W×H cm)</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1.5">
                     <input
                       type="number"
                       placeholder="L"
                       value={lengthCm}
                       onChange={(e) => setLengthCm(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2.5 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1 py-2.5 text-xs text-center focus:ring-2 focus:ring-blue-500 outline-none"
                       min="0"
                     />
                     <input
@@ -450,7 +471,7 @@ export default function ClientDashboard() {
                       placeholder="W"
                       value={widthCm}
                       onChange={(e) => setWidthCm(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2.5 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1 py-2.5 text-xs text-center focus:ring-2 focus:ring-blue-500 outline-none"
                       min="0"
                     />
                     <input
@@ -458,12 +479,37 @@ export default function ClientDashboard() {
                       placeholder="H"
                       value={heightCm}
                       onChange={(e) => setHeightCm(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-2.5 text-sm text-center focus:ring-2 focus:ring-blue-500 outline-none"
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-1 py-2.5 text-xs text-center focus:ring-2 focus:ring-blue-500 outline-none"
                       min="0"
                     />
                   </div>
                 </div>
               </div>
+
+              {/* Real-time Volumetric & Total Cargo Calculation Preview */}
+              {(() => {
+                const q = Math.max(1, parseInt(quantity, 10) || 1);
+                const w = (weight ? parseFloat(weight) : 0) * q;
+                const l = lengthCm ? parseFloat(lengthCm) : null;
+                const width = widthCm ? parseFloat(widthCm) : null;
+                const h = heightCm ? parseFloat(heightCm) : null;
+                const volM3 = (l && width && h) ? ((l * width * h * q) / 1_000_000) : null;
+                const volumetricWeight = (l && width && h) ? Math.round((l * width * h * q) / 5000) : null;
+
+                return (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/80 dark:border-slate-700/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-300">
+                    <div>
+                      <span className="font-semibold text-slate-900 dark:text-white">Total Gross Weight:</span> {w > 0 ? `${w} kg` : '-'} ({q} × {weight || 0} kg)
+                    </div>
+                    {volM3 != null && (
+                      <div className="flex items-center gap-3">
+                        <span><span className="font-semibold text-slate-900 dark:text-white">Total Volume:</span> {volM3.toFixed(3)} m³</span>
+                        <span><span className="font-semibold text-slate-900 dark:text-white">Volumetric Wt:</span> {volumetricWeight} kg</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description / Special Instructions - Optional</label>
                 <textarea
@@ -602,7 +648,7 @@ export default function ClientDashboard() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
-                      {shipment.eta ? new Date(shipment.eta).toLocaleDateString() : '—'}
+                      {shipment.eta ? new Date(shipment.eta).toLocaleDateString() : '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end items-center gap-2">

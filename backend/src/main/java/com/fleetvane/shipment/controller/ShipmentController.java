@@ -58,8 +58,8 @@ public class ShipmentController {
 
     @PutMapping("/{id}/assign")
     @PreAuthorize("hasAnyAuthority('MANAGER', 'ADMIN', 'ROLE_MANAGER', 'ROLE_ADMIN')")
-    public ShipmentDto assignShipment(@PathVariable Long id, @RequestBody AssignRequest request) {
-        return shipmentService.assignShipment(id, request.vehicleId(), request.driverId());
+    public ShipmentDto assignShipment(@PathVariable Long id, @RequestBody AssignRequest request, Authentication auth) {
+        return shipmentService.assignShipment(id, request.vehicleId(), request.driverId(), getCurrentCompanyId(auth));
     }
 
     @PutMapping("/{id}/status")

@@ -217,6 +217,7 @@ export default function ManagerShipments() {
       
       const updatedShipment = await res.json();
       updateShipment(updatedShipment.id, updatedShipment);
+      await fetchShipments();
 
       toast.success('Shipment assigned successfully!');
       addNotification({
@@ -476,19 +477,78 @@ export default function ManagerShipments() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Vehicle Selection with Proximity Ranking */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-900 dark:text-slate-100">Vehicle</label>
-              <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+              <label className="text-sm font-medium text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                <span>Vehicle</span>
+                <span className="text-xs text-slate-500 font-normal">Sorted by proximity to pickup</span>
+              </label>
+              <Select value={selectedVehicleId} onValueChange={(value) => {
+                setSelectedVehicleId(value);
+                setSelectedDriverId('');
+              }}>
                 <SelectTrigger className="w-full rounded-xl border-slate-200 dark:border-slate-700">
                   <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableVehicles.map(v => (
-                    <SelectItem key={v.id} value={String(v.id)}>{v.plateNumber} ({v.type})</SelectItem>
-                  ))}
+                  {(() => {
+                      const pickupLat = assigningShipment?.pickupLatitude;
+                      const pickupLng = assigningShipment?.pickupLongitude;
+                      const originAddress = assigningShipment?.originAddress ?? 'selected pickup';
+                      const sorted = [...availableVehicles].map(v => {
+                        let distKm: number | null = null;
+                        if (pickupLat != null && pickupLng != null && v.lat && v.lng) {
+                          const R = 6371;
+                          const dLat = ((v.lat - pickupLat) * Math.PI) / 180;
+                          const dLon = ((v.lng - pickupLng) * Math.PI) / 180;
+                          const a = Math.sin(dLat / 2) ** 2 + Math.cos((pickupLat * Math.PI) / 180) * Math.cos((v.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+                        distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                      }
+                      return { vehicle: v, distKm };
+                    }).sort((a, b) => (a.distKm ?? 9999) - (b.distKm ?? 9999));
+
+                    return sorted.map(({ vehicle: v, distKm }) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        <span className="font-medium">{v.plateNumber}</span> ({v.type})
+                        {distKm != null && (
+                          <span className={`ml-2 text-xs font-mono ${distKm > 100 ? 'text-amber-500 font-semibold' : 'text-emerald-600'}`}>
+                            • {distKm < 1 ? '<1 km' : `${Math.round(distKm)} km`} away {distKm > 100 ? '⚠️ [Far]' : '✓'}
+                          </span>
+                        )}
+                      </SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
+
+              {/* Out-of-region warning */}
+              {(() => {
+                const pickupLat = assigningShipment?.pickupLatitude;
+                const pickupLng = assigningShipment?.pickupLongitude;
+                const originAddress = assigningShipment?.originAddress ?? 'selected pickup';
+                if (!selectedVehicleId || pickupLat == null || pickupLng == null) return null;
+                const v = availableVehicles.find(veh => String(veh.id) === String(selectedVehicleId));
+                if (!v || !v.lat || !v.lng) return null;
+                const R = 6371;
+                const dLat = ((v.lat - pickupLat) * Math.PI) / 180;
+                const dLon = ((v.lng - pickupLng) * Math.PI) / 180;
+                const a = Math.sin(dLat / 2) ** 2 + Math.cos((pickupLat * Math.PI) / 180) * Math.cos((v.lat * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+                const distKm = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+                if (distKm > 100) {
+                  return (
+                    <div className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                      <span className="text-base leading-none">⚠️</span>
+                      <div>
+                        <span className="font-semibold">Geographical Mismatch:</span> This vehicle is currently located ~{Math.round(distKm)} km away from the pickup point ({originAddress}). Dispatching it will incur massive deadhead delay.
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-900 dark:text-slate-100">Driver</label>
               <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
@@ -496,11 +556,20 @@ export default function ManagerShipments() {
                   <SelectValue placeholder="Select driver" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableDrivers.map(d => (
-                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                  ))}
+                  {availableDrivers
+                    .filter(d => String(d.driverProfile?.vehicleId ?? '') === String(selectedVehicleId))
+                    .map(d => (
+                      <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
+              {selectedVehicleId && availableDrivers.every(
+                d => String(d.driverProfile?.vehicleId ?? '') !== String(selectedVehicleId)
+              ) && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  No available driver is currently assigned to this vehicle.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

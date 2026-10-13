@@ -30,6 +30,7 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 import { loadGoogleMaps, getLeafletTileUrl, getLeafletAttribution } from '@/lib/maps';
+import { fetchRoadRoute } from '@/lib/directions';
 import { useRouter } from '@/context/RouterContext';
 import t from '@/locales/en.json';
 import type { Shipment, Vehicle, DriverWithProfile } from '@/types';
@@ -327,6 +328,47 @@ export default function DriverRoute() {
     })();
   }, [authState.token, authState.user?.userId]);
 
+  // Forward real driver GPS fixes to the tracking API while an assigned trip is active.
+  useEffect(() => {
+    if (!authState.token || !vehicle?.id || shipment?.status !== 'IN_TRANSIT') return;
+    if (!navigator.geolocation) {
+      toast.error('This device does not provide GPS location.');
+      return;
+    }
+
+    let lastSentAt = 0;
+    let hasShownError = false;
+    const watchId = navigator.geolocation.watchPosition(
+      async (position) => {
+        const now = Date.now();
+        if (now - lastSentAt < 5000) return;
+        lastSentAt = now;
+        const response = await fetchWithAuth(`/api/tracking/vehicles/${vehicle.id}/location`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            heading: position.coords.heading,
+            speed: position.coords.speed,
+          }),
+        });
+        if (!response.ok && !hasShownError) {
+          hasShownError = true;
+          toast.error('GPS update was rejected by the tracking service.');
+        }
+      },
+      (error) => {
+        if (hasShownError) return;
+        hasShownError = true;
+        toast.error(`GPS tracking unavailable: ${error.message}`);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [authState.token, shipment?.status, vehicle?.id]);
+
   // ── Load Leaflet CSS once ─────────────────────────────
   useEffect(() => {
     const linkId = 'leaflet-css-driver';
@@ -410,11 +452,13 @@ export default function DriverRoute() {
           .addTo(mapInstance)
           .bindPopup(`<b>${t.driver.destination}</b><br/>${shipment.destinationAddress}`);
 
-        const polyline = L.polyline([originCoords, destCoords], {
-          color: '#047857',
-          weight: 4,
-          opacity: 0.8,
-          dashArray: '10 6',
+        const roadPoints = await fetchRoadRoute(originCoords, destCoords);
+        if (isCancelled) return;
+
+        const polyline = L.polyline(roadPoints, {
+          color: '#059669',
+          weight: 5,
+          opacity: 0.85,
         }).addTo(mapInstance);
 
         mapInstance.fitBounds(polyline.getBounds(), { padding: [50, 50] });
@@ -448,18 +492,21 @@ export default function DriverRoute() {
           new AdvancedMarkerElement({ map: mapInstance, position: originLatLng, title: shipment.originAddress });
           new AdvancedMarkerElement({ map: mapInstance, position: destLatLng, title: shipment.destinationAddress });
 
+          const roadPoints = await fetchRoadRoute(originCoords, destCoords);
+          if (isCancelled) return;
+          const roadPath = roadPoints.map(([lat, lng]) => ({ lat, lng }));
+
           new window.google.maps.Polyline({
-            path: [originLatLng, destLatLng],
+            path: roadPath,
             geodesic: true,
-            strokeColor: '#047857',
-            strokeOpacity: 0.8,
-            strokeWeight: 4,
+            strokeColor: '#059669',
+            strokeOpacity: 0.85,
+            strokeWeight: 5,
             map: mapInstance,
           });
 
           const bounds = new google.maps.LatLngBounds();
-          bounds.extend(originLatLng);
-          bounds.extend(destLatLng);
+          roadPoints.forEach(([lat, lng]) => bounds.extend({ lat, lng }));
           mapInstance.fitBounds(bounds, 50);
 
           currentProviderRef.current = 'google';

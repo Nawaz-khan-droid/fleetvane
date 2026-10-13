@@ -25,10 +25,10 @@ export const useStore = create<AppState>((set) => ({
   setShipments: (shipments) => set({ shipments }),
   addShipment: (shipment) => set((state) => ({ shipments: [shipment, ...state.shipments] })),
   updateShipment: (id, shipment) => set((state) => ({
-    shipments: state.shipments.map(s => s.id === id ? shipment : s)
+    shipments: state.shipments.map(s => String(s.id) === String(id) ? shipment : s)
   })),
   updateShipmentStatus: (id, status) => set((state) => ({
-    shipments: state.shipments.map(s => s.id === id ? { ...s, status } : s)
+    shipments: state.shipments.map(s => String(s.id) === String(id) ? { ...s, status } : s)
   })),
   setVehicles: (vehicles) => set({ vehicles }),
   updateVehicleLocation: (vehicleId, lat, lng, speed, heading) => set((state) => ({

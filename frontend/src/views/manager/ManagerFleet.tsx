@@ -13,8 +13,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const SPRING_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_URL || 'http://localhost:8080';
 
+import { fetchRoadRoute } from '@/lib/directions';
+
 function formatCoords(lat?: number | null, lng?: number | null): string {
-  if (lat == null || lng == null) return '—';
+  if (lat == null || lng == null) return '-';
   return `${lat.toFixed(4)}°, ${lng.toFixed(4)}°`;
 }
 
@@ -43,6 +45,9 @@ interface VehicleRoute {
   startLat: number;
   startLng: number;
   stops: RouteStop[];
+  geometry?: [number, number][];
+  distanceMeters?: number;
+  durationSeconds?: number;
 }
 interface RouteSolutionResponse {
   jobId: string;
@@ -271,6 +276,7 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!token) return;
     axios.get(`/api/depots`, { headers: authHeaders(token), timeout: 15000 })
       .then(res => {
         const data = Array.isArray(res.data) ? res.data : [];
@@ -289,7 +295,7 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
       return;
     }
     if (!form.depotId) {
-      toast.error('Select a Home Depot — vehicles must start at a real, configured location.');
+      toast.error('Select a Home Depot: vehicles must start at a real, configured location.');
       return;
     }
     setSubmitting(true);
@@ -385,10 +391,10 @@ function AddVehicleModal({ token, onClose, onSuccess }: AddVehicleModalProps) {
               >
                 {depots.map(d => (
                   <option key={d.id} value={d.id}>
-                    {d.name} — {d.city} ({d.address})
+                    {d.name} - {d.city} ({d.address})
                   </option>
                 ))}
-                {depots.length === 0 && <option value="" disabled>No depots yet — create one first</option>}
+                {depots.length === 0 && <option value="" disabled>No depots yet - create one first</option>}
               </select>
               <p className="text-[11px] text-slate-400 mt-1">Vehicle starts parked at this depot until a driver initiates tracking.</p>
             </div>
@@ -503,6 +509,9 @@ export default function ManagerFleet() {
   const [optimizedRoutes, setOptimizedRoutes] = useState<RouteSolutionResponse | null>(null);
   const polylineGroupRef = useRef<any>(null);
   const googlePolylinesRef = useRef<any[]>([]);
+  const vehicleRoutePolylineRef = useRef<any>(null);
+  const vehicleGooglePolylineRef = useRef<any>(null);
+  const vehicleRouteMarkersRef = useRef<any[]>([]);
 
   const googleKeyConfigured = isGoogleMapsKeyConfigured();
 
@@ -511,6 +520,7 @@ export default function ManagerFleet() {
   // --- WEB_SOCKET LIVE TRACKING ---
   useTrackingWebSocket({
     token: authState.token,
+    subscribeFleet: true,
     onVehicleUpdate: (loc) => {
       // 1. Force dynamic view re-render by patching global state
       updateVehicleLocation(loc.vehicleId.toString(), loc.lat, loc.lng, loc.speed, loc.heading);
@@ -548,21 +558,24 @@ export default function ManagerFleet() {
   }, []);
 
   const fetchDepots = useCallback(async () => {
+    if (!authState.token) return;
     try {
       const res = await axios.get(`/api/depots`, {
-        headers: authHeaders(authState.token ?? ''),
+        headers: authHeaders(authState.token),
         timeout: 15000,
       });
       setDepots(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.warn('Depots fetch error:', err?.message);
     }
   }, [authState.token]);
 
   useEffect(() => {
-    fetchDepots();
+    if (authState.token) {
+      fetchDepots();
+    }
     setMapReady(true);
-  }, [fetchDepots]);
+  }, [fetchDepots, authState.token]);
 
   useEffect(() => {
     (window as any).deleteDepot = (id: number) => {
@@ -585,9 +598,10 @@ export default function ManagerFleet() {
   }, [fetchDepots]);
 
   const fetchPendingShipments = async (): Promise<any[]> => {
+    if (!authState.token) return [];
     try {
       const res = await axios.get(`/api/shipments`, {
-        headers: authHeaders(authState.token ?? ''),
+        headers: authHeaders(authState.token),
         timeout: 15000,
       });
       const pageData = normalizePageResponse<any>(res.data);
@@ -613,13 +627,17 @@ export default function ManagerFleet() {
       toast.error('Select at least one vehicle and one shipment.');
       return;
     }
+    if (!authState.token) {
+      toast.error('Authentication required.');
+      return;
+    }
     setOptimizing(true);
     try {
       const res = await axios.post<RouteSolutionResponse>(
         `/api/dispatch`,
         {},
         {
-          headers: { ...authHeaders(authState.token ?? ''), 'Content-Type': 'application/json' },
+          headers: { ...authHeaders(authState.token), 'Content-Type': 'application/json' },
           timeout: 45000,
         }
       );
@@ -628,7 +646,7 @@ export default function ManagerFleet() {
       setIsOptimizeModalOpen(false);
       const totalStops = solution.routes.reduce((acc, r) => acc + r.stops.length, 0);
       toast.success(
-        `Routes solved — ${solution.routes.length} vehicle(s), ` +
+        `Routes solved: ${solution.routes.length} vehicle(s), ` +
         `${totalStops} stop(s), score ${solution.score ?? 'n/a'}`
       );
       refetchVehicles();
@@ -947,10 +965,15 @@ export default function ManagerFleet() {
           polylineGroupRef.current = L.layerGroup().addTo(map);
 
           (optimizedRoutes.routes || []).forEach((route) => {
-            const coords: [number, number][] = [[route.startLat, route.startLng]];
-            (route.stops || []).forEach((stop) => coords.push([stop.lat, stop.lng]));
+            let coords: [number, number][] = [];
+            if (route.geometry && route.geometry.length > 0) {
+              coords = route.geometry;
+            } else {
+              coords = [[route.startLat, route.startLng]];
+              (route.stops || []).forEach((stop) => coords.push([stop.lat, stop.lng]));
+            }
             if (coords.length > 1) {
-              L.polyline(coords, { color: '#3b82f6', weight: 4, opacity: 0.8 })
+              L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.85 })
                 .addTo(polylineGroupRef.current);
             }
           });
@@ -964,17 +987,22 @@ export default function ManagerFleet() {
       googlePolylinesRef.current = [];
 
       (optimizedRoutes.routes || []).forEach((route) => {
-        const path: google.maps.LatLngLiteral[] = [
-          { lat: route.startLat, lng: route.startLng },
-          ...(route.stops || []).map((stop) => ({ lat: stop.lat, lng: stop.lng })),
-        ];
+        let path: google.maps.LatLngLiteral[] = [];
+        if (route.geometry && route.geometry.length > 0) {
+          path = route.geometry.map(([lat, lng]) => ({ lat, lng }));
+        } else {
+          path = [
+            { lat: route.startLat, lng: route.startLng },
+            ...(route.stops || []).map((stop) => ({ lat: stop.lat, lng: stop.lng })),
+          ];
+        }
         if (path.length > 1) {
           const polyline = new google.maps.Polyline({
             path,
             geodesic: true,
-            strokeColor: '#3b82f6',
-            strokeOpacity: 0.8,
-            strokeWeight: 4,
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.85,
+            strokeWeight: 5,
           });
           polyline.setMap(map);
           googlePolylinesRef.current.push(polyline);
@@ -983,18 +1011,108 @@ export default function ManagerFleet() {
     }
   }, [optimizedRoutes, mapProvider]);
 
-  const handleVehicleClick = (vehicle: Vehicle) => {
+  const clearVehicleRoute = useCallback(() => {
+    const map = mapRef.current;
+    if (mapProvider === 'leaflet' && map) {
+      if (vehicleRoutePolylineRef.current) {
+        map.removeLayer(vehicleRoutePolylineRef.current);
+        vehicleRoutePolylineRef.current = null;
+      }
+      vehicleRouteMarkersRef.current.forEach(m => map.removeLayer(m));
+      vehicleRouteMarkersRef.current = [];
+    } else if (mapProvider === 'google') {
+      if (vehicleGooglePolylineRef.current) {
+        vehicleGooglePolylineRef.current.setMap(null);
+        vehicleGooglePolylineRef.current = null;
+      }
+      vehicleRouteMarkersRef.current.forEach(m => m.setMap(null));
+      vehicleRouteMarkersRef.current = [];
+    }
+  }, [mapProvider]);
+
+  const handleVehicleClick = async (vehicle: Vehicle) => {
     const map = mapRef.current;
     if (!map) return;
 
     if (mapProvider === 'leaflet') {
-      map.setView([vehicle.lat, vehicle.lng], 14, { animate: true });
+      map.setView([vehicle.lat, vehicle.lng], 13, { animate: true });
     } else {
       map.panTo({ lat: vehicle.lat, lng: vehicle.lng });
-      map.setZoom(14);
+      map.setZoom(13);
     }
 
     setSelectedVehicle(vehicle);
+    clearVehicleRoute();
+
+    if (!authState.token) return;
+
+    try {
+      const res = await axios.get('/api/shipments', {
+        headers: authHeaders(authState.token),
+        timeout: 10000,
+      });
+      const allShipments = normalizePageResponse<any>(res.data).items;
+      const activeShipment = allShipments.find((s: any) =>
+        (String(s.vehicleId) === String(vehicle.id) || String(s.assignedVehicleId) === String(vehicle.id)) &&
+        s.status !== 'DELIVERED' && s.status !== 'CANCELLED'
+      );
+
+      if (activeShipment) {
+        const destLat = activeShipment.deliveryLatitude ?? activeShipment.deliveryLat;
+        const destLng = activeShipment.deliveryLongitude ?? activeShipment.deliveryLng;
+
+        if (destLat != null && destLng != null) {
+          const originPoint: [number, number] = [vehicle.lat, vehicle.lng];
+          const destPoint: [number, number] = [destLat, destLng];
+          const roadCoords = await fetchRoadRoute(originPoint, destPoint);
+
+          if (mapProvider === 'leaflet') {
+            const L = (await import('leaflet')).default;
+            const polyline = L.polyline(roadCoords, {
+              color: '#2563eb',
+              weight: 6,
+              opacity: 0.9,
+            }).addTo(map);
+            vehicleRoutePolylineRef.current = polyline;
+
+            const destMarker = L.circleMarker([destLat, destLng], {
+              radius: 9,
+              fillColor: '#10b981',
+              color: '#ffffff',
+              weight: 3,
+              fillOpacity: 1,
+            }).addTo(map).bindPopup(`<b>Destination</b><br/>${activeShipment.destinationAddress || 'Dropoff'}`);
+            vehicleRouteMarkersRef.current.push(destMarker);
+
+            map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+          } else if (mapProvider === 'google' && window.google?.maps) {
+            const path = roadCoords.map(([lat, lng]) => ({ lat, lng }));
+            const polyline = new google.maps.Polyline({
+              path,
+              strokeColor: '#2563eb',
+              strokeOpacity: 0.9,
+              strokeWeight: 6,
+              geodesic: true,
+            });
+            polyline.setMap(map);
+            vehicleGooglePolylineRef.current = polyline;
+
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(pt => bounds.extend(pt));
+            map.fitBounds(bounds, 50);
+          }
+
+          toast.success(
+            `Route active: ${vehicle.plateNumber} to ${activeShipment.destinationAddress?.substring(0, 25) || 'Destination'} (${activeShipment.status})`
+          );
+          return;
+        }
+      }
+
+      toast.info(`Vehicle ${vehicle.plateNumber} is currently on standby (no active delivery route assigned).`);
+    } catch (err: any) {
+      console.warn('Failed to load active route for vehicle:', err.message);
+    }
   };
 
   if (loading) {
@@ -1024,7 +1142,7 @@ export default function ManagerFleet() {
           >
             <Loader2 className="w-14 h-14 animate-spin text-emerald-400" />
             <p className="text-white font-semibold text-lg">Dispatching & solving routes…</p>
-            <p className="text-slate-300 text-sm">Timefold VRP running synchronously (max 30s)</p>
+            <p className="text-slate-300 text-sm">Calculating real-world road routes via OSRM…</p>
             <div className="w-56 h-1.5 bg-slate-700 rounded-full overflow-hidden mt-2">
               <div className="h-full w-1/3 bg-emerald-500 rounded-full animate-[slide_1.2s_ease-in-out_infinite]" style={{ animationName: 'solverSlide' }} />
             </div>
@@ -1116,7 +1234,7 @@ export default function ManagerFleet() {
                           }}
                         />
                         <label htmlFor={`shp-${s.id}`} className="text-sm font-medium leading-none cursor-pointer">
-                          Order #{s.id} — {s.destinationAddress?.substring(0, 22) || 'Unknown'}...
+                          Order #{s.id}: {s.destinationAddress?.substring(0, 22) || 'Unknown'}...
                         </label>
                       </div>
                     ))}
@@ -1160,7 +1278,7 @@ export default function ManagerFleet() {
               <div className="p-5">
                 <div className="flex items-center justify-between mb-5">
                   <h3 className={theme.typography.h5}>{t.manager.vehicleDetails}</h3>
-                  <button onClick={() => setSelectedVehicle(null)} className={theme.button.iconBtn}>
+                  <button onClick={() => { setSelectedVehicle(null); clearVehicleRoute(); }} className={theme.button.iconBtn}>
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -1182,7 +1300,7 @@ export default function ManagerFleet() {
                     value={
                       (() => {
                         const assignedDriver = drivers?.find(d => d.driverProfile?.vehicleId === String(selectedVehicle.id));
-                        return assignedDriver ? assignedDriver.name : '—';
+                        return assignedDriver ? assignedDriver.name : '-';
                       })()
                     }
                   />
@@ -1205,6 +1323,7 @@ export default function ManagerFleet() {
                             }
                             setVehicles(vehicles.filter(v => v.id !== selectedVehicle.id));
                             setSelectedVehicle(null);
+                            clearVehicleRoute();
                             toast.success('Vehicle deleted');
                           })
                           .catch((err) => toast.error(err.message || 'Cannot delete vehicle.'));
@@ -1215,7 +1334,7 @@ export default function ManagerFleet() {
                     Delete Vehicle
                   </button>
                   <button
-                    onClick={() => setSelectedVehicle(null)}
+                    onClick={() => { setSelectedVehicle(null); clearVehicleRoute(); }}
                     className={`${theme.button.outline} w-full`}
                   >
                     {t.manager.close}
@@ -1227,7 +1346,7 @@ export default function ManagerFleet() {
         )}
       </AnimatePresence>
 
-      {/* ═══ MAIN FLEET VIEW — full-width immersive map ═══ */}
+      {/* === MAIN FLEET VIEW: full-width immersive map === */}
       <div className="relative w-full h-full rounded-none overflow-hidden">
         {/* Map Surface */}
         <div
@@ -1369,7 +1488,7 @@ export default function ManagerFleet() {
           )}
         </AnimatePresence>
 
-        {/* ── Bottom: Live Status Feed — horizontal vehicle cards ── */}
+        {/* -- Bottom: Live Status Feed: horizontal vehicle cards -- */}
         <div className="absolute bottom-0 left-0 right-0 z-10">
           <div className="bg-gradient-to-t from-transparent to-transparent pt-8 pb-0">
             <div className="px-4 pb-3 flex items-center justify-between">

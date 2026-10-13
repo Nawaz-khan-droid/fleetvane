@@ -61,9 +61,13 @@ export interface Shipment {
   originAddress: string;
   originLat: number | null;
   originLng: number | null;
+  pickupLatitude?: number | null;
+  pickupLongitude?: number | null;
   destinationAddress: string;
   destinationLat: number | null;
   destinationLng: number | null;
+  deliveryLatitude?: number | null;
+  deliveryLongitude?: number | null;
   weight: number | null;
   lengthCm?: number | null;
   widthCm?: number | null;

@@ -11,7 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/simulation")
-@Profile("demo")
+@Profile({"demo", "dev"})
 public class SimulationController {
 
     private final SimulationService simulationService;

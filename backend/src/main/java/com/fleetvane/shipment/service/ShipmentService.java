@@ -5,6 +5,12 @@ import com.fleetvane.shipment.dto.ShipmentDto;
 import com.fleetvane.shipment.dto.ShipmentStatusEvent;
 import com.fleetvane.shipment.entity.Shipment;
 import com.fleetvane.shipment.repository.ShipmentRepository;
+import com.fleetvane.shipment.application.ShipmentVehicleQueryPort;
+import com.fleetvane.auth.entity.User;
+import com.fleetvane.auth.repository.UserRepository;
+import com.fleetvane.driver.entity.DriverProfile;
+import com.fleetvane.driver.repository.DriverProfileRepository;
+import com.fleetvane.routing.service.OsrmRoutingService;
 import com.fleetvane.shared.exception.BusinessException;
 import com.fleetvane.shared.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
@@ -15,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -22,10 +29,23 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final SimpMessagingTemplate ws;
+    private final ShipmentVehicleQueryPort vehicleQueryPort;
+    private final UserRepository userRepository;
+    private final DriverProfileRepository driverProfileRepository;
+    private final OsrmRoutingService osrmRoutingService;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, SimpMessagingTemplate ws) {
+    public ShipmentService(ShipmentRepository shipmentRepository,
+                           SimpMessagingTemplate ws,
+                           ShipmentVehicleQueryPort vehicleQueryPort,
+                           UserRepository userRepository,
+                           OsrmRoutingService osrmRoutingService,
+                           DriverProfileRepository driverProfileRepository) {
         this.shipmentRepository = shipmentRepository;
         this.ws = ws;
+        this.vehicleQueryPort = vehicleQueryPort;
+        this.userRepository = userRepository;
+        this.osrmRoutingService = osrmRoutingService;
+        this.driverProfileRepository = driverProfileRepository;
     }
 
     @Transactional(readOnly = true)
@@ -98,17 +118,47 @@ public class ShipmentService {
 
     @Transactional
     public ShipmentDto assignShipment(Long id, Long vehicleId, Long driverId) {
+        return assignShipment(id, vehicleId, driverId, null);
+    }
+
+    @Transactional
+    public ShipmentDto assignShipment(Long id, Long vehicleId, Long driverId, Long managerCompanyId) {
         Shipment shipment = shipmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment", "id", id));
                 
         if (!"REQUESTED".equals(shipment.getStatus())) {
             throw new BusinessException("Only REQUESTED shipments can be assigned", HttpStatus.BAD_REQUEST);
         }
+
+        ShipmentVehicleQueryPort.VehicleData vehicle = vehicleQueryPort.findById(vehicleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle", "id", vehicleId));
+        if (!"AVAILABLE".equalsIgnoreCase(vehicle.status())) {
+            throw new BusinessException("Vehicle is not available", HttpStatus.CONFLICT);
+        }
+        if (managerCompanyId != null && !managerCompanyId.equals(vehicle.companyId())) {
+            throw new BusinessException("Vehicle does not belong to your company", HttpStatus.FORBIDDEN);
+        }
+
+        User driver = userRepository.findById(driverId)
+                .orElseThrow(() -> new ResourceNotFoundException("Driver", "id", driverId));
+        if (!"DRIVER".equalsIgnoreCase(driver.getRole())
+                || (managerCompanyId != null && !managerCompanyId.equals(driver.getCompanyId()))) {
+            throw new BusinessException("Driver does not belong to your company", HttpStatus.FORBIDDEN);
+        }
+        DriverProfile profile = driverProfileRepository.findByUserId(driverId)
+                .orElseThrow(() -> new BusinessException("Driver profile not found", HttpStatus.BAD_REQUEST));
+        if (!Boolean.TRUE.equals(profile.getIsAvailable())) {
+            throw new BusinessException("Driver is not available", HttpStatus.CONFLICT);
+        }
+        if (!vehicleId.equals(profile.getVehicleId())) {
+            throw new BusinessException("Selected driver is not assigned to this vehicle", HttpStatus.BAD_REQUEST);
+        }
         
         shipment.setVehicleId(vehicleId);
         shipment.setDriverId(driverId);
         shipment.setStatus("ASSIGNED");
         shipment.setAssignedAt(Instant.now());
+        vehicleQueryPort.markInUse(vehicleId);
         
         // Generate a secure one-time QR token for pickup verification
         String qrToken = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
@@ -262,6 +312,19 @@ public class ShipmentService {
         
         Long transportCompanyId = shipment.getTransportCompanyId();
         String transportCompanyName = shipment.getTransportCompany() != null ? shipment.getTransportCompany().getName() : null;
+        ShipmentVehicleQueryPort.VehicleData vehicleTracking = findVehicleTracking(shipment);
+        ShipmentDto.DriverTrackingDto driverTracking = findDriverTracking(shipment);
+        Instant eta = shipment.getEta();
+
+        if (eta == null && osrmRoutingService != null && isActiveShipment(shipment) && vehicleTracking != null
+                && vehicleTracking.lat() != null && vehicleTracking.lng() != null
+                && shipment.getDeliveryLatitude() != null && shipment.getDeliveryLongitude() != null) {
+            OsrmRoutingService.RouteResult route = osrmRoutingService.getRoute(java.util.List.of(
+                    new double[]{vehicleTracking.lat(), vehicleTracking.lng()},
+                    new double[]{shipment.getDeliveryLatitude(), shipment.getDeliveryLongitude()}
+            ));
+            eta = Instant.now().plusSeconds(Math.max(0L, Math.round(route.durationSeconds())));
+        }
 
         return new ShipmentDto(
                 shipment.getId(),
@@ -283,7 +346,7 @@ public class ShipmentService {
                 shipment.getWidthCm(),
                 shipment.getHeightCm(),
                 shipment.getVolumeM3(),
-                shipment.getEta(),
+                eta,
                 shipment.getAssignedAt(),
                 shipment.getPickedUpAt(),
                 shipment.getDeliveredAt(),
@@ -296,7 +359,32 @@ public class ShipmentService {
                 shipment.getDescription(),
                 shipment.getQrToken(),
                 shipment.getPodPhotoBase64(),
-                shipment.getPodSignatureBase64()
+                shipment.getPodSignatureBase64(),
+                vehicleTracking != null ? new ShipmentDto.VehicleTrackingDto(
+                        vehicleTracking.id(), vehicleTracking.plateNumber(), vehicleTracking.type(),
+                        vehicleTracking.model(), vehicleTracking.lat(), vehicleTracking.lng(), vehicleTracking.heading()
+                ) : null,
+                driverTracking
         );
     }
+
+    private boolean isActiveShipment(Shipment shipment) {
+        return "ASSIGNED".equals(shipment.getStatus())
+                || "DISPATCHED".equals(shipment.getStatus())
+                || "IN_TRANSIT".equals(shipment.getStatus());
+    }
+
+    private ShipmentVehicleQueryPort.VehicleData findVehicleTracking(Shipment shipment) {
+        if (vehicleQueryPort == null || shipment.getVehicleId() == null) return null;
+        return vehicleQueryPort.findById(shipment.getVehicleId())
+                .orElse(null);
+    }
+
+    private ShipmentDto.DriverTrackingDto findDriverTracking(Shipment shipment) {
+        if (userRepository == null || shipment.getDriverId() == null) return null;
+        return userRepository.findById(shipment.getDriverId())
+                .map(u -> new ShipmentDto.DriverTrackingDto(u.getId(), u.getName(), u.getEmail()))
+                .orElse(null);
+    }
+
 }

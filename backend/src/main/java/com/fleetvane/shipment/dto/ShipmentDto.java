@@ -35,6 +35,23 @@ public record ShipmentDto(
     String description,
     String qrToken,
     String podPhotoBase64,
-    String podSignatureBase64
-) {}
+    String podSignatureBase64,
+    VehicleTrackingDto vehicle,
+    DriverTrackingDto driver
+) {
+    public record VehicleTrackingDto(
+            Long id,
+            String plateNumber,
+            String type,
+            String model,
+            Double lat,
+            Double lng,
+            Double heading
+    ) {}
 
+    public record DriverTrackingDto(
+            Long id,
+            String name,
+            String email
+    ) {}
+}

@@ -24,9 +24,10 @@ import { useTheme } from 'next-themes';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from '@/context/RouterContext';
 import { getLeafletTileUrl, getLeafletAttribution } from '@/lib/maps';
+import { fetchRoadRoute } from '@/lib/directions';
 import type { Shipment, ShipmentStatus } from '@/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useTrackingWebSocket } from '@/hooks/useTrackingWebSocket';
+import { useTrackingWebSocket, type VehicleLocationEvent } from '@/hooks/useTrackingWebSocket';
 
 const STEPS = ['REQUESTED', 'ASSIGNED', 'DISPATCHED', 'IN_TRANSIT', 'ARRIVED', 'DELIVERED'];
 
@@ -70,6 +71,9 @@ export default function ClientTrackPage() {
 
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const routeRef = useRef<any>(null);
+  const destinationMarkerRef = useRef<any>(null);
 
   const [shipment, setShipment] = useState<Shipment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,6 +117,24 @@ export default function ClientTrackPage() {
   useTrackingWebSocket({
     token: authState.token,
     shipmentId: shipmentId,
+    onVehicleUpdate: (event: VehicleLocationEvent) => {
+      if (
+        shipmentId == null ||
+        event.activeShipmentId == null ||
+        String(event.activeShipmentId) !== String(shipmentId)
+      ) {
+        return;
+      }
+      setShipment((current) => current ? {
+        ...current,
+        vehicle: current.vehicle ? {
+          ...current.vehicle,
+          lat: event.lat,
+          lng: event.lng,
+          heading: event.heading,
+        } : current.vehicle,
+      } : current);
+    },
     onMilestone: (msg) => {
       // Display the backend milestone message in the toast notification bar
       toast.info(msg, { duration: 6000 });
@@ -149,6 +171,10 @@ export default function ClientTrackPage() {
         ? { lat: shipment.vehicle.lat as number, lng: shipment.vehicle.lng as number }
         : null;
     if (!vehiclePos) return;
+    const destinationPos =
+      shipment?.deliveryLatitude != null && shipment?.deliveryLongitude != null
+        ? { lat: shipment.deliveryLatitude, lng: shipment.deliveryLongitude }
+        : null;
 
     (async () => {
       const L = (await import('leaflet')).default;
@@ -181,27 +207,86 @@ export default function ClientTrackPage() {
         maxZoom: 19,
         noWrap: true,
       }).addTo(map);
-      markerRef.current = L.marker([vehiclePos.lat, vehiclePos.lng])
+      const vehicleIcon = L.divIcon({
+        className: 'fleet-vehicle-marker',
+        html: '<div class="fleet-vehicle-icon" aria-label="Vehicle location">🚚</div>',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18],
+      });
+      markerRef.current = L.marker([vehiclePos.lat, vehiclePos.lng], { icon: vehicleIcon })
         .addTo(map)
         .bindPopup('Vehicle Location');
+      if (destinationPos) {
+        destinationMarkerRef.current = L.circleMarker([destinationPos.lat, destinationPos.lng], {
+          radius: 8,
+          fillColor: '#10b981',
+          color: '#ffffff',
+          weight: 3,
+          fillOpacity: 1,
+        }).addTo(map).bindPopup('Delivery Destination');
+        const roadCoords = await fetchRoadRoute(
+          [vehiclePos.lat, vehiclePos.lng],
+          [destinationPos.lat, destinationPos.lng]
+        );
+        if (!isCancelled && roadCoords.length > 1) {
+          routeRef.current = L.polyline(roadCoords, {
+            color: '#2563eb',
+            weight: 6,
+            opacity: 0.9,
+          }).addTo(map);
+          map.fitBounds(routeRef.current.getBounds(), { padding: [40, 40] });
+        }
+      }
     })();
 
     return () => {
       isCancelled = true;
       if (mapRef.current) {
+        if (animationFrameRef.current != null) {
+          cancelAnimationFrame(animationFrameRef.current);
+          animationFrameRef.current = null;
+        }
         mapRef.current.remove();
         mapRef.current = null;
         markerRef.current = null;
+        routeRef.current = null;
+        destinationMarkerRef.current = null;
       }
     };
-  }, [status, resolvedTheme]);
+  }, [status, resolvedTheme, shipment?.deliveryLatitude, shipment?.deliveryLongitude]);
 
   // Update marker position without recreating map
   useEffect(() => {
     if (markerRef.current && shipment?.vehicle?.lat != null && shipment?.vehicle?.lng != null) {
-      markerRef.current.setLatLng([shipment.vehicle.lat, shipment.vehicle.lng]);
+      const marker = markerRef.current;
+      const target = { lat: shipment.vehicle.lat, lng: shipment.vehicle.lng };
+      const start = marker.getLatLng();
+      const startedAt = performance.now();
+      const durationMs = 900;
+
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      const animate = (now: number) => {
+        const progress = Math.min(1, (now - startedAt) / durationMs);
+        const eased = progress * (2 - progress);
+        marker.setLatLng([
+          start.lat + (target.lat - start.lat) * eased,
+          start.lng + (target.lng - start.lng) * eased,
+        ]);
+        if (progress < 1) {
+          animationFrameRef.current = requestAnimationFrame(animate);
+        } else {
+          animationFrameRef.current = null;
+        }
+      };
+      animationFrameRef.current = requestAnimationFrame(animate);
+      const markerElement = markerRef.current.getElement?.()?.querySelector('.fleet-vehicle-icon') as HTMLElement | null;
+      if (markerElement) {
+        markerElement.style.transform = `rotate(${shipment.vehicle.heading ?? 0}deg)`;
+      }
     }
-  }, [shipment?.vehicle?.lat, shipment?.vehicle?.lng]);
+  }, [shipment?.vehicle?.lat, shipment?.vehicle?.lng, shipment?.vehicle?.heading]);
 
   const currentStepIndex = STEPS.indexOf(status);
 

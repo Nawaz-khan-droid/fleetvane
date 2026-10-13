@@ -18,8 +18,15 @@ public record RouteSolutionResponse(
         Long originalId,
         Double startLat,
         Double startLng,
-        List<Stop> stops
-    ) {}
+        List<Stop> stops,
+        List<double[]> geometry,
+        Double distanceMeters,
+        Double durationSeconds
+    ) {
+        public VehicleRoute(Long vehicleId, Long originalId, Double startLat, Double startLng, List<Stop> stops) {
+            this(vehicleId, originalId, startLat, startLng, stops, null, null, null);
+        }
+    }
 
     public record Stop(
         Long shipmentId,

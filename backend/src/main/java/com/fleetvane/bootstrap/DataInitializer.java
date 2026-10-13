@@ -69,6 +69,7 @@ public class DataInitializer implements CommandLineRunner {
         seedVehicles();
         seedDrivers();
         seedShipments();
+        synchronizeActiveAssignments();
     }
 
     private void seedUsers() {
@@ -137,26 +138,47 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedVehicles() {
+        Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(Company::getId).orElse(1L);
+
         if (vehicleRepository.count() > 0) {
             vehicleRepository.findAll().forEach(v -> {
                 if (v.getCompanyId() == null) {
-                    v.setCompanyId(1L);
-                    vehicleRepository.save(v);
+                    v.setCompanyId(transportId);
                 }
+                // Reposition any legacy demo vehicles that were seeded in Delhi/Bangalore/Chennai/Kolkata
+                if (v.getPlateNumber() != null && v.getPlateNumber().contains("DL-")) {
+                    v.setPlateNumber("MH-04-EF-9012");
+                    v.setLat(19.2183);
+                    v.setLng(72.9781);
+                } else if (v.getPlateNumber() != null && v.getPlateNumber().contains("KA-")) {
+                    v.setPlateNumber("MH-02-CD-5678");
+                    v.setLat(19.1030);
+                    v.setLng(72.8270);
+                } else if (v.getPlateNumber() != null && v.getPlateNumber().contains("TN-")) {
+                    v.setPlateNumber("MH-46-GH-3456");
+                    v.setLat(18.9902);
+                    v.setLng(73.1277);
+                } else if (v.getPlateNumber() != null && v.getPlateNumber().contains("WB-")) {
+                    v.setPlateNumber("MH-12-IJ-7890");
+                    v.setLat(18.5204);
+                    v.setLng(73.8567);
+                }
+                vehicleRepository.save(v);
             });
             return;
         }
 
-        Vehicle v1 = createVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "IN_USE", 19.0760, 72.8777, 45.0, 1L);
-        v1.setCompanyId(1L);
-        Vehicle v2 = createVehicle("KA-03-CD-5678", "VAN", "Mahindra Bolero", 2000.0, 8.0, "ELECTRIC", "AVAILABLE", 12.9716, 77.5946, 90.0, 3L);
-        v2.setCompanyId(1L);
-        Vehicle v3 = createVehicle("DL-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "IN_USE", 28.7041, 77.1025, 180.0, 2L);
-        v3.setCompanyId(1L);
-        Vehicle v4 = createVehicle("TN-05-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "AVAILABLE", 13.0827, 80.2707, 270.0, 5L);
-        v4.setCompanyId(1L);
-        Vehicle v5 = createVehicle("WB-06-IJ-7890", "TRUCK", "Tata Ace", 1500.0, 6.0, "PETROL", "AVAILABLE", 22.5726, 88.3639, 135.0, 6L);
-        v5.setCompanyId(1L);
+        // Demo fleet clustered in Mumbai-Pune Logistics Corridor
+        Vehicle v1 = createVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "AVAILABLE", 19.0760, 72.8777, 45.0, 1L);
+        v1.setCompanyId(transportId);
+        Vehicle v2 = createVehicle("MH-02-CD-5678", "VAN", "Mahindra Bolero", 2000.0, 8.0, "ELECTRIC", "AVAILABLE", 19.1030, 72.8270, 90.0, 3L);
+        v2.setCompanyId(transportId);
+        Vehicle v3 = createVehicle("MH-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "AVAILABLE", 19.2183, 72.9781, 180.0, 2L);
+        v3.setCompanyId(transportId);
+        Vehicle v4 = createVehicle("MH-46-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "AVAILABLE", 18.9902, 73.1277, 270.0, 5L);
+        v4.setCompanyId(transportId);
+        Vehicle v5 = createVehicle("MH-12-IJ-7890", "TRUCK", "Tata Ace", 1500.0, 6.0, "PETROL", "AVAILABLE", 18.5204, 73.8567, 135.0, 6L);
+        v5.setCompanyId(transportId);
 
         vehicleRepository.saveAll(List.of(v1, v2, v3, v4, v5));
     }
@@ -235,6 +257,20 @@ public class DataInitializer implements CommandLineRunner {
         // Chennai + Kolkata
         saveShipment(clientId, "REQUESTED", "Chennai T. Nagar", 13.0418, 80.2341, "Chennai Port", 13.0850, 80.2950, 1100.0, 130, 90, 70);
         saveShipment(clientId, "ASSIGNED", "Kolkata Salt Lake", 22.5804, 88.4168, "Howrah Station", 22.5850, 88.3460, 750.0, 100, 70, 50, v5, d5 != null ? d5 : d1);
+    }
+
+    private void synchronizeActiveAssignments() {
+        shipmentRepository.findAll().stream()
+                .filter(s -> ("ASSIGNED".equals(s.getStatus())
+                        || "DISPATCHED".equals(s.getStatus())
+                        || "IN_TRANSIT".equals(s.getStatus()))
+                        && s.getVehicleId() != null)
+                .forEach(s -> vehicleRepository.findById(s.getVehicleId()).ifPresent(vehicle -> {
+                    if (!"IN_USE".equals(vehicle.getStatus())) {
+                        vehicle.setStatus("IN_USE");
+                        vehicleRepository.save(vehicle);
+                    }
+                }));
     }
 
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
