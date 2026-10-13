@@ -44,18 +44,34 @@ FleetVane is a full-stack fleet management platform: managers register vehicles 
 
 ### Prerequisites
 - **JDK 21** and **Maven 3.9+** (or use the bundled `.jdk/` + `backend/maven_extracted/` via the start script)
-- **Node.js 18+**
+- **Node.js 20.9+** for the Next.js 16 frontend (Node 20 LTS is recommended)
 - No external database needed for development - the dev profile runs on file-based H2
 
 ### 1. Configure environment
 
-Copy `example.env` to `.env` (repo root) and fill in:
+Configure the backend and frontend separately. Do not commit `.env` files or
+production credentials.
+
+For the frontend, copy `frontend/example.env` to `frontend/.env.local` and fill
+in:
 
 ```bash
-JWT_SECRET=<base64-encoded secret, >=32 bytes>        # required - app refuses to boot without it
-SPRING_DATA_SOURCE_URL=...                            # optional in dev (H2 fallback)
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=...                   # map rendering
 NEXT_PUBLIC_SPRING_BOOT_URL=http://localhost:8080     # backend base URL
+NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws-fleetvane   # STOMP WebSocket endpoint
+NEXT_PUBLIC_OSRM_BASE_URL=https://router.project-osrm.org
+```
+
+For the backend, set these environment variables in your shell or IDE launch
+configuration. The `dev` profile falls back to file-based H2 when PostgreSQL
+variables are not provided:
+
+```bash
+JWT_SECRET=<base64-encoded secret, >=32 bytes>        # required
+SPRING_DATASOURCE_URL=...                             # optional in dev
+SPRING_DATASOURCE_USERNAME=...                        # optional in dev
+SPRING_DATASOURCE_PASSWORD=...                        # optional in dev
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
 > `JWT_SECRET` is strictly validated at startup (`SecuritySanityConfig`): blank, short (<256-bit), or known-default secrets are rejected.
@@ -71,11 +87,14 @@ NEXT_PUBLIC_SPRING_BOOT_URL=http://localhost:8080     # backend base URL
 Or manually:
 
 ```bash
-# Backend
-cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=dev
+# Backend (PowerShell)
+cd backend
+mvn spring-boot:run "-Dspring-boot.run.profiles=dev"
 
-# Frontend
-cd frontend && npm install && npm run dev
+# Frontend (PowerShell)
+cd ..\frontend
+npm ci
+npm run dev
 ```
 
 ## Render deployment
@@ -87,10 +106,8 @@ repository.
 ### Backend service
 
 - Root directory: `backend`
-- Build command:
-  `mvn -q -DskipTests package`
-- Start command:
-  `java -jar target/fleet-route-optimizer-2.0.0.jar`
+- Runtime: Docker, using [backend/Dockerfile](backend/Dockerfile). Render
+  builds the multi-stage Java 21 image and runs its `java -jar` entrypoint.
 - Health check path: `/actuator/health`
 - Set `SPRING_PROFILES_ACTIVE=prod` (or omit it; production is the default).
 - Required variables:
@@ -100,7 +117,9 @@ repository.
   `OSRM_BASE_URL`, `SIMULATION_DEMO_COMPANY_ID`,
   `SIMULATION_DEMO_DISTANCE_PER_TICK_KM`, and the `AUTH_RATE_LIMIT_*`
   variables.
-- Render supplies `PORT`; the backend listens on `${PORT}`.
+- Render supplies `PORT`; the backend listens on `${PORT}`. The Docker image's
+  `EXPOSE 8080` is documentation only; the runtime port is controlled by the
+  application configuration.
 
 Use a managed PostgreSQL database such as Supabase. Do not use Hibernate
 schema update in production; production validates the Flyway-managed schema.
@@ -109,7 +128,8 @@ schema update in production; production validates the Flyway-managed schema.
 
 - Root directory: `frontend`
 - Build command: `npm ci && npm run build`
-- Start command: `npm run start`
+- Node runtime: Node 20 LTS or newer supported by Next.js 16.
+- Start command: `npm run start` (serves the prepared Next standalone build).
 - Set `NEXT_PUBLIC_SPRING_BOOT_URL` to the public backend URL.
 - Set `NEXT_PUBLIC_WS_URL` to the backend WebSocket endpoint ending in
   `/ws-fleetvane`.
@@ -134,7 +154,8 @@ The dev profile seeds demo accounts via `DataInitializer`. Sign up is open for t
 
 The active planner is intentionally bounded and synchronous:
 
-1. PostgreSQL stores vehicle, shipment, weight, volume, and coordinate data.
+1. The configured relational database (H2 in development or PostgreSQL in
+   production) stores vehicle, shipment, weight, volume, and coordinate data.
 2. `RouteSolverService` assigns each shipment to the nearest vehicle using Haversine distance.
 3. Stops assigned to each vehicle are ordered with a nearest-neighbor heuristic.
 4. `OsrmRoutingService` resolves ordered waypoints to road geometry and duration, with a Haversine fallback when OSRM is unavailable.
@@ -166,7 +187,7 @@ The current implementation is not a Python OR-Tools microservice. Adding one wou
 ## Testing & CI
 
 ```bash
-# Backend - 54 tests: unit, ArchUnit module-boundary rules, H2 repository slices
+# Backend - unit, ArchUnit module-boundary rules, and H2 repository-slice tests
 cd backend && mvn test
 
 # Frontend - strict typecheck + production build
