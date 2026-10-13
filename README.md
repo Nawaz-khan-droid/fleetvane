@@ -44,7 +44,7 @@ FleetVane is a full-stack fleet management platform: managers register vehicles 
 
 ### Prerequisites
 - **JDK 21** and **Maven 3.9+** (or use the bundled `.jdk/` + `backend/maven_extracted/` via the start script)
-- **Node.js 20.9+** for the Next.js 16 frontend (Node 20 LTS is recommended)
+- **Next.js 16** (React 19 / npm 10+) for the frontend application
 - No external database needed for development - the dev profile runs on file-based H2
 
 ### 1. Configure environment
@@ -128,7 +128,7 @@ schema update in production; production validates the Flyway-managed schema.
 
 - Root directory: `frontend`
 - Build command: `npm ci && npm run build`
-- Node runtime: Node 20 LTS or newer supported by Next.js 16.
+- Environment: Next.js 16 / React 19 standalone runtime.
 - Start command: `npm run start` (serves the prepared Next standalone build).
 - Set `NEXT_PUBLIC_SPRING_BOOT_URL` to the public backend URL.
 - Set `NEXT_PUBLIC_WS_URL` to the backend WebSocket endpoint ending in
