@@ -147,12 +147,12 @@ public class SimulationService {
             shipment.setClientId(demoClient == null ? 1L : demoClient.getId());
             shipment.setStatus("IN_TRANSIT");
             shipment.setVehicleId(vehicle.getId());
-            shipment.setOriginAddress("Depot");
-            shipment.setDestinationAddress("Destination " + vehicle.getPlateNumber());
+            shipment.setOriginAddress("Mumbai Freight Depot");
+            shipment.setDestinationAddress("Central MMR Distribution Hub");
             shipment.setPickupLatitude(vehicle.getLat());
             shipment.setPickupLongitude(vehicle.getLng());
-            shipment.setDeliveryLatitude(vehicle.getLat() + 0.5 + random.nextDouble());
-            shipment.setDeliveryLongitude(vehicle.getLng() + 0.5 + random.nextDouble());
+            shipment.setDeliveryLatitude(19.0760 + (random.nextDouble() - 0.5) * 0.08);
+            shipment.setDeliveryLongitude(72.8777 + (random.nextDouble() - 0.5) * 0.08);
             shipment.setWeight(500.0 + random.nextInt(9000));
             shipment.setPickedUpAt(Instant.now());
             shipmentRepository.save(shipment);

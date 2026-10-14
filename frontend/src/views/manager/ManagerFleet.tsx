@@ -1322,7 +1322,11 @@ export default function ManagerFleet() {
         return;
       }
 
-      const originPoint: [number, number] = [vehicle.lat, vehicle.lng];
+      const pickupLat = activeShipment?.pickupLatitude ?? activeShipment?.pickupLat ?? activeShipment?.originLat;
+      const pickupLng = activeShipment?.pickupLongitude ?? activeShipment?.pickupLng ?? activeShipment?.originLng;
+      const hasPickup = pickupLat != null && pickupLng != null;
+
+      const originPoint: [number, number] = hasPickup ? [pickupLat, pickupLng] : [vehicle.lat, vehicle.lng];
       const destPoint: [number, number] = [destLat, destLng];
       const routeColor = getVehicleRouteColor(vehicle.id, vehicle.plateNumber);
 
@@ -1378,18 +1382,18 @@ export default function ManagerFleet() {
         vehicleRoutePolylineRef.current = polylineGroup;
 
         // Pickup point
-        const originLat = activeShipment?.pickupLatitude ?? vehicle.lat;
-        const originLng = activeShipment?.pickupLongitude ?? vehicle.lng;
-        const originIcon = L.divIcon({
-          html: `<div style="width:24px;height:24px;border-radius:50%;background:#f59e0b;border:3px solid white;box-shadow:0 0 10px rgba(245,158,11,0.7);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">A</div>`,
-          className: '',
-          iconSize: [24, 24],
-          iconAnchor: [12, 12],
-        });
-        const originMarker = L.marker([originLat, originLng], { icon: originIcon })
-          .addTo(map)
-          .bindPopup(`<b>Pickup Point</b><br/>${activeShipment?.originAddress || 'Origin'}`);
-        vehicleRouteMarkersRef.current.push(originMarker);
+        if (hasPickup) {
+          const originIcon = L.divIcon({
+            html: `<div style="width:24px;height:24px;border-radius:50%;background:#f59e0b;border:3px solid white;box-shadow:0 0 10px rgba(245,158,11,0.7);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">A</div>`,
+            className: '',
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          });
+          const originMarker = L.marker([pickupLat, pickupLng], { icon: originIcon })
+            .addTo(map)
+            .bindPopup(`<b>Pickup Point</b><br/>${activeShipment?.originAddress || 'Origin'}`);
+          vehicleRouteMarkersRef.current.push(originMarker);
+        }
 
         // Destination flag pin
         const destIcon = L.divIcon({
@@ -1403,7 +1407,9 @@ export default function ManagerFleet() {
           .bindPopup(`<b>Destination</b><br/>${activeShipment?.destinationAddress || 'Dropoff'}`);
         vehicleRouteMarkersRef.current.push(destMarker);
 
-        map.fitBounds(polylineGroup.getBounds(), { padding: [50, 50] });
+        const bounds = polylineGroup.getBounds();
+        bounds.extend([vehicle.lat, vehicle.lng]);
+        map.fitBounds(bounds, { padding: [50, 50] });
 
       } else if (mapProvider === 'google' && window.google?.maps && (map instanceof window.google.maps.Map)) {
         const polylines: google.maps.Polyline[] = [];
@@ -1485,24 +1491,24 @@ export default function ManagerFleet() {
         vehicleGooglePolylineRef.current = polylines;
 
         // Pickup Marker
-        const originLat = activeShipment?.pickupLatitude ?? vehicle.lat;
-        const originLng = activeShipment?.pickupLongitude ?? vehicle.lng;
-        const originMarker = new window.google.maps.Marker({
-          map,
-          position: { lat: originLat, lng: originLng },
-          icon: {
-            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-                <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#ffffff" stroke-width="2.5"/>
-                <text x="14" y="18" font-size="12" font-weight="bold" text-anchor="middle" fill="#ffffff">A</text>
-              </svg>
-            `),
-            scaledSize: new window.google.maps.Size(28, 28),
-            anchor: new window.google.maps.Point(14, 14),
-          },
-          title: `Pickup: ${activeShipment?.originAddress || 'Origin'}`,
-        });
-        vehicleRouteMarkersRef.current.push(originMarker);
+        if (hasPickup) {
+          const originMarker = new window.google.maps.Marker({
+            map,
+            position: { lat: pickupLat, lng: pickupLng },
+            icon: {
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#ffffff" stroke-width="2.5"/>
+                  <text x="14" y="18" font-size="12" font-weight="bold" text-anchor="middle" fill="#ffffff">A</text>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(28, 28),
+              anchor: new window.google.maps.Point(14, 14),
+            },
+            title: `Pickup: ${activeShipment?.originAddress || 'Origin'}`,
+          });
+          vehicleRouteMarkersRef.current.push(originMarker);
+        }
 
         // Destination Marker
         const destMarker = new window.google.maps.Marker({
@@ -1524,6 +1530,7 @@ export default function ManagerFleet() {
 
         const bounds = new window.google.maps.LatLngBounds();
         path.forEach(pt => bounds.extend(pt));
+        bounds.extend({ lat: vehicle.lat, lng: vehicle.lng });
         map.fitBounds(bounds, 50);
       }
 

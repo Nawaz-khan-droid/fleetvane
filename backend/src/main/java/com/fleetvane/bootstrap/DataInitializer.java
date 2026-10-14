@@ -140,12 +140,12 @@ public class DataInitializer implements CommandLineRunner {
     private void seedVehicles() {
         Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(Company::getId).orElse(1L);
 
-        // Ensure 5 demo vehicles exist with accurate MMR locations
-        createOrUpdateVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "IN_USE", 19.0370, 72.8534, 45.0, 1L, transportId);
-        createOrUpdateVehicle("MH-02-CD-5678", "VAN", "Mahindra Bolero", 2000.0, 8.0, "ELECTRIC", "IN_USE", 19.0660, 72.8680, 90.0, 3L, transportId);
-        createOrUpdateVehicle("MH-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "IN_USE", 19.2967, 73.0631, 180.0, 2L, transportId);
-        createOrUpdateVehicle("MH-46-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "IN_USE", 18.9490, 72.9510, 270.0, 5L, transportId);
-        createOrUpdateVehicle("MH-12-IJ-7890", "TRUCK", "Tata Ace", 1500.0, 6.0, "PETROL", "IN_USE", 18.7560, 73.8550, 135.0, 6L, transportId);
+        // Ensure 5 demo vehicles exist with accurate MMR locations along their active consignment corridors
+        createOrUpdateVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "IN_USE", 19.0520, 72.9150, 45.0, 1L, transportId);
+        createOrUpdateVehicle("MH-02-CD-5678", "VAN", "Tata Ace EV", 2000.0, 8.0, "ELECTRIC", "IN_USE", 19.0450, 72.8550, 90.0, 3L, transportId);
+        createOrUpdateVehicle("MH-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "IN_USE", 19.2410, 73.0100, 180.0, 2L, transportId);
+        createOrUpdateVehicle("MH-46-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "IN_USE", 18.9680, 73.0400, 270.0, 5L, transportId);
+        createOrUpdateVehicle("MH-12-IJ-7890", "TRUCK", "Mahindra Bolero Maxi Truck", 1500.0, 6.0, "DIESEL", "IN_USE", 19.1120, 72.8750, 135.0, 6L, transportId);
     }
 
     private void createOrUpdateVehicle(String plate, String type, String model, Double capacity, Double volume,
@@ -167,8 +167,8 @@ public class DataInitializer implements CommandLineRunner {
         v.setCurrentVolumeM3(0.0);
         v.setFuelType(fuel);
         v.setStatus(status);
-        // If vehicle drifted out to Nagpur (lat > 20) or was uninitialized, snap back to MMR
-        if (v.getLat() == null || v.getLat() > 20.0 || v.getLng() == null || v.getLng() > 75.0) {
+        // Reset to canonical corridor location if uninitialized or drifted outside Mumbai MMR bounding box
+        if (v.getLat() == null || v.getLat() < 18.8 || v.getLat() > 19.4 || v.getLng() == null || v.getLng() < 72.7 || v.getLng() > 73.2) {
             v.setLat(lat);
             v.setLng(lng);
         }
@@ -252,21 +252,27 @@ public class DataInitializer implements CommandLineRunner {
             }
         }
 
-        // Ensure each of the 5 demo vehicles has exactly one realistic active IN_TRANSIT consignment in MMR
-        if (v1 != null && shipmentRepository.findByVehicleIdAndStatusIn(v1, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
-            saveShipment(clientId, "IN_TRANSIT", "Mumbai Port Container Terminal", 19.0370, 72.8534, "Navi Mumbai APMC Freight Hub", 19.0770, 72.9980, 4200.0, 150, 100, 80, v1, d1, transportId, "Heavy Machinery");
+        // Ensure each of the 5 demo vehicles has exactly one realistic active IN_TRANSIT consignment in MMR matching its corridor
+        Vehicle vTataPrima = vehicleRepository.findAll().stream().filter(v -> "MH-01-AB-1234".equalsIgnoreCase(v.getPlateNumber())).findFirst().orElse(null);
+        Vehicle vBolero = vehicleRepository.findAll().stream().filter(v -> "MH-02-CD-5678".equalsIgnoreCase(v.getPlateNumber())).findFirst().orElse(null);
+        Vehicle vAshok = vehicleRepository.findAll().stream().filter(v -> "MH-04-EF-9012".equalsIgnoreCase(v.getPlateNumber())).findFirst().orElse(null);
+        Vehicle vEicher = vehicleRepository.findAll().stream().filter(v -> "MH-46-GH-3456".equalsIgnoreCase(v.getPlateNumber())).findFirst().orElse(null);
+        Vehicle vTataAce = vehicleRepository.findAll().stream().filter(v -> "MH-12-IJ-7890".equalsIgnoreCase(v.getPlateNumber())).findFirst().orElse(null);
+
+        if (vTataPrima != null) {
+            updateOrSaveActiveShipment(vTataPrima.getId(), clientId, "Mumbai Port Container Terminal", 19.0370, 72.8534, "Navi Mumbai APMC Freight Hub", 19.0770, 72.9980, 4200.0, 150, 100, 80, d1, transportId, "Heavy Machinery");
         }
-        if (v2 != null && shipmentRepository.findByVehicleIdAndStatusIn(v2, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
-            saveShipment(clientId, "IN_TRANSIT", "Bandra Kurla Complex (BKC)", 19.0660, 72.8680, "Andheri SEEPZ IT Zone", 19.1230, 72.8740, 650.0, 80, 60, 40, v2, d2, transportId, "Electronics & Hardware");
+        if (vBolero != null) {
+            updateOrSaveActiveShipment(vBolero.getId(), clientId, "Bandra Kurla Complex (BKC, G-Block)", 19.0660, 72.8680, "Lower Parel Commercial Hub", 19.0010, 72.8310, 650.0, 80, 60, 40, d2, transportId, "Electronics & Hardware");
         }
-        if (v3 != null && shipmentRepository.findByVehicleIdAndStatusIn(v3, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
-            saveShipment(clientId, "IN_TRANSIT", "Bhiwandi Logistics Park", 19.2967, 73.0631, "Thane Wagle Industrial Estate", 19.1860, 72.9560, 7800.0, 200, 150, 100, v3, d3, transportId, "Textiles & Apparel");
+        if (vAshok != null) {
+            updateOrSaveActiveShipment(vAshok.getId(), clientId, "Bhiwandi Freight Logistics Park", 19.2967, 73.0631, "Thane Wagle Industrial Estate", 19.1860, 72.9560, 7800.0, 200, 150, 100, d3, transportId, "Textiles & Apparel");
         }
-        if (v4 != null && shipmentRepository.findByVehicleIdAndStatusIn(v4, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
-            saveShipment(clientId, "IN_TRANSIT", "JNPT Port Terminal Nhava Sheva", 18.9490, 72.9510, "Panvel Express Freight Depot", 18.9902, 73.1277, 1100.0, 90, 70, 50, v4, d1, transportId, "Pharmaceuticals");
+        if (vEicher != null) {
+            updateOrSaveActiveShipment(vEicher.getId(), clientId, "JNPT Port Terminal, Nhava Sheva", 18.9490, 72.9510, "Panvel Express Freight Depot", 18.9902, 73.1277, 1100.0, 90, 70, 50, d1, transportId, "Pharmaceuticals");
         }
-        if (v5 != null && shipmentRepository.findByVehicleIdAndStatusIn(v5, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
-            saveShipment(clientId, "IN_TRANSIT", "Chakan Auto Industrial Hub", 18.7560, 73.8550, "Hinjewadi Tech Park Phase 1", 18.5910, 73.7380, 850.0, 110, 80, 60, v5, d2, transportId, "Automotive Components");
+        if (vTataAce != null) {
+            updateOrSaveActiveShipment(vTataAce.getId(), clientId, "Andheri East (WEH Logistics Hub)", 19.1230, 72.8560, "Powai (Tunga Village / SEEPZ)", 19.1210, 72.8980, 850.0, 110, 80, 60, d2, transportId, "Automotive Components");
         }
 
         // Ensure pending REQUESTED shipments exist for live route optimization demonstration
@@ -303,6 +309,38 @@ public class DataInitializer implements CommandLineRunner {
                         });
                     }
                 });
+    }
+
+    private void updateOrSaveActiveShipment(Long vehicleId, Long clientId, String originAddr, Double oLat, Double oLng,
+                                            String destAddr, Double dLat, Double dLng, Double weight, int l, int w, int h,
+                                            Long driverId, Long transportId, String category) {
+        if (vehicleId == null) return;
+        List<Shipment> active = shipmentRepository.findByVehicleIdAndStatusIn(vehicleId, List.of("ASSIGNED", "IN_TRANSIT", "DISPATCHED"));
+        Shipment s;
+        if (!active.isEmpty()) {
+            s = active.get(0);
+        } else {
+            s = new Shipment();
+            s.setVehicleId(vehicleId);
+            s.setClientId(clientId);
+            s.setTransportCompanyId(transportId);
+            s.setStatus("IN_TRANSIT");
+            s.setAssignedAt(Instant.now().minus(2, ChronoUnit.HOURS));
+        }
+        s.setOriginAddress(originAddr);
+        s.setPickupLatitude(oLat);
+        s.setPickupLongitude(oLng);
+        s.setDestinationAddress(destAddr);
+        s.setDeliveryLatitude(dLat);
+        s.setDeliveryLongitude(dLng);
+        s.setWeight(weight);
+        s.setLengthCm((double) l);
+        s.setWidthCm((double) w);
+        s.setHeightCm((double) h);
+        s.setVolumeM3((l * w * h) / 1_000_000.0);
+        s.setDriverId(driverId);
+        s.setCategory(category);
+        shipmentRepository.save(s);
     }
 
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
