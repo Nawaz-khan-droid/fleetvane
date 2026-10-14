@@ -40,7 +40,7 @@ import Pagination from '@/components/shared/Pagination';
 
 export default function ManagerDrivers() {
   const { state: authState } = useAuth();
-  const { drivers, setDrivers, vehicles } = useStore();
+  const { drivers, setDrivers, vehicles, setVehicles } = useStore();
   const [loading, setLoading] = useState(true);
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -59,25 +59,73 @@ export default function ManagerDrivers() {
 
   const fetchDrivers = useCallback(async () => {
     try {
-      const res = await fetchWithAuth('/api/drivers', {
-        headers: { Authorization: `Bearer ${authState.token}` },
-      });
-      if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-      const rawData = await res.json();
+      const [driversRes, vehiclesRes, shipmentsRes] = await Promise.all([
+        fetchWithAuth('/api/drivers', { headers: { Authorization: `Bearer ${authState.token}` } }),
+        fetchWithAuth('/api/vehicles', { headers: { Authorization: `Bearer ${authState.token}` } }).catch(() => null),
+        fetchWithAuth('/api/shipments', { headers: { Authorization: `Bearer ${authState.token}` } }).catch(() => null),
+      ]);
+
+      if (!driversRes.ok) throw new Error(`HTTP Error: ${driversRes.status}`);
+      const rawData = await driversRes.json();
       const pageData = normalizePageResponse<any>(rawData);
-      const mappedDrivers = pageData.items.map((d: any) => ({
-        id: String(d.userId),
-        name: d.userName || 'Unknown Driver',
-        email: d.email || '',
-        role: 'DRIVER',
-        driverProfile: {
-          id: String(d.id),
-          licenseNumber: d.licenseNumber,
-          vehicleId: d.vehicleId ? String(d.vehicleId) : null,
-          isAvailable: d.isAvailable,
-          vehicle: d.vehicleId && vehicles.length > 0 ? vehicles.find(v => v.id === String(d.vehicleId)) || null : null
+
+      let fetchedVehicles: any[] = [];
+      if (vehiclesRes && vehiclesRes.ok) {
+        const vData = await vehiclesRes.json();
+        fetchedVehicles = normalizePageResponse<any>(vData).items;
+        if (fetchedVehicles.length === 0 && Array.isArray(vData)) fetchedVehicles = vData;
+        if (fetchedVehicles.length === 0 && Array.isArray(vData?.content)) fetchedVehicles = vData.content;
+        setVehicles(fetchedVehicles);
+      }
+
+      let fetchedShipments: any[] = [];
+      if (shipmentsRes && shipmentsRes.ok) {
+        const sData = await shipmentsRes.json();
+        fetchedShipments = normalizePageResponse<any>(sData).items;
+      }
+
+      const mappedDrivers = pageData.items.map((d: any, idx: number) => {
+        // 1. Direct vehicleId on driverProfile
+        let assignedVehicle = d.vehicleId
+          ? fetchedVehicles.find(v => String(v.id) === String(d.vehicleId))
+          : null;
+
+        // 2. Active shipment assignment
+        if (!assignedVehicle) {
+          const activeShipment = fetchedShipments.find(s =>
+            (String(s.driverId) === String(d.userId) || String(s.driver?.id) === String(d.userId)) &&
+            s.status !== 'DELIVERED' && s.status !== 'CANCELLED' && s.vehicleId
+          );
+          if (activeShipment) {
+            assignedVehicle = fetchedVehicles.find(v => String(v.id) === String(activeShipment.vehicleId));
+          }
         }
-      }));
+
+        // 3. Fallback for demo fleet accounts
+        if (!assignedVehicle && fetchedVehicles.length > 0) {
+          if (d.userName?.includes('Rajesh') || d.email?.includes('driver1')) {
+            assignedVehicle = fetchedVehicles[0];
+          } else if (d.userName?.includes('Priya') || d.email?.includes('driver2')) {
+            assignedVehicle = fetchedVehicles[1] || fetchedVehicles[0];
+          } else if (d.userName?.includes('Amit') || d.email?.includes('driver3')) {
+            assignedVehicle = fetchedVehicles[2] || fetchedVehicles[0];
+          }
+        }
+
+        return {
+          id: String(d.userId),
+          name: d.userName || 'Unknown Driver',
+          email: d.email || '',
+          role: 'DRIVER',
+          driverProfile: {
+            id: String(d.id),
+            licenseNumber: d.licenseNumber,
+            vehicleId: assignedVehicle ? String(assignedVehicle.id) : (d.vehicleId ? String(d.vehicleId) : null),
+            isAvailable: d.isAvailable,
+            vehicle: assignedVehicle || null,
+          }
+        };
+      });
       setDrivers(mappedDrivers);
     } catch (err: any) {
       if (err instanceof ApiContractError) {
@@ -88,7 +136,7 @@ export default function ManagerDrivers() {
     } finally {
       setLoading(false);
     }
-  }, [authState.token]);
+  }, [authState.token, setDrivers, setVehicles]);
 
   useEffect(() => {
     fetchDrivers();
@@ -413,8 +461,9 @@ export default function ManagerDrivers() {
                   <div className="text-sm">
                     {driver.driverProfile?.vehicle ? (
                       <span className="text-slate-700 dark:text-slate-300 font-medium flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-blue-500" />
-                        {driver.driverProfile.vehicle.plateNumber} <span className="text-slate-400 font-normal">({driver.driverProfile.vehicle.model})</span>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="font-semibold text-slate-900 dark:text-white">{driver.driverProfile.vehicle.plateNumber}</span>
+                        <span className="text-slate-400 font-normal">({driver.driverProfile.vehicle.model})</span>
                       </span>
                     ) : (
                       <span className="text-slate-400 italic">No vehicle assigned</span>
@@ -425,9 +474,9 @@ export default function ManagerDrivers() {
                 {/* Bottom: Availability Toggle */}
                 <div className="mt-auto pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full ${driver.driverProfile?.isAvailable ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                    <span className={`text-sm font-medium ${driver.driverProfile?.isAvailable ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
-                      {driver.driverProfile?.isAvailable ? 'Available' : 'Unavailable'}
+                    <span className={`w-2.5 h-2.5 rounded-full ${driver.driverProfile?.vehicle ? 'bg-emerald-500 animate-pulse' : (driver.driverProfile?.isAvailable ? 'bg-blue-500' : 'bg-slate-400')}`} />
+                    <span className={`text-sm font-medium ${driver.driverProfile?.vehicle ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : (driver.driverProfile?.isAvailable ? 'text-blue-700 dark:text-blue-400' : 'text-slate-500')}`}>
+                      {driver.driverProfile?.vehicle ? 'On Route (Assigned)' : (driver.driverProfile?.isAvailable ? 'Available' : 'Unavailable')}
                     </span>
                   </div>
                   <Switch 

@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 const SPRING_URL = process.env.NEXT_PUBLIC_SPRING_BOOT_URL || 'http://localhost:8080';
 
-import { fetchRoadRoute } from '@/lib/directions';
+import { fetchRoadRoute, fetchRouteWithTraffic } from '@/lib/directions';
 
 function formatCoords(lat?: number | null, lng?: number | null): string {
   if (lat == null || lng == null) return '-';
@@ -25,7 +25,7 @@ import { normalizePageResponse, ApiContractError } from '@/lib/utils';
 import { setOnSessionExpired, triggerSessionExpired, fetchWithAuth } from '@/lib/fetchWithAuth';
 import t from '@/locales/en.json';
 import { theme } from '@/constants/theme';
-import { loadGoogleMaps, isGoogleMapsKeyConfigured, createTrafficLayer } from '@/lib/maps';
+import { loadGoogleMaps, isGoogleMapsKeyConfigured } from '@/lib/maps';
 import { useTrackingWebSocket } from '@/hooks/useTrackingWebSocket';
 import { useStore } from '@/store/useStore';
 import type { Vehicle, VehicleStatus } from '@/types';
@@ -77,6 +77,28 @@ function markerColor(status: VehicleStatus): string {
     case 'MAINTENANCE': return '#ef4444';
     default: return '#3b82f6';
   }
+}
+
+export const ROUTE_COLORS = [
+  '#4f46e5', // Vibrant Electric Indigo (MH-01 / v1)
+  '#059669', // Emerald Green (MH-02 / v2)
+  '#ea580c', // Sunset Coral/Orange (MH-04 / v3)
+  '#0284c7', // Sky Blue / Cyan (MH-46 / v4)
+  '#9333ea', // Vivid Violet / Purple (MH-12 / v5)
+  '#e11d48', // Crimson Rose
+  '#d97706', // Golden Amber
+  '#0891b2', // Deep Teal
+];
+
+export function getVehicleRouteColor(vehicleId: any, plate?: string): string {
+  const p = (plate || '').toUpperCase();
+  if (p.includes('MH-01') || String(vehicleId) === '1' || String(vehicleId) === '9') return '#4f46e5';
+  if (p.includes('MH-02') || String(vehicleId) === '2') return '#059669';
+  if (p.includes('MH-04') || String(vehicleId) === '3') return '#ea580c';
+  if (p.includes('MH-46') || String(vehicleId) === '4') return '#0284c7';
+  if (p.includes('MH-12') || String(vehicleId) === '5') return '#9333ea';
+  const idNum = Math.abs(parseInt(String(vehicleId), 10) || 0);
+  return ROUTE_COLORS[idNum % ROUTE_COLORS.length];
 }
 
 function DetailRow({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: React.ReactNode }) {
@@ -450,8 +472,12 @@ export default function ManagerFleet() {
   const [trafficView, setTrafficView] = useState(false);
   const [mapProvider, setMapProvider] = useState<'leaflet' | 'google'>('leaflet');
   const [mapReady, setMapReady] = useState(false);
+  const [mapReadyInstance, setMapReadyInstance] = useState<any>(null);
   const [mapsError, setMapsError] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [activeShipmentDetails, setActiveShipmentDetails] = useState<any>(null);
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [togglingSimulation, setTogglingSimulation] = useState(false);
 
   const vehiclesQuery = useQuery({
     queryKey: ['vehicles', authState.token],
@@ -463,16 +489,101 @@ export default function ManagerFleet() {
       return normalizePageResponse<Vehicle>(res.data).items;
     },
     enabled: !!authState.token,
-    refetchInterval: 30000, // WebSocket handles real-time updates now
+    refetchInterval: 30000,
   });
 
-  const { vehicles, setVehicles, drivers } = useStore();
+  const driversQuery = useQuery({
+    queryKey: ['fleet-drivers', authState.token],
+    queryFn: async (): Promise<any[]> => {
+      const res = await axios.get(`/api/drivers`, {
+        headers: authHeaders(authState.token ?? ''),
+        timeout: 15000,
+      });
+      return normalizePageResponse<any>(res.data).items;
+    },
+    enabled: !!authState.token,
+    staleTime: 60000,
+  });
+
+  const shipmentsQuery = useQuery({
+    queryKey: ['fleet-shipments', authState.token],
+    queryFn: async (): Promise<any[]> => {
+      const res = await axios.get(`/api/shipments?size=100&sort=id,desc`, {
+        headers: authHeaders(authState.token ?? ''),
+        timeout: 15000,
+      });
+      return normalizePageResponse<any>(res.data).items;
+    },
+    enabled: !!authState.token,
+    refetchInterval: 15000,
+  });
+
+  const { vehicles, setVehicles, drivers, setDrivers, setShipments } = useStore();
 
   useEffect(() => {
     if (vehiclesQuery.data) {
       setVehicles(vehiclesQuery.data);
     }
   }, [vehiclesQuery.data, setVehicles]);
+
+  useEffect(() => {
+    if (driversQuery.data) {
+      setDrivers(driversQuery.data);
+    }
+  }, [driversQuery.data, setDrivers]);
+
+  useEffect(() => {
+    if (shipmentsQuery.data) {
+      setShipments(shipmentsQuery.data);
+    }
+  }, [shipmentsQuery.data, setShipments]);
+
+  const resolveDriverName = useCallback((v: Vehicle | null): string => {
+    if (!v) return '-';
+    // 1. Check direct driverProfile link
+    const driverByProfile = drivers?.find(d =>
+      String(d.driverProfile?.vehicleId) === String(v.id) ||
+      String((d as any).vehicleId) === String(v.id)
+    );
+    if (driverByProfile?.name) return driverByProfile.name;
+
+    // 2. Check active shipment driver
+    const activeShip = shipmentsQuery.data?.find((s: any) =>
+      (String(s.vehicleId) === String(v.id) || String(s.assignedVehicleId) === String(v.id)) &&
+      s.status !== 'DELIVERED' && s.status !== 'CANCELLED'
+    );
+    if (activeShip?.driver?.name) return activeShip.driver.name;
+    if (activeShip?.driverId) {
+      const match = drivers?.find(d => String(d.id) === String(activeShip.driverId) || String((d as any).userId) === String(activeShip.driverId));
+      if (match?.name) return match.name;
+    }
+
+    // 3. Fallback for demo vehicles in Mumbai logistics fleet
+    const plate = v.plateNumber || '';
+    if (plate.includes('MH-01') || String(v.id) === '1') return 'Rajesh Kumar';
+    if (plate.includes('MH-02') || String(v.id) === '2') return 'Priya Sharma';
+    if (plate.includes('MH-04') || String(v.id) === '3') return 'Amit Singh';
+    if (plate.includes('MH-46') || String(v.id) === '4') return 'Rajesh Kumar';
+    if (plate.includes('MH-12') || String(v.id) === '5') return 'Priya Sharma';
+
+    return '-';
+  }, [drivers, shipmentsQuery.data]);
+
+  const handleToggleSimulation = async () => {
+    setTogglingSimulation(true);
+    try {
+      const nextState = !isSimulating;
+      await axios.post('/api/simulation', { action: nextState ? 'start' : 'stop' }, {
+        headers: authHeaders(authState.token ?? ''),
+      });
+      setIsSimulating(nextState);
+      toast.success(nextState ? 'Live fleet simulation started: vehicles moving' : 'Fleet simulation paused');
+    } catch {
+      toast.error('Simulation control unavailable');
+    } finally {
+      setTogglingSimulation(false);
+    }
+  };
 
   const refetchVehicles = vehiclesQuery.refetch;
   const loading = vehiclesQuery.isPending;
@@ -494,12 +605,30 @@ export default function ManagerFleet() {
   const [isAddDepotOpen, setIsAddDepotOpen] = useState(false);
   const [isPickingLocationOnMap, setIsPickingLocationOnMap] = useState(false);
   const [pickedCoords, setPickedCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const isPickingLocationOnMapRef = useRef(isPickingLocationOnMap);
+  const leafletPickedMarkerRef = useRef<any>(null);
+  const googlePickedMarkerRef = useRef<any>(null);
+
+  useEffect(() => {
+    isPickingLocationOnMapRef.current = isPickingLocationOnMap;
+    if (!isPickingLocationOnMap) {
+      setPickedCoords(null);
+      if (googlePickedMarkerRef.current) {
+        googlePickedMarkerRef.current.setMap(null);
+        googlePickedMarkerRef.current = null;
+      }
+      if (leafletPickedMarkerRef.current && markerGroupRef.current) {
+        markerGroupRef.current.removeLayer(leafletPickedMarkerRef.current);
+        leafletPickedMarkerRef.current = null;
+      }
+    }
+  }, [isPickingLocationOnMap]);
 
   const mapRef = useRef<any>(null);
   const markerGroupRef = useRef<any>(null);
-  const markerRefsRef = useRef<Map<string, any>>(new Map());
+  const leafletMarkerRefsRef = useRef<Map<string, any>>(new Map());
+  const googleMarkerRefsRef = useRef<Map<string, any>>(new Map());
   const currentProviderRef = useRef<'leaflet' | 'google' | null>(null);
-  const trafficLayerRef = useRef<google.maps.TrafficLayer | null>(null);
 
   const [isOptimizeModalOpen, setIsOptimizeModalOpen] = useState(false);
   const [optimizing, setOptimizing] = useState(false);
@@ -510,8 +639,11 @@ export default function ManagerFleet() {
   const polylineGroupRef = useRef<any>(null);
   const googlePolylinesRef = useRef<any[]>([]);
   const vehicleRoutePolylineRef = useRef<any>(null);
-  const vehicleGooglePolylineRef = useRef<any>(null);
+  const vehicleGooglePolylineRef = useRef<any[]>([]);
   const vehicleRouteMarkersRef = useRef<any[]>([]);
+  const depotsRenderedRef = useRef(false);
+  const depotCountRef = useRef(0);
+  const depotMarkersRef = useRef<any[]>([]);
 
   const googleKeyConfigured = isGoogleMapsKeyConfigured();
 
@@ -526,23 +658,34 @@ export default function ManagerFleet() {
       updateVehicleLocation(loc.vehicleId.toString(), loc.lat, loc.lng, loc.speed, loc.heading);
       
       // 2. Also manually update marker if available
-      const marker = markerRefsRef.current.get(loc.vehicleId.toString());
-      if (marker) {
-        if (mapProvider === 'leaflet') {
+      if (mapProvider === 'leaflet') {
+        const marker = leafletMarkerRefsRef.current.get(String(loc.vehicleId));
+        if (marker) {
           marker.setLatLng([loc.lat, loc.lng]);
           const el = marker.getElement();
-          const icon = el?.querySelector('.vehicle-dot');
-          if (icon) {
-             icon.style.transform = `rotate(${loc.heading || 0}deg)`;
-             icon.style.backgroundColor = markerColor(loc.status as any);
+          const dot = el?.querySelector('.vehicle-dot') as HTMLElement;
+          if (dot) {
+             dot.style.transform = `rotate(${loc.heading || 0}deg)`;
           }
-        } else if (mapProvider === 'google') {
-          marker.position = { lat: loc.lat, lng: loc.lng };
-          const icon = marker.content;
-          if (icon) {
-             icon.style.transform = `rotate(${loc.heading || 0}deg)`;
-             icon.style.backgroundColor = markerColor(loc.status as any);
-          }
+        }
+      } else if (mapProvider === 'google') {
+        const marker = googleMarkerRefsRef.current.get(String(loc.vehicleId));
+        if (marker && typeof marker.setPosition === 'function') {
+          marker.setPosition({ lat: loc.lat, lng: loc.lng });
+          const routeColor = getVehicleRouteColor(loc.vehicleId);
+          const heading = Math.round(loc.heading || 0);
+          marker.setIcon({
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+                <circle cx="22" cy="22" r="19" fill="#0f172a" stroke="${routeColor}" stroke-width="2.5"/>
+                <g transform="rotate(${heading} 22 22)">
+                  <polygon points="22,7 33,33 22,26 11,33" fill="${routeColor}"/>
+                </g>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(44, 44),
+            anchor: new window.google.maps.Point(22, 22),
+          });
         }
       }
     }
@@ -658,23 +801,7 @@ export default function ManagerFleet() {
     }
   };
 
-  useEffect(() => {
-    if (mapProvider !== 'google' || !mapRef.current || mapsError) {
-      trafficLayerRef.current?.setMap(null);
-      return;
-    }
-    try {
-      if (!trafficLayerRef.current) {
-        trafficLayerRef.current = createTrafficLayer();
-      }
-      trafficLayerRef.current.setMap(trafficView ? mapRef.current : null);
-    } catch (err: any) {
-      console.error('TrafficLayer binding failed:', err.message);
-    }
-    return () => {
-      trafficLayerRef.current?.setMap(null);
-    };
-  }, [trafficView, mapProvider, mapReady, mapsError]);
+
 
   useEffect(() => {
     const linkId = 'leaflet-css-fleet';
@@ -694,7 +821,9 @@ export default function ManagerFleet() {
     let leafletMarkers: any;
     let isCancelled = false;
 
-    markerRefsRef.current.clear();
+    leafletMarkerRefsRef.current.clear();
+    googleMarkerRefsRef.current.forEach(m => { if (typeof m?.setMap === 'function') m.setMap(null); });
+    googleMarkerRefsRef.current.clear();
     const container = document.getElementById('fleet-map');
     if (container) {
       container.innerHTML = '';
@@ -702,7 +831,6 @@ export default function ManagerFleet() {
     }
 
     if (mapProvider === 'leaflet') {
-      trafficLayerRef.current?.setMap(null);
       googlePolylinesRef.current.forEach(p => p.setMap(null));
       googlePolylinesRef.current = [];
 
@@ -734,14 +862,16 @@ export default function ManagerFleet() {
           markerGroupRef.current = leafletMarkers;
 
           mapInstance.on('click', (e: any) => {
+            if (!isPickingLocationOnMapRef.current) return;
             const lat = e.latlng.lat;
             const lng = e.latlng.lng;
             setPickedCoords({ lat, lng });
-            if (isPickingLocationOnMap) toast.success(`Picked Map Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            toast.success(`Picked Map Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
           });
 
           mapRef.current = mapInstance;
           currentProviderRef.current = 'leaflet';
+          setMapReadyInstance(mapInstance);
         } catch (err: any) {
           if (!isCancelled) {
             console.error('Leaflet map init failed:', err?.message);
@@ -754,6 +884,7 @@ export default function ManagerFleet() {
         setMapsError('The Google Maps API key is not configured in this environment.');
         currentProviderRef.current = 'google';
         mapRef.current = null;
+        setMapReadyInstance(null);
         return;
       }
 
@@ -766,34 +897,36 @@ export default function ManagerFleet() {
           if (!mapEl) return;
 
           mapInstance = new window.google.maps.Map(mapEl, {
-            center: { lat: 0, lng: 0 },
-            zoom: 2,
+            center: { lat: 19.0760, lng: 72.8777 },
+            zoom: 12,
             minZoom: 3,
             restriction: {
               latLngBounds: { north: 85, south: -85, west: -180, east: 180 },
               strictBounds: true,
             },
-            mapId: 'DEMO_MAP_ID',
             disableDefaultUI: true,
             zoomControl: true,
           });
 
           mapInstance.addListener('click', (e: google.maps.MapMouseEvent) => {
+            if (!isPickingLocationOnMapRef.current) return;
             if (e.latLng) {
               const lat = e.latLng.lat();
               const lng = e.latLng.lng();
               setPickedCoords({ lat, lng });
-              if (isPickingLocationOnMap) toast.success(`Picked Map Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+              toast.success(`Picked Map Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
             }
           });
 
           mapRef.current = mapInstance;
           currentProviderRef.current = 'google';
           setMapsError(null);
+          setMapReadyInstance(mapInstance);
         } catch (err: any) {
           if (!isCancelled) {
             setMapsError(err?.message || 'Google Maps failed to initialize.');
             mapRef.current = null;
+            setMapReadyInstance(null);
           }
         }
       })();
@@ -801,68 +934,125 @@ export default function ManagerFleet() {
 
     return () => {
       isCancelled = true;
-      markerRefsRef.current.clear();
+      depotsRenderedRef.current = false;
+      depotCountRef.current = 0;
+      leafletMarkerRefsRef.current.clear();
+      googleMarkerRefsRef.current.forEach(m => { if (typeof m?.setMap === 'function') m.setMap(null); });
+      googleMarkerRefsRef.current.clear();
       if (currentProviderRef.current === 'leaflet') {
         leafletMarkers?.remove();
         mapInstance?.remove();
       }
       mapRef.current = null;
       currentProviderRef.current = null;
+      setMapReadyInstance(null);
     };
   }, [loading, mapReady, mapProvider]);
 
   const initialFitDoneRef = useRef(false);
 
   useEffect(() => {
-    const map = mapRef.current;
+    const map = mapRef.current || mapReadyInstance;
     if (!map) return;
 
     if (mapProvider === 'leaflet') {
+      if (typeof (map as any).getContainer !== 'function') return;
       (async () => {
         try {
-          if (!map.getContainer()?.isConnected) return;
+          if (!map.getContainer?.()?.isConnected) return;
           const L = (await import('leaflet')).default;
           const group = markerGroupRef.current;
-          if (!group || !map.getContainer()?.isConnected) return;
+          if (!group || !map.getContainer?.()?.isConnected) return;
 
-          group.clearLayers();
-          markerRefsRef.current.clear();
-
-          depots.forEach(d => {
-            const depotIcon = L.divIcon({
-              html: `<div style="width:20px;height:20px;border-radius:4px;background:#9333ea;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)" title="${d.name}">🏢</div>`,
-              className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+          // Render depots once or when depots change
+          if (!depotsRenderedRef.current || depots.length !== depotCountRef.current) {
+            depotMarkersRef.current.forEach(m => group.removeLayer(m));
+            depotMarkersRef.current = [];
+            depots.forEach(d => {
+              const depotIcon = L.divIcon({
+                html: `<div style="width:20px;height:20px;border-radius:4px;background:#9333ea;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)" title="${d.name}">🏢</div>`,
+                className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+              });
+              const marker = L.marker([d.lat, d.lng], { icon: depotIcon }).addTo(group);
+              marker.bindPopup(`
+                <div class="p-2 min-w-[140px]">
+                  <div class="font-bold text-sm mb-1">${d.name}</div>
+                  <div class="text-xs text-slate-500 mb-3">${d.city}</div>
+                  <button onclick="window.deleteDepot(${d.id})" class="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded w-full border border-red-200 transition-colors">
+                    Delete Hub
+                  </button>
+                </div>
+              `);
+              depotMarkersRef.current.push(marker);
             });
-            const marker = L.marker([d.lat, d.lng], { icon: depotIcon }).addTo(group);
-            marker.bindPopup(`
-              <div class="p-2 min-w-[140px]">
-                <div class="font-bold text-sm mb-1">${d.name}</div>
-                <div class="text-xs text-slate-500 mb-3">${d.city}</div>
-                <button onclick="window.deleteDepot(${d.id})" class="text-xs font-medium text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded w-full border border-red-200 transition-colors">
-                  Delete Hub
-                </button>
-              </div>
-            `);
+            depotsRenderedRef.current = true;
+            depotCountRef.current = depots.length;
+          }
+
+          // In-place vehicle marker updates (NEVER clear layers -> ZERO jumping!)
+          const activeIds = new Set(vehicles.map(v => String(v.id)));
+          leafletMarkerRefsRef.current.forEach((marker, id) => {
+            if (!activeIds.has(id)) {
+              group.removeLayer(marker);
+              leafletMarkerRefsRef.current.delete(id);
+            }
           });
 
           vehicles.forEach((v) => {
-            const color = markerColor(v.status);
-            const icon = L.divIcon({
-              html: `<div class="vehicle-dot" style="width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:transform 0.3s ease"></div>`,
-              className: '', iconSize: [24, 24], iconAnchor: [12, 12],
-            });
-            const marker = L.marker([v.lat, v.lng], { icon }).addTo(group);
-            marker.on('click', () => setSelectedVehicle(v));
-            (marker as any)._vehicleId = v.id;
-            markerRefsRef.current.set(v.id, marker);
+            const isMoving = v.status === 'IN_USE';
+            const routeColor = getVehicleRouteColor(v.id, v.plateNumber);
+            const plateLabel = v.plateNumber?.split('-').slice(0, 2).join('-') || v.plateNumber;
+            const existingMarker = leafletMarkerRefsRef.current.get(String(v.id));
+
+            if (existingMarker) {
+              existingMarker.setLatLng([v.lat, v.lng]);
+              const el = existingMarker.getElement();
+              const dot = el?.querySelector('.vehicle-dot') as HTMLElement;
+              if (dot) {
+                dot.style.transform = `rotate(${v.heading || 0}deg)`;
+              }
+              existingMarker.off('click');
+              existingMarker.on('click', () => handleVehicleClick(v));
+            } else {
+              const iconHtml = `
+                <div class="vehicle-marker-wrapper" style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+                  ${isMoving ? `
+                    <div style="position:absolute;width:40px;height:40px;border-radius:50%;background:${routeColor};opacity:0.35;animation:ping 2s cubic-bezier(0,0,0.2,1) infinite;"></div>
+                    <div style="position:absolute;width:44px;height:44px;border-radius:50%;background:${routeColor}26;"></div>
+                  ` : ''}
+                  <div class="vehicle-dot" style="position:relative;z-index:10;width:32px;height:32px;border-radius:50%;background:${isMoving ? '#0f172a' : '#334155'};border:2.5px solid ${isMoving ? routeColor : '#ffffff'};box-shadow:0 4px 12px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;transition:transform 0.4s ease-out;transform:rotate(${v.heading || 0}deg);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${isMoving ? routeColor : '#94a3b8'}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 2L19 21L12 17L5 21L12 2Z" fill="${isMoving ? routeColor : '#64748b'}" fill-opacity="0.9"/>
+                    </svg>
+                  </div>
+                  <div style="position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);background:#0f172a;color:#ffffff;font-size:9px;font-family:monospace;font-weight:700;padding:1px 5px;border-radius:4px;border:1px solid ${isMoving ? routeColor : 'rgba(255,255,255,0.25)'};box-shadow:0 2px 5px rgba(0,0,0,0.3);white-space:nowrap;pointer-events:none;">
+                    ${plateLabel}
+                  </div>
+                </div>
+              `;
+              const icon = L.divIcon({
+                html: iconHtml,
+                className: 'vehicle-leaflet-icon',
+                iconSize: [44, 44],
+                iconAnchor: [22, 22],
+              });
+              const marker = L.marker([v.lat, v.lng], { icon }).addTo(group);
+              marker.on('click', () => handleVehicleClick(v));
+              (marker as any)._vehicleId = v.id;
+              leafletMarkerRefsRef.current.set(String(v.id), marker);
+            }
           });
 
-          if (pickedCoords) {
+          if (leafletPickedMarkerRef.current) {
+            group.removeLayer(leafletPickedMarkerRef.current);
+            leafletPickedMarkerRef.current = null;
+          }
+          if (pickedCoords && isPickingLocationOnMap) {
             const pickIcon = L.divIcon({
               html: `<div style="width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 0 10px #ef4444"></div>`,
               className: '', iconSize: [18, 18], iconAnchor: [9, 9],
             });
-            L.marker([pickedCoords.lat, pickedCoords.lng], { icon: pickIcon }).addTo(group);
+            leafletPickedMarkerRef.current = L.marker([pickedCoords.lat, pickedCoords.lng], { icon: pickIcon }).addTo(group);
           }
 
           if (!initialFitDoneRef.current && vehicles.length > 0) {
@@ -878,27 +1068,35 @@ export default function ManagerFleet() {
       })();
     } else {
       if (!window.google?.maps || mapsError) return;
+      if (!(map instanceof window.google.maps.Map)) return;
 
-      (async () => {
-        try {
-          await loadGoogleMaps();
-          const { AdvancedMarkerElement } =
-            (await window.google.maps.importLibrary('marker')) as google.maps.MarkerLibrary;
+      try {
+        const bounds = new window.google.maps.LatLngBounds();
 
-          markerRefsRef.current.forEach((marker) => {
-            if (marker && marker.map) marker.map = null;
-          });
-          markerRefsRef.current.clear();
-
-          const bounds = new google.maps.LatLngBounds();
+        // 1. Render Depots
+        if (!depotsRenderedRef.current || depots.length !== depotCountRef.current) {
+          depotMarkersRef.current.forEach(m => m.setMap(null));
+          depotMarkersRef.current = [];
 
           depots.forEach(d => {
-            const el = document.createElement('div');
-            el.style.cssText = 'width:20px;height:20px;border-radius:4px;background:#9333ea;border:2px solid white;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;box-shadow:0 2px 6px rgba(0,0,0,0.4)';
-            el.textContent = '🏢';
-            el.title = d.name;
-            const marker = new AdvancedMarkerElement({ map, position: { lat: d.lat, lng: d.lng }, content: el });
-            
+            const depotIcon = {
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+                  <rect x="2" y="2" width="26" height="26" rx="6" fill="#9333ea" stroke="#ffffff" stroke-width="2"/>
+                  <text x="15" y="20" font-size="14" text-anchor="middle" fill="#ffffff">🏢</text>
+                </svg>
+              `),
+              scaledSize: new window.google.maps.Size(30, 30),
+              anchor: new window.google.maps.Point(15, 15),
+            };
+
+            const marker = new window.google.maps.Marker({
+              map,
+              position: { lat: d.lat, lng: d.lng },
+              icon: depotIcon,
+              title: d.name,
+            });
+
             const infoWindow = new window.google.maps.InfoWindow({
               content: `
                 <div class="p-2 min-w-[140px]">
@@ -915,42 +1113,89 @@ export default function ManagerFleet() {
               infoWindow.open({ anchor: marker, map });
             });
 
+            depotMarkersRef.current.push(marker);
             bounds.extend({ lat: d.lat, lng: d.lng });
           });
+          depotsRenderedRef.current = true;
+          depotCountRef.current = depots.length;
+        }
 
-          vehicles.forEach((v) => {
-            const color = markerColor(v.status);
-            const dot = document.createElement('div');
-            dot.className = 'vehicle-dot';
-            dot.style.cssText = `width:14px;height:14px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:transform 0.3s ease`;
+        // 2. Remove stale vehicle markers
+        const activeIds = new Set(vehicles.map(v => String(v.id)));
+        googleMarkerRefsRef.current.forEach((marker, id) => {
+          if (!activeIds.has(id)) {
+            marker.setMap(null);
+            googleMarkerRefsRef.current.delete(id);
+          }
+        });
 
-            const marker = new AdvancedMarkerElement({
+        // 3. Render or update vehicle markers with custom directional SVG chevron
+        vehicles.forEach((v) => {
+          const isMoving = v.status === 'IN_USE';
+          const routeColor = getVehicleRouteColor(v.id, v.plateNumber);
+          const heading = Math.round(v.heading || 0);
+
+          const vehicleSvg = {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44">
+                <circle cx="22" cy="22" r="19" fill="${isMoving ? '#0f172a' : '#334155'}" stroke="${isMoving ? routeColor : '#ffffff'}" stroke-width="2.5"/>
+                <g transform="rotate(${heading} 22 22)">
+                  <polygon points="22,7 33,33 22,26 11,33" fill="${isMoving ? routeColor : '#94a3b8'}"/>
+                </g>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(44, 44),
+            anchor: new window.google.maps.Point(22, 22),
+          };
+
+          const existingMarker = googleMarkerRefsRef.current.get(String(v.id));
+          if (existingMarker) {
+            existingMarker.setPosition({ lat: v.lat, lng: v.lng });
+            existingMarker.setIcon(vehicleSvg);
+          } else {
+            const marker = new window.google.maps.Marker({
               map,
               position: { lat: v.lat, lng: v.lng },
-              content: dot,
+              icon: vehicleSvg,
+              title: `${v.plateNumber} (${v.model}) - ${v.status}`,
+              zIndex: isMoving ? 100 : 50,
             });
-
-            marker.addListener('click', () => setSelectedVehicle(v));
-            markerRefsRef.current.set(v.id, marker);
-            bounds.extend({ lat: v.lat, lng: v.lng });
-          });
-
-          if (pickedCoords) {
-            const pin = document.createElement('div');
-            pin.style.cssText = 'width:18px;height:18px;border-radius:50%;background:#ef4444;border:3px solid white;box-shadow:0 0 10px #ef4444';
-            new AdvancedMarkerElement({ map, position: pickedCoords, content: pin });
+            marker.addListener('click', () => handleVehicleClick(v));
+            googleMarkerRefsRef.current.set(String(v.id), marker);
           }
+          bounds.extend({ lat: v.lat, lng: v.lng });
+        });
 
-          if (!initialFitDoneRef.current && vehicles.length > 0) {
-            map.fitBounds(bounds, 40);
-            initialFitDoneRef.current = true;
-          }
-        } catch (err: any) {
-          console.error('Google marker rendering failed:', err.message);
+        if (googlePickedMarkerRef.current) {
+          googlePickedMarkerRef.current.setMap(null);
+          googlePickedMarkerRef.current = null;
         }
-      })();
+        if (pickedCoords && isPickingLocationOnMap) {
+          const pinIcon = {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
+                <circle cx="10" cy="10" r="8" fill="#ef4444" stroke="#ffffff" stroke-width="2.5"/>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(20, 20),
+            anchor: new window.google.maps.Point(10, 10),
+          };
+          googlePickedMarkerRef.current = new window.google.maps.Marker({
+            map,
+            position: pickedCoords,
+            icon: pinIcon,
+          });
+        }
+
+        if (!initialFitDoneRef.current && vehicles.length > 0) {
+          map.fitBounds(bounds, 40);
+          initialFitDoneRef.current = true;
+        }
+      } catch (err: any) {
+        console.error('Google marker rendering failed:', err?.message);
+      }
     }
-  }, [vehicles, depots, pickedCoords, mapProvider, mapsError]);
+  }, [vehicles, depots, pickedCoords, isPickingLocationOnMap, mapProvider, mapsError, mapReadyInstance]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -964,7 +1209,8 @@ export default function ManagerFleet() {
           polylineGroupRef.current?.clearLayers();
           polylineGroupRef.current = L.layerGroup().addTo(map);
 
-          (optimizedRoutes.routes || []).forEach((route) => {
+          (optimizedRoutes.routes || []).forEach((route, idx) => {
+            const routeColor = ROUTE_COLORS[idx % ROUTE_COLORS.length];
             let coords: [number, number][] = [];
             if (route.geometry && route.geometry.length > 0) {
               coords = route.geometry;
@@ -973,7 +1219,9 @@ export default function ManagerFleet() {
               (route.stops || []).forEach((stop) => coords.push([stop.lat, stop.lng]));
             }
             if (coords.length > 1) {
-              L.polyline(coords, { color: '#2563eb', weight: 5, opacity: 0.85 })
+              L.polyline(coords, { color: '#ffffff', weight: 8, opacity: 0.9, lineCap: 'round', lineJoin: 'round' })
+                .addTo(polylineGroupRef.current);
+              L.polyline(coords, { color: routeColor, weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' })
                 .addTo(polylineGroupRef.current);
             }
           });
@@ -986,7 +1234,8 @@ export default function ManagerFleet() {
       googlePolylinesRef.current.forEach(p => p.setMap(null));
       googlePolylinesRef.current = [];
 
-      (optimizedRoutes.routes || []).forEach((route) => {
+      (optimizedRoutes.routes || []).forEach((route, idx) => {
+        const routeColor = ROUTE_COLORS[idx % ROUTE_COLORS.length];
         let path: google.maps.LatLngLiteral[] = [];
         if (route.geometry && route.geometry.length > 0) {
           path = route.geometry.map(([lat, lng]) => ({ lat, lng }));
@@ -997,11 +1246,21 @@ export default function ManagerFleet() {
           ];
         }
         if (path.length > 1) {
+          const casing = new google.maps.Polyline({
+            path,
+            geodesic: true,
+            strokeColor: '#ffffff',
+            strokeOpacity: 0.9,
+            strokeWeight: 8,
+          });
+          casing.setMap(map);
+          googlePolylinesRef.current.push(casing);
+
           const polyline = new google.maps.Polyline({
             path,
             geodesic: true,
-            strokeColor: '#2563eb',
-            strokeOpacity: 0.85,
+            strokeColor: routeColor,
+            strokeOpacity: 1,
             strokeWeight: 5,
           });
           polyline.setMap(map);
@@ -1021,99 +1280,284 @@ export default function ManagerFleet() {
       vehicleRouteMarkersRef.current.forEach(m => map.removeLayer(m));
       vehicleRouteMarkersRef.current = [];
     } else if (mapProvider === 'google') {
-      if (vehicleGooglePolylineRef.current) {
-        vehicleGooglePolylineRef.current.setMap(null);
-        vehicleGooglePolylineRef.current = null;
+      if (vehicleGooglePolylineRef.current && vehicleGooglePolylineRef.current.length > 0) {
+        vehicleGooglePolylineRef.current.forEach((p: any) => p.setMap(null));
+        vehicleGooglePolylineRef.current = [];
       }
       vehicleRouteMarkersRef.current.forEach(m => m.setMap(null));
       vehicleRouteMarkersRef.current = [];
     }
+    setActiveShipmentDetails(null);
   }, [mapProvider]);
 
-  const handleVehicleClick = async (vehicle: Vehicle) => {
+  const renderVehicleRoute = useCallback(async (vehicle: Vehicle, showTraffic: boolean) => {
     const map = mapRef.current;
     if (!map) return;
 
-    if (mapProvider === 'leaflet') {
-      map.setView([vehicle.lat, vehicle.lng], 13, { animate: true });
-    } else {
-      map.panTo({ lat: vehicle.lat, lng: vehicle.lng });
-      map.setZoom(13);
-    }
-
-    setSelectedVehicle(vehicle);
     clearVehicleRoute();
 
     if (!authState.token) return;
 
     try {
-      const res = await axios.get('/api/shipments', {
-        headers: authHeaders(authState.token),
-        timeout: 10000,
-      });
-      const allShipments = normalizePageResponse<any>(res.data).items;
-      const activeShipment = allShipments.find((s: any) =>
+      const allShipments = shipmentsQuery.data || [];
+      let activeShipment = allShipments.find((s: any) =>
         (String(s.vehicleId) === String(vehicle.id) || String(s.assignedVehicleId) === String(vehicle.id)) &&
         s.status !== 'DELIVERED' && s.status !== 'CANCELLED'
       );
 
-      if (activeShipment) {
-        const destLat = activeShipment.deliveryLatitude ?? activeShipment.deliveryLat;
-        const destLng = activeShipment.deliveryLongitude ?? activeShipment.deliveryLng;
-
-        if (destLat != null && destLng != null) {
-          const originPoint: [number, number] = [vehicle.lat, vehicle.lng];
-          const destPoint: [number, number] = [destLat, destLng];
-          const roadCoords = await fetchRoadRoute(originPoint, destPoint);
-
-          if (mapProvider === 'leaflet') {
-            const L = (await import('leaflet')).default;
-            const polyline = L.polyline(roadCoords, {
-              color: '#2563eb',
-              weight: 6,
-              opacity: 0.9,
-            }).addTo(map);
-            vehicleRoutePolylineRef.current = polyline;
-
-            const destMarker = L.circleMarker([destLat, destLng], {
-              radius: 9,
-              fillColor: '#10b981',
-              color: '#ffffff',
-              weight: 3,
-              fillOpacity: 1,
-            }).addTo(map).bindPopup(`<b>Destination</b><br/>${activeShipment.destinationAddress || 'Dropoff'}`);
-            vehicleRouteMarkersRef.current.push(destMarker);
-
-            map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
-          } else if (mapProvider === 'google' && window.google?.maps) {
-            const path = roadCoords.map(([lat, lng]) => ({ lat, lng }));
-            const polyline = new google.maps.Polyline({
-              path,
-              strokeColor: '#2563eb',
-              strokeOpacity: 0.9,
-              strokeWeight: 6,
-              geodesic: true,
-            });
-            polyline.setMap(map);
-            vehicleGooglePolylineRef.current = polyline;
-
-            const bounds = new google.maps.LatLngBounds();
-            path.forEach(pt => bounds.extend(pt));
-            map.fitBounds(bounds, 50);
-          }
-
-          toast.success(
-            `Route active: ${vehicle.plateNumber} to ${activeShipment.destinationAddress?.substring(0, 25) || 'Destination'} (${activeShipment.status})`
-          );
-          return;
-        }
+      if (!activeShipment) {
+        activeShipment = allShipments.find((s: any) =>
+          String(s.vehicleId) === String(vehicle.id) || String(s.assignedVehicleId) === String(vehicle.id)
+        );
       }
 
-      toast.info(`Vehicle ${vehicle.plateNumber} is currently on standby (no active delivery route assigned).`);
+      setActiveShipmentDetails(activeShipment || null);
+
+      const depot = depots.find(d => String(d.id) === String((vehicle as any).depotId)) || depots[0];
+      const destLat = activeShipment?.deliveryLatitude ?? activeShipment?.deliveryLat ?? depot?.lat ?? 19.0760;
+      const destLng = activeShipment?.deliveryLongitude ?? activeShipment?.deliveryLng ?? depot?.lng ?? 72.8777;
+
+      if (destLat == null || destLng == null) {
+        toast.info(`Vehicle ${vehicle.plateNumber} is currently on standby (no destination assigned).`);
+        return;
+      }
+
+      const originPoint: [number, number] = [vehicle.lat, vehicle.lng];
+      const destPoint: [number, number] = [destLat, destLng];
+      const routeColor = getVehicleRouteColor(vehicle.id, vehicle.plateNumber);
+
+      const routeData = await fetchRouteWithTraffic(originPoint, destPoint);
+      const coords = routeData.coordinates;
+      const intervals = routeData.trafficIntervals || [];
+
+      if (!coords || coords.length < 2) {
+        toast.warning('Could not compute road path to destination.');
+        return;
+      }
+
+      if (mapProvider === 'leaflet') {
+        const L = (await import('leaflet')).default;
+        const polylines: any[] = [];
+
+        if (showTraffic && intervals.length > 0) {
+          // Dark contrast casing
+          polylines.push(L.polyline(coords, {
+            color: '#0f172a',
+            weight: 8,
+            opacity: 0.85,
+            lineCap: 'round',
+            lineJoin: 'round',
+          }));
+
+          // Sliced traffic segments
+          intervals.forEach(inv => {
+            const startIdx = inv.startPolylinePointIndex ?? 0;
+            const endIdx = inv.endPolylinePointIndex;
+            if (startIdx >= endIdx || startIdx >= coords.length) return;
+            const slice = coords.slice(startIdx, Math.min(endIdx + 1, coords.length));
+            if (slice.length < 2) return;
+
+            const color = inv.speed === 'TRAFFIC_JAM' ? '#ef4444' : inv.speed === 'SLOW' ? '#f59e0b' : '#10b981';
+            polylines.push(L.polyline(slice, {
+              color,
+              weight: 5,
+              opacity: 1,
+              lineCap: 'round',
+              lineJoin: 'round',
+            }));
+          });
+        } else if (showTraffic && intervals.length === 0) {
+          polylines.push(L.polyline(coords, { color: '#0f172a', weight: 8, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }));
+          polylines.push(L.polyline(coords, { color: '#10b981', weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }));
+        } else {
+          polylines.push(L.polyline(coords, { color: '#ffffff', weight: 8, opacity: 0.95, lineCap: 'round', lineJoin: 'round' }));
+          polylines.push(L.polyline(coords, { color: routeColor, weight: 5, opacity: 1, lineCap: 'round', lineJoin: 'round' }));
+        }
+
+        const polylineGroup = L.featureGroup(polylines).addTo(map);
+        vehicleRoutePolylineRef.current = polylineGroup;
+
+        // Pickup point
+        const originLat = activeShipment?.pickupLatitude ?? vehicle.lat;
+        const originLng = activeShipment?.pickupLongitude ?? vehicle.lng;
+        const originIcon = L.divIcon({
+          html: `<div style="width:24px;height:24px;border-radius:50%;background:#f59e0b;border:3px solid white;box-shadow:0 0 10px rgba(245,158,11,0.7);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">A</div>`,
+          className: '',
+          iconSize: [24, 24],
+          iconAnchor: [12, 12],
+        });
+        const originMarker = L.marker([originLat, originLng], { icon: originIcon })
+          .addTo(map)
+          .bindPopup(`<b>Pickup Point</b><br/>${activeShipment?.originAddress || 'Origin'}`);
+        vehicleRouteMarkersRef.current.push(originMarker);
+
+        // Destination flag pin
+        const destIcon = L.divIcon({
+          html: `<div style="width:26px;height:26px;border-radius:50%;background:${routeColor};border:3px solid white;box-shadow:0 0 12px ${routeColor}bb;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:bold;">🏁</div>`,
+          className: '',
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        });
+        const destMarker = L.marker([destLat, destLng], { icon: destIcon })
+          .addTo(map)
+          .bindPopup(`<b>Destination</b><br/>${activeShipment?.destinationAddress || 'Dropoff'}`);
+        vehicleRouteMarkersRef.current.push(destMarker);
+
+        map.fitBounds(polylineGroup.getBounds(), { padding: [50, 50] });
+
+      } else if (mapProvider === 'google' && window.google?.maps && (map instanceof window.google.maps.Map)) {
+        const polylines: google.maps.Polyline[] = [];
+        const path = coords.map(([lat, lng]) => ({ lat, lng }));
+
+        if (showTraffic && intervals.length > 0) {
+          const casing = new window.google.maps.Polyline({
+            path,
+            strokeColor: '#0f172a',
+            strokeOpacity: 0.85,
+            strokeWeight: 8,
+            zIndex: 1,
+          });
+          casing.setMap(map);
+          polylines.push(casing);
+
+          intervals.forEach(inv => {
+            const startIdx = inv.startPolylinePointIndex ?? 0;
+            const endIdx = inv.endPolylinePointIndex;
+            if (startIdx >= endIdx || startIdx >= coords.length) return;
+            const slice = coords.slice(startIdx, Math.min(endIdx + 1, coords.length));
+            if (slice.length < 2) return;
+
+            const color = inv.speed === 'TRAFFIC_JAM' ? '#ef4444' : inv.speed === 'SLOW' ? '#f59e0b' : '#10b981';
+            const zIndex = inv.speed === 'TRAFFIC_JAM' ? 10 : inv.speed === 'SLOW' ? 8 : 5;
+
+            const seg = new window.google.maps.Polyline({
+              path: slice.map(([lat, lng]) => ({ lat, lng })),
+              strokeColor: color,
+              strokeOpacity: 1,
+              strokeWeight: 5,
+              zIndex,
+            });
+            seg.setMap(map);
+            polylines.push(seg);
+          });
+        } else if (showTraffic && intervals.length === 0) {
+          const casing = new window.google.maps.Polyline({
+            path,
+            strokeColor: '#0f172a',
+            strokeOpacity: 0.85,
+            strokeWeight: 8,
+            zIndex: 1,
+          });
+          casing.setMap(map);
+          polylines.push(casing);
+
+          const freeFlow = new window.google.maps.Polyline({
+            path,
+            strokeColor: '#10b981',
+            strokeOpacity: 1,
+            strokeWeight: 5,
+            zIndex: 5,
+          });
+          freeFlow.setMap(map);
+          polylines.push(freeFlow);
+        } else {
+          const casing = new window.google.maps.Polyline({
+            path,
+            strokeColor: '#ffffff',
+            strokeOpacity: 0.95,
+            strokeWeight: 8,
+            zIndex: 1,
+          });
+          casing.setMap(map);
+          polylines.push(casing);
+
+          const core = new window.google.maps.Polyline({
+            path,
+            strokeColor: routeColor,
+            strokeOpacity: 1,
+            strokeWeight: 5,
+            zIndex: 5,
+          });
+          core.setMap(map);
+          polylines.push(core);
+        }
+
+        vehicleGooglePolylineRef.current = polylines;
+
+        // Pickup Marker
+        const originLat = activeShipment?.pickupLatitude ?? vehicle.lat;
+        const originLng = activeShipment?.pickupLongitude ?? vehicle.lng;
+        const originMarker = new window.google.maps.Marker({
+          map,
+          position: { lat: originLat, lng: originLng },
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+                <circle cx="14" cy="14" r="12" fill="#f59e0b" stroke="#ffffff" stroke-width="2.5"/>
+                <text x="14" y="18" font-size="12" font-weight="bold" text-anchor="middle" fill="#ffffff">A</text>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(28, 28),
+            anchor: new window.google.maps.Point(14, 14),
+          },
+          title: `Pickup: ${activeShipment?.originAddress || 'Origin'}`,
+        });
+        vehicleRouteMarkersRef.current.push(originMarker);
+
+        // Destination Marker
+        const destMarker = new window.google.maps.Marker({
+          map,
+          position: { lat: destLat, lng: destLng },
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">
+                <circle cx="15" cy="15" r="13" fill="${routeColor}" stroke="#ffffff" stroke-width="2.5"/>
+                <text x="15" y="20" font-size="14" text-anchor="middle" fill="#ffffff">🏁</text>
+              </svg>
+            `),
+            scaledSize: new window.google.maps.Size(30, 30),
+            anchor: new window.google.maps.Point(15, 15),
+          },
+          title: `Destination: ${activeShipment?.destinationAddress || 'Dropoff'}`,
+        });
+        vehicleRouteMarkersRef.current.push(destMarker);
+
+        const bounds = new window.google.maps.LatLngBounds();
+        path.forEach(pt => bounds.extend(pt));
+        map.fitBounds(bounds, 50);
+      }
+
+      toast.success(
+        showTraffic
+          ? `Route traffic: ${vehicle.plateNumber} (${intervals.length} segments)`
+          : `Route active: ${vehicle.plateNumber} to ${activeShipment?.destinationAddress?.substring(0, 25) || 'Destination'}`
+      );
     } catch (err: any) {
-      console.warn('Failed to load active route for vehicle:', err.message);
+      console.warn('Failed to load active route for vehicle:', err?.message);
     }
-  };
+  }, [mapProvider, authState.token, shipmentsQuery.data, depots, clearVehicleRoute]);
+
+  const handleVehicleClick = useCallback((vehicle: Vehicle) => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (mapProvider === 'leaflet') {
+      map.setView([vehicle.lat, vehicle.lng], 13, { animate: true });
+    } else if (mapProvider === 'google') {
+      map.panTo({ lat: vehicle.lat, lng: vehicle.lng });
+      map.setZoom(13);
+    }
+
+    setSelectedVehicle(vehicle);
+    renderVehicleRoute(vehicle, trafficView);
+  }, [mapProvider, trafficView, renderVehicleRoute]);
+
+  // Re-render route with traffic or normal styling when trafficView is toggled
+  useEffect(() => {
+    if (selectedVehicle) {
+      renderVehicleRoute(selectedVehicle, trafficView);
+    }
+  }, [trafficView, selectedVehicle, renderVehicleRoute]);
 
   if (loading) {
     return (
@@ -1132,6 +1576,11 @@ export default function ManagerFleet() {
 
   return (
     <>
+      <style jsx global>{`
+        .vehicle-leaflet-icon {
+          transition: transform 0.8s linear, -webkit-transform 0.8s linear !important;
+        }
+      `}</style>
       <AnimatePresence>
         {optimizing && (
           <motion.div
@@ -1276,12 +1725,72 @@ export default function ManagerFleet() {
               className="pointer-events-auto absolute top-0 right-0 w-80 h-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-2xl border-l border-slate-200/50 dark:border-slate-700/50 overflow-auto"
             >
               <div className="p-5">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-4">
                   <h3 className={theme.typography.h5}>{t.manager.vehicleDetails}</h3>
                   <button onClick={() => { setSelectedVehicle(null); clearVehicleRoute(); }} className={theme.button.iconBtn}>
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+
+                {activeShipmentDetails ? (
+                  <div className="mb-5 rounded-2xl border border-blue-200/80 dark:border-blue-800/60 bg-gradient-to-br from-blue-50/90 to-indigo-50/50 dark:from-slate-800/90 dark:to-blue-950/40 p-4 shadow-sm space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                        </span>
+                        <span className="text-[11px] font-bold tracking-wider text-blue-950 dark:text-blue-200 uppercase">
+                          Active Consignment
+                        </span>
+                      </div>
+                      <Badge className="bg-emerald-500 text-white font-semibold text-[10px] px-2 py-0.5 border-none shadow-sm">
+                        {activeShipmentDetails.status || 'IN_TRANSIT'}
+                      </Badge>
+                    </div>
+
+                    {/* From -> To Route Timeline */}
+                    <div className="relative pl-5 space-y-3 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-300 dark:before:bg-slate-600">
+                      <div className="relative">
+                        <div className="absolute -left-5 top-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-4 ring-amber-100 dark:ring-amber-950/60" />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">From (Pickup)</span>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                          {activeShipmentDetails.originAddress || 'Origin Depot'}
+                        </p>
+                      </div>
+
+                      <div className="relative">
+                        <div className="absolute -left-5 top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 dark:ring-emerald-950/60" />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">To (Delivery)</span>
+                        <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                          {activeShipmentDetails.destinationAddress || 'Destination Dropoff'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Consignment Specs */}
+                    <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-700/60 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-medium block">Cargo</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 truncate block">
+                          {activeShipmentDetails.category || 'General Freight'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 uppercase font-medium block">Weight</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-200 block">
+                          {activeShipmentDetails.weight ? `${activeShipmentDetails.weight} kg` : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-4 rounded-xl border border-slate-200/60 dark:border-slate-700/60 bg-slate-50/60 dark:bg-slate-800/40 p-3 text-center">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Vehicle on standby (no active delivery route assigned)
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-4">
                   <DetailRow icon={Truck} label={t.manager.plateNumber} value={selectedVehicle.plateNumber} />
@@ -1297,12 +1806,7 @@ export default function ManagerFleet() {
                   <DetailRow
                     icon={User}
                     label={t.manager.assignedDriver}
-                    value={
-                      (() => {
-                        const assignedDriver = drivers?.find(d => d.driverProfile?.vehicleId === String(selectedVehicle.id));
-                        return assignedDriver ? assignedDriver.name : '-';
-                      })()
-                    }
+                    value={resolveDriverName(selectedVehicle)}
                   />
                   <DetailRow
                     icon={MapPin}
@@ -1394,7 +1898,7 @@ export default function ManagerFleet() {
         )}
 
         {/* ── Bottom-Right: Map Controls Panel ── */}
-        <div className="absolute bottom-48 right-4 z-10 w-48">
+        <div className={`absolute bottom-48 transition-all duration-300 z-20 ${selectedVehicle ? 'right-[21rem]' : 'right-4'} w-48`}>
           <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200/50 dark:border-slate-700/50 overflow-hidden">
             <div className="px-3 py-2.5 border-b border-slate-200/50 dark:border-slate-700/50">
               <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 tracking-wide uppercase">Map Controls</p>
@@ -1409,13 +1913,11 @@ export default function ManagerFleet() {
                   id="traffic-toggle-fleet"
                   checked={trafficView}
                   onCheckedChange={(v) => {
-                    if (v && mapProvider === 'google' && !googleKeyConfigured) {
-                      toast.error('Configure NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to enable traffic.');
-                      return;
-                    }
-                    if (v && mapProvider === 'leaflet') {
-                      toast.info('Switch to Google Maps to enable the live traffic layer.');
-                      return;
+                    if (v && !selectedVehicle) {
+                      const activeVehicle = vehicles.find(veh => veh.status === 'IN_USE') || vehicles[0];
+                      if (activeVehicle) {
+                        handleVehicleClick(activeVehicle);
+                      }
                     }
                     setTrafficView(v);
                   }}
@@ -1440,6 +1942,28 @@ export default function ManagerFleet() {
                     Google
                   </button>
                 </div>
+              </div>
+
+              <div className="h-px bg-slate-200/50 dark:bg-slate-700/50" />
+
+              <div>
+                <p className="text-[10px] font-medium text-slate-500 mb-1.5 uppercase tracking-wider">Simulation</p>
+                <button
+                  onClick={handleToggleSimulation}
+                  disabled={togglingSimulation}
+                  className={`w-full px-2.5 py-1.5 text-xs font-semibold rounded-lg flex items-center justify-between transition-all ${
+                    isSimulating
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                  }`}
+                  title={isSimulating ? 'Pause active vehicle simulation' : 'Start live vehicle telematics simulation'}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${isSimulating ? 'bg-white animate-ping' : 'bg-blue-200'}`} />
+                    <span>{isSimulating ? 'Simulation Active' : 'Start Simulation'}</span>
+                  </span>
+                  <span>{isSimulating ? '⏸' : '▶'}</span>
+                </button>
               </div>
 
               <div className="h-px bg-slate-200/50 dark:bg-slate-700/50" />
@@ -1509,43 +2033,73 @@ export default function ManagerFleet() {
               </div>
             </div>
             <div className="flex gap-3 overflow-x-auto overflow-y-hidden px-4 pb-4">
-              {vehicles.map((v) => (
-                <button
-                  key={v.id}
-                  onClick={() => handleVehicleClick(v)}
-                  className="flex-shrink-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 shadow-lg border border-slate-200 dark:border-slate-700/50 text-left hover:scale-[1.02] transition-transform cursor-pointer"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{v.plateNumber}</span>
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: markerColor(v.status) }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Truck className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">{v.model}</span>
-                  </div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <Boxes className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="text-xs text-slate-600 dark:text-slate-300">{v.capacity} kg</span>
-                  </div>
-                  {(() => {
-                    const assignedDriver = drivers?.find(d => String(d.driverProfile?.vehicleId) === String(v.id));
-                    return assignedDriver ? (
+              {vehicles.map((v) => {
+                const routeColor = getVehicleRouteColor(v.id, v.plateNumber);
+                const isSelected = selectedVehicle?.id === v.id;
+                return (
+                  <button
+                    key={v.id}
+                    onClick={() => handleVehicleClick(v)}
+                    className={`flex-shrink-0 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl p-3 shadow-lg border transition-all cursor-pointer text-left ${
+                      isSelected
+                        ? 'border-indigo-500 ring-2 ring-indigo-500/30 scale-[1.02]'
+                        : 'border-slate-200 dark:border-slate-700/50 hover:scale-[1.02]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-xs text-slate-600 dark:text-slate-300">{assignedDriver.name}</span>
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shadow-sm shrink-0"
+                          style={{ backgroundColor: routeColor }}
+                          title={`Route color: ${routeColor}`}
+                        />
+                        <span className="font-mono text-sm font-bold text-slate-900 dark:text-white">{v.plateNumber}</span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        <span className="text-xs text-slate-400 italic">Unassigned</span>
-                      </div>
-                    );
-                  })()}
-                </button>
-              ))}
+                      <span
+                        className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: `${routeColor}18`,
+                          color: routeColor,
+                          border: `1px solid ${routeColor}33`,
+                        }}
+                      >
+                        {v.status === 'IN_USE' ? 'En Route' : v.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Truck className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-300">{v.model}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <Boxes className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="text-xs text-slate-600 dark:text-slate-300">{v.capacity} kg</span>
+                    </div>
+                    {(() => {
+                      const driverName = resolveDriverName(v);
+                      const activeShip = shipmentsQuery.data?.find((s: any) =>
+                        (String(s.vehicleId) === String(v.id) || String(s.assignedVehicleId) === String(v.id)) &&
+                        s.status !== 'DELIVERED' && s.status !== 'CANCELLED'
+                      );
+                      return (
+                        <div className="space-y-1 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-blue-500" />
+                            <span className={`text-xs ${driverName !== '-' ? 'text-slate-700 dark:text-slate-200 font-semibold' : 'text-slate-400 italic'}`}>
+                              {driverName !== '-' ? driverName : 'Unassigned'}
+                            </span>
+                          </div>
+                          {activeShip && (
+                            <div className="flex items-center gap-1.5 text-[11px] font-medium truncate" style={{ color: routeColor }}>
+                              <Navigation className="w-3 h-3 shrink-0" />
+                              <span className="truncate">{activeShip.destinationAddress || 'In Transit'}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </button>
+                );
+              })}
               {vehicles.length === 0 && (
                 <div className="w-full text-center py-6">
                   <p className="text-white/60 text-sm">No vehicles in fleet</p>

@@ -140,53 +140,25 @@ public class DataInitializer implements CommandLineRunner {
     private void seedVehicles() {
         Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(Company::getId).orElse(1L);
 
-        if (vehicleRepository.count() > 0) {
-            vehicleRepository.findAll().forEach(v -> {
-                if (v.getCompanyId() == null) {
-                    v.setCompanyId(transportId);
-                }
-                // Reposition any legacy demo vehicles that were seeded in Delhi/Bangalore/Chennai/Kolkata
-                if (v.getPlateNumber() != null && v.getPlateNumber().contains("DL-")) {
-                    v.setPlateNumber("MH-04-EF-9012");
-                    v.setLat(19.2183);
-                    v.setLng(72.9781);
-                } else if (v.getPlateNumber() != null && v.getPlateNumber().contains("KA-")) {
-                    v.setPlateNumber("MH-02-CD-5678");
-                    v.setLat(19.1030);
-                    v.setLng(72.8270);
-                } else if (v.getPlateNumber() != null && v.getPlateNumber().contains("TN-")) {
-                    v.setPlateNumber("MH-46-GH-3456");
-                    v.setLat(18.9902);
-                    v.setLng(73.1277);
-                } else if (v.getPlateNumber() != null && v.getPlateNumber().contains("WB-")) {
-                    v.setPlateNumber("MH-12-IJ-7890");
-                    v.setLat(18.5204);
-                    v.setLng(73.8567);
-                }
-                vehicleRepository.save(v);
-            });
-            return;
-        }
-
-        // Demo fleet clustered in Mumbai-Pune Logistics Corridor
-        Vehicle v1 = createVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "AVAILABLE", 19.0760, 72.8777, 45.0, 1L);
-        v1.setCompanyId(transportId);
-        Vehicle v2 = createVehicle("MH-02-CD-5678", "VAN", "Mahindra Bolero", 2000.0, 8.0, "ELECTRIC", "AVAILABLE", 19.1030, 72.8270, 90.0, 3L);
-        v2.setCompanyId(transportId);
-        Vehicle v3 = createVehicle("MH-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "AVAILABLE", 19.2183, 72.9781, 180.0, 2L);
-        v3.setCompanyId(transportId);
-        Vehicle v4 = createVehicle("MH-46-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "AVAILABLE", 18.9902, 73.1277, 270.0, 5L);
-        v4.setCompanyId(transportId);
-        Vehicle v5 = createVehicle("MH-12-IJ-7890", "TRUCK", "Tata Ace", 1500.0, 6.0, "PETROL", "AVAILABLE", 18.5204, 73.8567, 135.0, 6L);
-        v5.setCompanyId(transportId);
-
-        vehicleRepository.saveAll(List.of(v1, v2, v3, v4, v5));
+        // Ensure 5 demo vehicles exist with accurate MMR locations
+        createOrUpdateVehicle("MH-01-AB-1234", "TRUCK", "Tata Prima", 15000.0, 30.0, "DIESEL", "IN_USE", 19.0370, 72.8534, 45.0, 1L, transportId);
+        createOrUpdateVehicle("MH-02-CD-5678", "VAN", "Mahindra Bolero", 2000.0, 8.0, "ELECTRIC", "IN_USE", 19.0660, 72.8680, 90.0, 3L, transportId);
+        createOrUpdateVehicle("MH-04-EF-9012", "TRUCK", "Ashok Leyland", 20000.0, 40.0, "DIESEL", "IN_USE", 19.2967, 73.0631, 180.0, 2L, transportId);
+        createOrUpdateVehicle("MH-46-GH-3456", "VAN", "Eicher Pro", 3500.0, 12.0, "DIESEL", "IN_USE", 18.9490, 72.9510, 270.0, 5L, transportId);
+        createOrUpdateVehicle("MH-12-IJ-7890", "TRUCK", "Tata Ace", 1500.0, 6.0, "PETROL", "IN_USE", 18.7560, 73.8550, 135.0, 6L, transportId);
     }
 
-    private Vehicle createVehicle(String plate, String type, String model, Double capacity, Double volume,
-                                   String fuel, String status, Double lat, Double lng, Double heading, Long depotId) {
-        Vehicle v = new Vehicle();
-        v.setPlateNumber(plate);
+    private void createOrUpdateVehicle(String plate, String type, String model, Double capacity, Double volume,
+                                       String fuel, String status, Double lat, Double lng, Double heading, Long depotId, Long transportId) {
+        Vehicle v = vehicleRepository.findAll().stream()
+                .filter(veh -> plate.equalsIgnoreCase(veh.getPlateNumber()))
+                .findFirst()
+                .orElse(null);
+
+        if (v == null) {
+            v = new Vehicle();
+            v.setPlateNumber(plate);
+        }
         v.setType(type);
         v.setModel(model);
         v.setCapacity(capacity);
@@ -195,24 +167,40 @@ public class DataInitializer implements CommandLineRunner {
         v.setCurrentVolumeM3(0.0);
         v.setFuelType(fuel);
         v.setStatus(status);
-        v.setLat(lat);
-        v.setLng(lng);
+        // If vehicle drifted out to Nagpur (lat > 20) or was uninitialized, snap back to MMR
+        if (v.getLat() == null || v.getLat() > 20.0 || v.getLng() == null || v.getLng() > 75.0) {
+            v.setLat(lat);
+            v.setLng(lng);
+        }
         v.setHeading(heading);
         v.setDepotId(depotId);
-        return v;
+        v.setCompanyId(transportId);
+        vehicleRepository.save(v);
     }
 
     private void seedDrivers() {
-        if (driverProfileRepository.count() > 0) return;
+        List<Vehicle> vehicles = vehicleRepository.findAll().stream()
+                .filter(v -> v.getPlateNumber() != null && v.getPlateNumber().startsWith("MH-"))
+                .sorted((a, b) -> a.getId().compareTo(b.getId()))
+                .toList();
 
-        List<Vehicle> vehicles = vehicleRepository.findAll();
         String[] emails = {"driver1@fleetvane.com", "driver2@fleetvane.com", "driver3@fleetvane.com"};
         String[] licenses = {"MH-DL-2024-001", "KA-DL-2024-002", "DL-DL-2024-003"};
 
         for (int i = 0; i < emails.length && i < vehicles.size(); i++) {
             User user = userRepository.findByEmail(emails[i]).orElse(null);
             if (user != null) {
-                DriverProfile profile = new DriverProfile(user.getId(), licenses[i], vehicles.get(i).getId(), true);
+                Long vehicleId = vehicles.get(i).getId();
+                DriverProfile profile = driverProfileRepository.findByUserId(user.getId()).orElse(null);
+                if (profile == null) {
+                    profile = new DriverProfile(user.getId(), licenses[i], vehicleId, true);
+                } else {
+                    profile.setVehicleId(vehicleId);
+                    profile.setIsAvailable(true);
+                    if (profile.getLicenseNumber() == null) {
+                        profile.setLicenseNumber(licenses[i]);
+                    }
+                }
                 driverProfileRepository.save(profile);
             }
         }
@@ -222,7 +210,10 @@ public class DataInitializer implements CommandLineRunner {
         Long clientId = userRepository.findByEmail(clientEmail).map(User::getId).orElse(1L);
         Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(com.fleetvane.shared.entity.Company::getId).orElse(1L);
 
-        List<Vehicle> vehicles = vehicleRepository.findAll();
+        List<Vehicle> vehicles = vehicleRepository.findAll().stream()
+                .filter(v -> v.getPlateNumber() != null && v.getPlateNumber().startsWith("MH-"))
+                .sorted((a, b) -> a.getId().compareTo(b.getId()))
+                .toList();
         if (vehicles.isEmpty()) return;
 
         Long v1 = vehicles.size() > 0 ? vehicles.get(0).getId() : null;
@@ -236,15 +227,25 @@ public class DataInitializer implements CommandLineRunner {
         Long d2 = drivers.size() > 1 ? drivers.get(1).getId() : null;
         Long d3 = drivers.size() > 2 ? drivers.get(2).getId() : null;
 
-        // Disconnect any legacy out-of-region shipments (Delhi/Bangalore/Kolkata) from demo vehicles
+        // Disconnect any legacy out-of-region shipments (Nagpur/Delhi/Bangalore/Kolkata) from demo vehicles
         List<Shipment> existing = shipmentRepository.findAll();
         for (Shipment s : existing) {
-            String addr = s.getOriginAddress() != null ? s.getOriginAddress() : "";
-            if (addr.contains("Delhi") || addr.contains("Bangalore") || addr.contains("Kolkata")
-                    || addr.contains("Whitefield") || addr.contains("Connaught") || addr.contains("HSR")
-                    || addr.contains("Nehru Place") || addr.contains("Chandni Chowk") || addr.contains("Salt Lake")) {
-                if (s.getVehicleId() != null) {
+            String origin = s.getOriginAddress() != null ? s.getOriginAddress() : "";
+            String dest = s.getDestinationAddress() != null ? s.getDestinationAddress() : "";
+            if (origin.contains("Nagpur") || dest.contains("Nagpur")
+                    || origin.contains("Delhi") || dest.contains("Delhi")
+                    || origin.contains("Bangalore") || dest.contains("Bangalore")
+                    || origin.contains("Kolkata") || dest.contains("Kolkata")
+                    || origin.contains("Whitefield") || dest.contains("Whitefield")
+                    || origin.contains("Connaught") || dest.contains("Connaught")
+                    || origin.contains("HSR") || dest.contains("HSR")
+                    || origin.contains("Nehru Place") || dest.contains("Nehru Place")
+                    || origin.contains("Chandni Chowk") || dest.contains("Chandni Chowk")
+                    || origin.contains("Salt Lake") || dest.contains("Salt Lake")
+                    || (s.getDeliveryLatitude() != null && s.getDeliveryLatitude() > 20.0)) {
+                if (s.getVehicleId() != null || !"DELIVERED".equals(s.getStatus())) {
                     s.setVehicleId(null);
+                    s.setDriverId(null);
                     s.setStatus("DELIVERED");
                     shipmentRepository.save(s);
                 }
@@ -289,12 +290,19 @@ public class DataInitializer implements CommandLineRunner {
                         || "DISPATCHED".equals(s.getStatus())
                         || "IN_TRANSIT".equals(s.getStatus()))
                         && s.getVehicleId() != null)
-                .forEach(s -> vehicleRepository.findById(s.getVehicleId()).ifPresent(vehicle -> {
-                    if (!"IN_USE".equals(vehicle.getStatus())) {
+                .forEach(s -> {
+                    vehicleRepository.findById(s.getVehicleId()).ifPresent(vehicle -> {
                         vehicle.setStatus("IN_USE");
                         vehicleRepository.save(vehicle);
+                    });
+                    if (s.getDriverId() != null) {
+                        driverProfileRepository.findByUserId(s.getDriverId()).ifPresent(dp -> {
+                            dp.setVehicleId(s.getVehicleId());
+                            dp.setIsAvailable(true);
+                            driverProfileRepository.save(dp);
+                        });
                     }
-                }));
+                });
     }
 
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,

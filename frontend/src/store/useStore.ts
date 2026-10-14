@@ -32,7 +32,7 @@ export const useStore = create<AppState>((set) => ({
   })),
   setVehicles: (vehicles) => set({ vehicles }),
   updateVehicleLocation: (vehicleId, lat, lng, speed, heading) => set((state) => ({
-    vehicles: state.vehicles.map(v => v.id === vehicleId ? { ...v, lat, lng, speed, heading } : v)
+    vehicles: state.vehicles.map(v => String(v.id) === String(vehicleId) ? { ...v, lat, lng, speed, heading } : v)
   })),
   setDrivers: (drivers) => set({ drivers }),
   setActivities: (activities) => set({ activities }),

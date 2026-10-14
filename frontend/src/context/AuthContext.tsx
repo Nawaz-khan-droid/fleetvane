@@ -26,6 +26,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       return { ...state, isLoading: action.payload };
     case 'LOGIN_SUCCESS':
       setAuthToken(action.payload.token); // Fix race condition by setting it synchronously
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('fleetvane_token', action.payload.token);
+          localStorage.setItem('fleetvane_user', JSON.stringify(action.payload.user));
+        } catch {}
+      }
       return {
         ...state,
         user: action.payload.user,
@@ -35,6 +41,12 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       };
     case 'LOGOUT':
       setAuthToken(null);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('fleetvane_token');
+          localStorage.removeItem('fleetvane_user');
+        } catch {}
+      }
       return { user: null, token: null, isLoading: false, error: null };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
@@ -80,6 +92,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        if (typeof window !== 'undefined') {
+          const savedToken = localStorage.getItem('fleetvane_token');
+          const savedUser = localStorage.getItem('fleetvane_user');
+          if (savedToken && savedUser) {
+            try {
+              const user = normalizeUser(JSON.parse(savedUser));
+              dispatch({
+                type: 'LOGIN_SUCCESS',
+                payload: { user, token: savedToken },
+              });
+              return;
+            } catch {}
+          }
+        }
         const res = await fetch('/api/auth/refresh', { method: 'POST' });
         if (res.ok) {
           const data = await res.json();

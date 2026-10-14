@@ -246,6 +246,7 @@ public class SimulationService {
                     Shipment nextShipment = pending.get(0);
                     nextShipment.setStatus("IN_TRANSIT");
                     nextShipment.setVehicleId(vehicle.getId());
+                    nextShipment.setDriverId(target.getDriverId());
                     nextShipment.setPickedUpAt(Instant.now());
                     shipmentRepository.save(nextShipment);
                     vehicle.setStatus("IN_USE");
@@ -255,6 +256,7 @@ public class SimulationService {
                     returnLeg.setTransportCompanyId(target.getTransportCompanyId());
                     returnLeg.setStatus("IN_TRANSIT");
                     returnLeg.setVehicleId(vehicle.getId());
+                    returnLeg.setDriverId(target.getDriverId());
                     returnLeg.setOriginAddress(target.getDestinationAddress());
                     returnLeg.setPickupLatitude(target.getDeliveryLatitude());
                     returnLeg.setPickupLongitude(target.getDeliveryLongitude());

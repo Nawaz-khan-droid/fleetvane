@@ -556,20 +556,16 @@ export default function ManagerShipments() {
                   <SelectValue placeholder="Select driver" />
                 </SelectTrigger>
                 <SelectContent>
-                  {availableDrivers
-                    .filter(d => String(d.driverProfile?.vehicleId ?? '') === String(selectedVehicleId))
-                    .map(d => (
-                      <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
-                    ))}
+                  {availableDrivers.map(d => {
+                    const isMatched = String(d.driverProfile?.vehicleId ?? '') === String(selectedVehicleId);
+                    return (
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.name} {isMatched ? '★ (Assigned)' : ''}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-              {selectedVehicleId && availableDrivers.every(
-                d => String(d.driverProfile?.vehicleId ?? '') !== String(selectedVehicleId)
-              ) && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
-                  No available driver is currently assigned to this vehicle.
-                </p>
-              )}
             </div>
           </div>
           <DialogFooter>
