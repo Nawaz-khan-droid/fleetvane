@@ -641,6 +641,8 @@ export default function ManagerFleet() {
   const vehicleRoutePolylineRef = useRef<any>(null);
   const vehicleGooglePolylineRef = useRef<any[]>([]);
   const vehicleRouteMarkersRef = useRef<any[]>([]);
+  const leafletRouteMarkersRef = useRef<any[]>([]);
+  const googleRouteMarkersRef = useRef<any[]>([]);
   const depotsRenderedRef = useRef(false);
   const depotCountRef = useRef(0);
   const depotMarkersRef = useRef<any[]>([]);
@@ -1272,23 +1274,56 @@ export default function ManagerFleet() {
 
   const clearVehicleRoute = useCallback(() => {
     const map = mapRef.current;
-    if (mapProvider === 'leaflet' && map) {
-      if (vehicleRoutePolylineRef.current) {
-        map.removeLayer(vehicleRoutePolylineRef.current);
-        vehicleRoutePolylineRef.current = null;
-      }
-      vehicleRouteMarkersRef.current.forEach(m => map.removeLayer(m));
-      vehicleRouteMarkersRef.current = [];
-    } else if (mapProvider === 'google') {
-      if (vehicleGooglePolylineRef.current && vehicleGooglePolylineRef.current.length > 0) {
-        vehicleGooglePolylineRef.current.forEach((p: any) => p.setMap(null));
-        vehicleGooglePolylineRef.current = [];
-      }
-      vehicleRouteMarkersRef.current.forEach(m => m.setMap(null));
-      vehicleRouteMarkersRef.current = [];
+
+    // 1. Clear Leaflet polyline
+    if (vehicleRoutePolylineRef.current) {
+      try {
+        if (map && typeof map.removeLayer === 'function') {
+          map.removeLayer(vehicleRoutePolylineRef.current);
+        }
+      } catch {}
+      vehicleRoutePolylineRef.current = null;
     }
+
+    // 2. Clear Google polylines
+    if (vehicleGooglePolylineRef.current && vehicleGooglePolylineRef.current.length > 0) {
+      vehicleGooglePolylineRef.current.forEach((p: any) => {
+        try {
+          if (typeof p?.setMap === 'function') p.setMap(null);
+        } catch {}
+      });
+      vehicleGooglePolylineRef.current = [];
+    }
+
+    // 3. Clear Leaflet route markers
+    leafletRouteMarkersRef.current.forEach((m: any) => {
+      try {
+        if (typeof m?.remove === 'function') m.remove();
+        else if (map && typeof map.removeLayer === 'function') map.removeLayer(m);
+      } catch {}
+    });
+    leafletRouteMarkersRef.current = [];
+
+    // 4. Clear Google route markers
+    googleRouteMarkersRef.current.forEach((m: any) => {
+      try {
+        if (typeof m?.setMap === 'function') m.setMap(null);
+      } catch {}
+    });
+    googleRouteMarkersRef.current = [];
+
+    // 5. Defensive cleanup of any legacy route markers
+    vehicleRouteMarkersRef.current.forEach((m: any) => {
+      try {
+        if (typeof m?.setMap === 'function') m.setMap(null);
+        else if (typeof m?.remove === 'function') m.remove();
+        else if (map && typeof map.removeLayer === 'function') map.removeLayer(m);
+      } catch {}
+    });
+    vehicleRouteMarkersRef.current = [];
+
     setActiveShipmentDetails(null);
-  }, [mapProvider]);
+  }, []);
 
   const renderVehicleRoute = useCallback(async (vehicle: Vehicle, showTraffic: boolean) => {
     const map = mapRef.current;
@@ -1300,15 +1335,20 @@ export default function ManagerFleet() {
 
     try {
       const allShipments = shipmentsQuery.data || [];
-      let activeShipment = allShipments.find((s: any) =>
-        (String(s.vehicleId) === String(vehicle.id) || String(s.assignedVehicleId) === String(vehicle.id)) &&
-        s.status !== 'DELIVERED' && s.status !== 'CANCELLED'
-      );
+      const matchesVehicle = (s: any) =>
+        String(s.vehicleId) === String(vehicle.id) ||
+        String(s.vehicle?.id) === String(vehicle.id) ||
+        (s.vehicle?.plateNumber && s.vehicle.plateNumber.toUpperCase() === vehicle.plateNumber?.toUpperCase());
 
+      let activeShipment = allShipments.find((s: any) => matchesVehicle(s) && s.status === 'IN_TRANSIT');
       if (!activeShipment) {
-        activeShipment = allShipments.find((s: any) =>
-          String(s.vehicleId) === String(vehicle.id) || String(s.assignedVehicleId) === String(vehicle.id)
-        );
+        activeShipment = allShipments.find((s: any) => matchesVehicle(s) && (s.status === 'DISPATCHED' || s.status === 'ASSIGNED'));
+      }
+      if (!activeShipment) {
+        activeShipment = allShipments.find((s: any) => matchesVehicle(s) && s.status !== 'DELIVERED' && s.status !== 'CANCELLED');
+      }
+      if (!activeShipment) {
+        activeShipment = allShipments.find((s: any) => matchesVehicle(s));
       }
 
       setActiveShipmentDetails(activeShipment || null);
@@ -1392,7 +1432,7 @@ export default function ManagerFleet() {
           const originMarker = L.marker([pickupLat, pickupLng], { icon: originIcon })
             .addTo(map)
             .bindPopup(`<b>Pickup Point</b><br/>${activeShipment?.originAddress || 'Origin'}`);
-          vehicleRouteMarkersRef.current.push(originMarker);
+          leafletRouteMarkersRef.current.push(originMarker);
         }
 
         // Destination flag pin
@@ -1405,7 +1445,7 @@ export default function ManagerFleet() {
         const destMarker = L.marker([destLat, destLng], { icon: destIcon })
           .addTo(map)
           .bindPopup(`<b>Destination</b><br/>${activeShipment?.destinationAddress || 'Dropoff'}`);
-        vehicleRouteMarkersRef.current.push(destMarker);
+        leafletRouteMarkersRef.current.push(destMarker);
 
         const bounds = polylineGroup.getBounds();
         bounds.extend([vehicle.lat, vehicle.lng]);
@@ -1507,7 +1547,7 @@ export default function ManagerFleet() {
             },
             title: `Pickup: ${activeShipment?.originAddress || 'Origin'}`,
           });
-          vehicleRouteMarkersRef.current.push(originMarker);
+          googleRouteMarkersRef.current.push(originMarker);
         }
 
         // Destination Marker
@@ -1526,7 +1566,7 @@ export default function ManagerFleet() {
           },
           title: `Destination: ${activeShipment?.destinationAddress || 'Dropoff'}`,
         });
-        vehicleRouteMarkersRef.current.push(destMarker);
+        googleRouteMarkersRef.current.push(destMarker);
 
         const bounds = new window.google.maps.LatLngBounds();
         path.forEach(pt => bounds.extend(pt));
