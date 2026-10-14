@@ -239,7 +239,34 @@ public class SimulationService {
                 target.setStatus("DELIVERED");
                 target.setDeliveredAt(Instant.now());
                 shipmentRepository.save(target);
-                vehicle.setStatus("AVAILABLE");
+
+                // Auto-transition to next available pending shipment or seamless return trip so vehicles never stall
+                List<Shipment> pending = shipmentRepository.findByStatus("REQUESTED");
+                if (!pending.isEmpty()) {
+                    Shipment nextShipment = pending.get(0);
+                    nextShipment.setStatus("IN_TRANSIT");
+                    nextShipment.setVehicleId(vehicle.getId());
+                    nextShipment.setPickedUpAt(Instant.now());
+                    shipmentRepository.save(nextShipment);
+                    vehicle.setStatus("IN_USE");
+                } else {
+                    Shipment returnLeg = new Shipment();
+                    returnLeg.setClientId(target.getClientId());
+                    returnLeg.setTransportCompanyId(target.getTransportCompanyId());
+                    returnLeg.setStatus("IN_TRANSIT");
+                    returnLeg.setVehicleId(vehicle.getId());
+                    returnLeg.setOriginAddress(target.getDestinationAddress());
+                    returnLeg.setPickupLatitude(target.getDeliveryLatitude());
+                    returnLeg.setPickupLongitude(target.getDeliveryLongitude());
+                    returnLeg.setDestinationAddress(target.getOriginAddress());
+                    returnLeg.setDeliveryLatitude(target.getPickupLatitude());
+                    returnLeg.setDeliveryLongitude(target.getPickupLongitude());
+                    returnLeg.setWeight(target.getWeight() != null ? target.getWeight() : 500.0);
+                    returnLeg.setCategory(target.getCategory() != null ? target.getCategory() : "General Freight");
+                    returnLeg.setPickedUpAt(Instant.now());
+                    shipmentRepository.save(returnLeg);
+                    vehicle.setStatus("IN_USE");
+                }
                 vehicleRepository.save(vehicle);
                 vehiclePaths.remove(vehicle.getId());
                 vehiclePathIndices.remove(vehicle.getId());

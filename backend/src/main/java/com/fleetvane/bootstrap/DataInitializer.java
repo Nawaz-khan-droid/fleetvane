@@ -219,12 +219,12 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedShipments() {
-        if (shipmentRepository.count() > 0) return;
-
         Long clientId = userRepository.findByEmail(clientEmail).map(User::getId).orElse(1L);
         Long transportId = companyRepository.findByType("TRANSPORT").stream().findFirst().map(com.fleetvane.shared.entity.Company::getId).orElse(1L);
 
         List<Vehicle> vehicles = vehicleRepository.findAll();
+        if (vehicles.isEmpty()) return;
+
         Long v1 = vehicles.size() > 0 ? vehicles.get(0).getId() : null;
         Long v2 = vehicles.size() > 1 ? vehicles.get(1).getId() : null;
         Long v3 = vehicles.size() > 2 ? vehicles.get(2).getId() : null;
@@ -235,28 +235,52 @@ public class DataInitializer implements CommandLineRunner {
         Long d1 = drivers.size() > 0 ? drivers.get(0).getId() : null;
         Long d2 = drivers.size() > 1 ? drivers.get(1).getId() : null;
         Long d3 = drivers.size() > 2 ? drivers.get(2).getId() : null;
-        Long d4 = drivers.size() > 3 ? drivers.get(3).getId() : null;
-        Long d5 = drivers.size() > 4 ? drivers.get(4).getId() : null;
 
-        // Mumbai cluster shipments
-        saveShipment(clientId, "REQUESTED", "Mumbai Warehouse", 19.0596, 72.8295, "Pune Distribution Center", 18.5204, 73.8567, 800.0, 120, 80, 60);
-        saveShipment(clientId, "ASSIGNED", "Mumbai Port", 19.0370, 72.8534, "Navi Mumbai Hub", 19.0330, 73.0297, 1200.0, 150, 100, 80, v1, d2);
-        saveShipment(clientId, "IN_TRANSIT", "Andheri Depot", 19.1136, 72.8697, "Thane Office", 19.2183, 72.9781, 500.0, 80, 60, 40, v3, d1);
+        // Disconnect any legacy out-of-region shipments (Delhi/Bangalore/Kolkata) from demo vehicles
+        List<Shipment> existing = shipmentRepository.findAll();
+        for (Shipment s : existing) {
+            String addr = s.getOriginAddress() != null ? s.getOriginAddress() : "";
+            if (addr.contains("Delhi") || addr.contains("Bangalore") || addr.contains("Kolkata")
+                    || addr.contains("Whitefield") || addr.contains("Connaught") || addr.contains("HSR")
+                    || addr.contains("Nehru Place") || addr.contains("Chandni Chowk") || addr.contains("Salt Lake")) {
+                if (s.getVehicleId() != null) {
+                    s.setVehicleId(null);
+                    s.setStatus("DELIVERED");
+                    shipmentRepository.save(s);
+                }
+            }
+        }
 
-        // Bangalore cluster shipments
-        saveShipment(clientId, "REQUESTED", "Whitefield Tech Park", 12.9698, 77.7500, "Electronic City", 12.8456, 77.6602, 300.0, 60, 40, 30);
-        saveShipment(clientId, "DELIVERED", "Koramangala Hub", 12.9352, 77.6245, "Indiranagar Depot", 12.9784, 77.6408, 150.0, 50, 40, 30, v2, d2);
-        saveShipment(clientId, "IN_TRANSIT", "HSR Layout", 12.9116, 77.6389, "BTM Extension", 12.9165, 77.6103, 650.0, 90, 70, 50, v2, d2);
+        // Ensure each of the 5 demo vehicles has exactly one realistic active IN_TRANSIT consignment in MMR
+        if (v1 != null && shipmentRepository.findByVehicleIdAndStatusIn(v1, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
+            saveShipment(clientId, "IN_TRANSIT", "Mumbai Port Container Terminal", 19.0370, 72.8534, "Navi Mumbai APMC Freight Hub", 19.0770, 72.9980, 4200.0, 150, 100, 80, v1, d1, transportId, "Heavy Machinery");
+        }
+        if (v2 != null && shipmentRepository.findByVehicleIdAndStatusIn(v2, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
+            saveShipment(clientId, "IN_TRANSIT", "Bandra Kurla Complex (BKC)", 19.0660, 72.8680, "Andheri SEEPZ IT Zone", 19.1230, 72.8740, 650.0, 80, 60, 40, v2, d2, transportId, "Electronics & Hardware");
+        }
+        if (v3 != null && shipmentRepository.findByVehicleIdAndStatusIn(v3, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
+            saveShipment(clientId, "IN_TRANSIT", "Bhiwandi Logistics Park", 19.2967, 73.0631, "Thane Wagle Industrial Estate", 19.1860, 72.9560, 7800.0, 200, 150, 100, v3, d3, transportId, "Textiles & Apparel");
+        }
+        if (v4 != null && shipmentRepository.findByVehicleIdAndStatusIn(v4, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
+            saveShipment(clientId, "IN_TRANSIT", "JNPT Port Terminal Nhava Sheva", 18.9490, 72.9510, "Panvel Express Freight Depot", 18.9902, 73.1277, 1100.0, 90, 70, 50, v4, d1, transportId, "Pharmaceuticals");
+        }
+        if (v5 != null && shipmentRepository.findByVehicleIdAndStatusIn(v5, List.of("ASSIGNED", "IN_TRANSIT")).isEmpty()) {
+            saveShipment(clientId, "IN_TRANSIT", "Chakan Auto Industrial Hub", 18.7560, 73.8550, "Hinjewadi Tech Park Phase 1", 18.5910, 73.7380, 850.0, 110, 80, 60, v5, d2, transportId, "Automotive Components");
+        }
 
-        // Delhi cluster shipments
-        saveShipment(clientId, "REQUESTED", "Connaught Place", 28.6315, 77.2167, "Gurgaon Cyber Hub", 28.4595, 77.0266, 2000.0, 200, 150, 100);
-        saveShipment(clientId, "ASSIGNED", "Nehru Place", 28.5494, 77.2530, "Noida Sector 62", 28.6270, 77.3720, 1500.0, 180, 120, 90, v3, d3);
-        saveShipment(clientId, "IN_TRANSIT", "Chandni Chowk", 28.6506, 77.2303, "Faridabad Industrial", 28.4089, 77.3178, 900.0, 110, 80, 60, v3, d3);
-        saveShipment(clientId, "DELIVERED", "Karol Bagh", 28.6519, 77.1905, "Dwarka Sector 10", 28.5800, 77.0450, 400.0, 70, 50, 40, v3, d3);
+        // Ensure pending REQUESTED shipments exist for live route optimization demonstration
+        boolean hasPending = shipmentRepository.findByStatus("REQUESTED").size() >= 2;
+        if (!hasPending) {
+            saveShipment(clientId, "REQUESTED", "Dadar Commercial Center", 19.0178, 72.8478, "Kurla West Logistics Hub", 19.0726, 72.8845, 500.0, 70, 50, 40, null, null, transportId, "Consumer Retail");
+            saveShipment(clientId, "REQUESTED", "Goregaon NESCO Exhibition Hub", 19.1550, 72.8550, "Borivali Western Depot", 19.2307, 72.8567, 920.0, 100, 70, 50, null, null, transportId, "FMCG Products");
+            saveShipment(clientId, "REQUESTED", "Vashi Sector 17 Commercial Hub", 19.0660, 72.9980, "Airoli Knowledge Park", 19.1579, 72.9989, 450.0, 60, 40, 30, null, null, transportId, "Medical Supplies");
+        }
 
-        // Chennai + Kolkata
-        saveShipment(clientId, "REQUESTED", "Chennai T. Nagar", 13.0418, 80.2341, "Chennai Port", 13.0850, 80.2950, 1100.0, 130, 90, 70);
-        saveShipment(clientId, "ASSIGNED", "Kolkata Salt Lake", 22.5804, 88.4168, "Howrah Station", 22.5850, 88.3460, 750.0, 100, 70, 50, v5, d5 != null ? d5 : d1);
+        // Ensure at least one delivered historical record with complete proof exists
+        boolean hasDelivered = shipmentRepository.findByStatus("DELIVERED").size() >= 1;
+        if (!hasDelivered) {
+            saveShipment(clientId, "DELIVERED", "Colaba Cargo Depot", 18.9067, 72.8147, "Worli Seaface Business Hub", 19.0166, 72.8166, 320.0, 50, 40, 30, v1, d1, transportId, "Express Documents");
+        }
     }
 
     private void synchronizeActiveAssignments() {
@@ -289,6 +313,12 @@ public class DataInitializer implements CommandLineRunner {
     private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
                                String destAddr, Double dLat, Double dLng, Double weight, int l, int w, int h,
                                Long vehicleId, Long driverId, Long transportCompanyId) {
+        saveShipment(clientId, status, originAddr, oLat, oLng, destAddr, dLat, dLng, weight, l, w, h, vehicleId, driverId, transportCompanyId, "General Freight");
+    }
+
+    private void saveShipment(Long clientId, String status, String originAddr, Double oLat, Double oLng,
+                               String destAddr, Double dLat, Double dLng, Double weight, int l, int w, int h,
+                               Long vehicleId, Long driverId, Long transportCompanyId, String category) {
         Shipment s = new Shipment();
         s.setClientId(clientId);
         s.setTransportCompanyId(transportCompanyId);
@@ -306,6 +336,7 @@ public class DataInitializer implements CommandLineRunner {
         s.setVolumeM3((l * w * h) / 1_000_000.0);
         s.setVehicleId(vehicleId);
         s.setDriverId(driverId);
+        s.setCategory(category != null ? category : "General Freight");
         if ("ASSIGNED".equals(status) || "IN_TRANSIT".equals(status)) {
             s.setAssignedAt(Instant.now().minus(2, ChronoUnit.HOURS));
         }
