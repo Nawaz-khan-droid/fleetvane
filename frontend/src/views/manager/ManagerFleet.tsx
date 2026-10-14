@@ -1295,7 +1295,22 @@ export default function ManagerFleet() {
       vehicleGooglePolylineRef.current = [];
     }
 
-    // 3. Clear Leaflet route markers
+    // 3. Clear any global solver multi-routes (eliminates ghost/empty routes)
+    if (polylineGroupRef.current) {
+      try {
+        polylineGroupRef.current.clearLayers();
+      } catch {}
+    }
+    if (googlePolylinesRef.current && googlePolylinesRef.current.length > 0) {
+      googlePolylinesRef.current.forEach((p: any) => {
+        try {
+          if (typeof p?.setMap === 'function') p.setMap(null);
+        } catch {}
+      });
+      googlePolylinesRef.current = [];
+    }
+
+    // 4. Clear Leaflet route markers
     leafletRouteMarkersRef.current.forEach((m: any) => {
       try {
         if (typeof m?.remove === 'function') m.remove();
@@ -1304,7 +1319,7 @@ export default function ManagerFleet() {
     });
     leafletRouteMarkersRef.current = [];
 
-    // 4. Clear Google route markers
+    // 5. Clear Google route markers
     googleRouteMarkersRef.current.forEach((m: any) => {
       try {
         if (typeof m?.setMap === 'function') m.setMap(null);
@@ -1312,7 +1327,7 @@ export default function ManagerFleet() {
     });
     googleRouteMarkersRef.current = [];
 
-    // 5. Defensive cleanup of any legacy route markers
+    // 6. Defensive cleanup of any legacy route markers
     vehicleRouteMarkersRef.current.forEach((m: any) => {
       try {
         if (typeof m?.setMap === 'function') m.setMap(null);
@@ -1346,9 +1361,6 @@ export default function ManagerFleet() {
       }
       if (!activeShipment) {
         activeShipment = allShipments.find((s: any) => matchesVehicle(s) && s.status !== 'DELIVERED' && s.status !== 'CANCELLED');
-      }
-      if (!activeShipment) {
-        activeShipment = allShipments.find((s: any) => matchesVehicle(s));
       }
 
       setActiveShipmentDetails(activeShipment || null);
@@ -2124,7 +2136,9 @@ export default function ManagerFleet() {
                     {(() => {
                       const driverName = resolveDriverName(v);
                       const activeShip = shipmentsQuery.data?.find((s: any) =>
-                        (String(s.vehicleId) === String(v.id) || String(s.assignedVehicleId) === String(v.id)) &&
+                        (String(s.vehicleId) === String(v.id) ||
+                         String(s.vehicle?.id) === String(v.id) ||
+                         (s.vehicle?.plateNumber && s.vehicle.plateNumber.toUpperCase() === v.plateNumber?.toUpperCase())) &&
                         s.status !== 'DELIVERED' && s.status !== 'CANCELLED'
                       );
                       return (

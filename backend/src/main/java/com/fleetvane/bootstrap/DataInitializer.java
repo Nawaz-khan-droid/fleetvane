@@ -167,11 +167,9 @@ public class DataInitializer implements CommandLineRunner {
         v.setCurrentVolumeM3(0.0);
         v.setFuelType(fuel);
         v.setStatus(status);
-        // Reset to canonical corridor location if uninitialized or drifted outside Mumbai MMR bounding box
-        if (v.getLat() == null || v.getLat() < 18.8 || v.getLat() > 19.4 || v.getLng() == null || v.getLng() < 72.7 || v.getLng() > 73.2) {
-            v.setLat(lat);
-            v.setLng(lng);
-        }
+        // Always anchor demo vehicles strictly to their active MMR corridor locations
+        v.setLat(lat);
+        v.setLng(lng);
         v.setHeading(heading);
         v.setDepotId(depotId);
         v.setCompanyId(transportId);
@@ -236,6 +234,9 @@ public class DataInitializer implements CommandLineRunner {
                     || origin.contains("Delhi") || dest.contains("Delhi")
                     || origin.contains("Bangalore") || dest.contains("Bangalore")
                     || origin.contains("Kolkata") || dest.contains("Kolkata")
+                    || origin.contains("Chakan") || dest.contains("Chakan")
+                    || origin.contains("Hinjewadi") || dest.contains("Hinjewadi")
+                    || origin.contains("Pune") || dest.contains("Pune")
                     || origin.contains("Whitefield") || dest.contains("Whitefield")
                     || origin.contains("Connaught") || dest.contains("Connaught")
                     || origin.contains("HSR") || dest.contains("HSR")
@@ -324,9 +325,11 @@ public class DataInitializer implements CommandLineRunner {
             s.setVehicleId(vehicleId);
             s.setClientId(clientId);
             s.setTransportCompanyId(transportId);
-            s.setStatus("IN_TRANSIT");
-            s.setAssignedAt(Instant.now().minus(2, ChronoUnit.HOURS));
         }
+        s.setStatus("IN_TRANSIT");
+        s.setAssignedAt(Instant.now().minus(2, ChronoUnit.HOURS));
+        s.setPickedUpAt(Instant.now().minus(1, ChronoUnit.HOURS));
+        s.setDeliveredAt(null);
         s.setOriginAddress(originAddr);
         s.setPickupLatitude(oLat);
         s.setPickupLongitude(oLng);
